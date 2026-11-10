@@ -143,6 +143,15 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);borde
 .toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--red-d);color:#fff;padding:10px 18px;border-radius:8px;z-index:60;font-size:14px;max-width:90vw}
 .qr{display:grid;place-items:center;padding:8px;background:#fff;border-radius:8px;width:max-content;margin:auto}
 .mono{font-family:Consolas,"Courier New",monospace;background:var(--bg);padding:2px 7px;border-radius:5px}
+.modal.wide{width:min(1180px,100%);height:94vh;display:flex;flex-direction:column}
+.modal.wide .bd{flex:1;padding:0 12px;display:flex}
+.pv{flex:1;width:100%;min-height:60vh;border:1px solid var(--line);border-radius:8px;background:#525659}
+.rg{padding:18px 20px;column-width:300px;column-gap:28px;font-size:14px}
+.rg p{margin:0 0 10px;break-inside:avoid}
+.rg-h{font-size:19px;color:var(--red);margin:6px 0 8px;break-after:avoid;border-left:4px solid var(--red);padding-left:8px}
+.rg-a{color:var(--red)}
+.rg-s{font-style:italic;color:var(--ink2);font-size:12.5px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rg-h,:root:not([data-theme="light"]) .rg-a{color:#F28B82}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -253,7 +262,7 @@ function seedData(){
 const DEMO=!API_URL;
 let S={role:null,code:null,entId:null,ents:[],els:[],res:[],jr:[],photos:{}};
 let V={view:"dash",ent:null,tab:"id"};
-let DB=null;
+let DB=null,PEND_M=null;
 async function api(action,p={}){
   if(DEMO)return demo(action,p);
   const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,code:S.code,...p})});
@@ -280,6 +289,8 @@ function demo(a,p){
    case"photo":return{data:DB.photos[p.entId]||""};
    case"sendAccess":{const e=DB.ents.find(x=>x.id===p.id);if(!e.email)throw new Error("Aucune adresse mail sur la fiche de "+e.nom);return{}}
    case"testMail":return{};
+   case"sendRegistre":return{};
+   case"lireDoc":return{items:[{rub:"lev",libelle:"Chariot élévateur – VGP",detail:"Toyota 8FD25 – n° 30215",serie:"30215",dernier:today(),per:6,organisme:"RUNIXO CONTRÔLE",resultat:"R",ref:"VGP-2026-0198",notes:"",reserves:[{texte:"Ceinture de sécurité à remplacer",gravite:"moyenne"}]}]};
    case"seed":return{};
   }
 }
@@ -291,6 +302,7 @@ async function login(code){
   S.role=r.role;S.entId=r.entId;store.set("reg3aim_code",S.code);
   await reload();
   if(S.role!=="admin"){V={view:"ent",ent:S.entId,tab:"id"}}
+  if(PEND_M&&S.els.some(x=>x.id===PEND_M)){V={view:"machine",el:PEND_M}}PEND_M=null;
   render();
 }
 async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,jr:r.jr||[]});
@@ -318,6 +330,7 @@ function render(){
   <header class="top"><div class="in"><div class="brand" id="home"><div class="mark">3A</div><div><b>Registre de sécurité</b><small>3AIM CFA</small></div></div><div class="sp"></div>
   <span class="who">${esc(who)}</span><button class="btn dk sm" id="out">Se déconnecter</button></div></header><main class="wrap" id="main"></main>`;
   $("#out").onclick=logout;$("#home").onclick=()=>{if(S.role==="admin"){V={view:"dash"};render()}};
+  if(V.view==="machine")return renderMachine();
   if(V.view==="ent"&&S.ents.find(e=>e.id===V.ent))renderEnt();else{V={view:"dash"};S.role==="admin"?renderDash():renderLogin("Accès introuvable")}
 }
 
@@ -361,19 +374,20 @@ function renderEnt(){
    <div><h1>${esc(e.nom)}</h1><div class="hint">${esc(e.activite||"")}</div>
    <div class="meta"><div><span>Adresse</span><br>${esc([e.adresse,[e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))||"–"}</div><div><span>SIRET</span><br>${esc(e.siret||"–")}</div><div><span>Contact</span><br>${esc(e.contact||"–")}${e.email?`<br>${esc(e.email)}`:adm?`<br><span style="color:var(--bad)">Pas de mail : pas de relance</span>`:""}</div></div></div>
    <div style="text-align:center"><div class="gauge big" style="--v:${s};--gc:${scol(s)}"><span>${s}%</span></div><div class="hint" style="margin-top:6px">Conformité</div></div></section>
-  <div class="acts">${ro?"":`<button class="btn pri" id="dep">Déposer un rapport</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
-   ${ro?"":`<button class="btn" id="ef">Modifier la fiche</button>`}${adm?`<button class="btn" id="ac">Accès client</button>`:""}<input type="file" id="phf" accept="image/*" hidden><input type="file" id="depf" hidden></div>
-  <nav class="tabs" role="tablist">${RUBS.map(r=>`<button class="tab ${V.tab===r.k?"on":""}" style="--rc:${r.c}" data-t="${r.k}" role="tab" aria-selected="${V.tab===r.k}"><span class="dot"></span>${r.n}${r.k!=="id"?` <span class="ct ${alert(r.k)?"alert":""}">${cnt(r.k)}</span>`:""}</button>`).join("")}</nav>
+  <div class="acts">${ro?"":`<button class="btn" id="dep" title="Le document est lu automatiquement et rangé dans la bonne rubrique">Déposer un rapport</button>`}<button class="btn pri" id="vw">Voir le registre</button>${ro?"":`<button class="btn" id="ml">Envoyer par mail</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
+   ${ro?"":`<button class="btn" id="ef">Modifier la fiche</button>`}${adm?`<button class="btn" id="ac">Accès client</button><button class="btn" id="qr">Étiquettes QR machines</button>`:""}<input type="file" id="phf" accept="image/*" hidden><input type="file" id="depf" hidden></div>
+  <nav class="tabs" role="tablist">${RUBS.map(r=>`<button class="tab ${V.tab===r.k?"on":""}" style="--rc:${r.c}" data-t="${r.k}" role="tab" aria-selected="${V.tab===r.k}"><span class="dot"></span>${r.n}${r.k!=="id"?` <span class="ct ${alert(r.k)?"alert":""}">${cnt(r.k)}</span>`:""}</button>`).join("")}<button class="tab ${V.tab==="reg"?"on":""}" style="--rc:#B71C1C" data-t="reg" role="tab" aria-selected="${V.tab==="reg"}"><span class="dot"></span>Réglementation</button></nav>
   <div class="panel" id="pn"></div>`;
   document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{V.tab=b.dataset.t;renderEnt()});
   if($("#bk"))$("#bk").onclick=()=>{V={view:"dash"};render()};
   if(!ro){$("#ph").onclick=()=>$("#phf").click();$("#phf").onchange=ev=>uploadPhoto(e,ev.target.files[0]);$("#ef").onclick=()=>entForm(e);$("#dep").onclick=()=>$("#depf").click();$("#depf").onchange=ev=>deposer(e,ev.target.files[0])}
-  if(adm)$("#ac").onclick=()=>access(e);
-  $("#xp").onclick=()=>exportPDF(e);$("#xx").onclick=()=>exportXLS(e);
+  if(adm){$("#ac").onclick=()=>access(e);$("#qr").onclick=()=>etiquettes(e)}
+  $("#xp").onclick=()=>exportPDF(e);$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
   if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
   const pn=$("#pn");
   if(V.tab==="id")return panelId(e,pn);
   if(V.tab==="obs")return panelObs(e,pn);
+  if(V.tab==="reg")return panelReg(pn);
   panelRub(e,V.tab,pn);
 }
 function panelId(e,pn){
@@ -516,6 +530,53 @@ function qrPoster(e,qr){ // affichette A5 prête à imprimer
   return c.toDataURL("image/png");
 }
 
+
+/* ============ RÉGLEMENTATION (site) ============ */
+function panelReg(pn){
+  const blk=a=>a[0]==="h"?`<h3 class="rg-h">${esc(a[1])}</h3>`:a[0]==="p"?`<p>${esc(a[1])}</p>`:a[0]==="s"?`<p class="rg-s">${esc(a[1])}</p>`:`<p><b>${esc(a[1])}</b><br>${esc(a[2])}</p>`;
+  pn.innerHTML=`<div class="card rubh" style="--rc:#B71C1C"><div><h2>Les registres obligatoires en santé et sécurité</h2><p>L’essentiel à retenir pour l’employeur, les salariés et le CSE</p></div></div>
+  <div class="card rg">${NOTE.map(blk).join("")}</div>
+  <div class="card rubh" style="--rc:#5B6474;margin-top:18px"><div><h2>Textes de référence – Code du travail</h2><p>Extraits en vigueur à la date de mise à jour – version officielle sur <a href="https://www.legifrance.gouv.fr" target="_blank" rel="noopener">legifrance.gouv.fr</a></p></div></div>
+  <div class="card rg">${TEXTES.map(a=>a[0]==="h"?`<h3 class="rg-h">${esc(a[1])}</h3>`:`<p><b class="rg-a">${esc(a[1])}</b><br>${esc(a[2])}</p>`).join("")}</div>`;
+}
+
+/* ============ APERÇU + ENVOI PAR MAIL ============ */
+async function apercu(e){
+  let doc;try{doc=await buildPDF(e)}catch(x){toast("Aperçu impossible : "+x.message);return}
+  const url=URL.createObjectURL(doc.output("blob")),ro=S.role==="lecture";
+  const m=modal("Aperçu du registre – "+esc(e.nom),"#B71C1C",`<iframe class="pv" src="${url}#view=FitH" title="Aperçu du registre"></iframe>`,
+    `<button class="btn" data-x2>Fermer</button>${ro?"":`<button class="btn" id="p_m">Envoyer par mail</button>`}<button class="btn pri" id="p_d">Télécharger le PDF</button>`);
+  m.ov.querySelector(".modal").classList.add("wide");
+  m.ov.querySelector("[data-x2]").onclick=()=>{m.close();URL.revokeObjectURL(url)};
+  m.q("#p_d").onclick=()=>saveFile(pdfName(e),doc.output("blob"));
+  if(m.q("#p_m"))m.q("#p_m").onclick=()=>{m.close();mailForm(e,doc)};
+}
+function mailForm(e,doc){
+  const m=modal("Envoyer le registre par mail","#B71C1C",`
+   <label class="f">Destinataire(s)<input id="m_to" type="text" value="${esc(S.role==="admin"?(e.email||""):"")}" placeholder="nom@entreprise.re, autre@entreprise.re"></label>
+   <label class="f">Objet<input id="m_su" value="${esc("Registre de sécurité – "+e.nom)}"></label>
+   <label class="f">Message<textarea id="m_tx" rows="6">Bonjour,
+
+Veuillez trouver ci-joint le registre de sécurité de ${esc(e.nom)}, à jour au ${fr(today())}.
+
+Il est aussi consultable à tout moment en ligne : ${APP_URL}
+
+Cordialement,
+3AIM CFA – ${ORG.tel}</textarea></label>
+   <p class="hint" style="margin:0">Le registre complet est joint en PDF. Une copie t’est envoyée.</p><div class="err" id="m_e"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="m_s">Envoyer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.q("#m_s").onclick=async()=>{
+    const to=m.q("#m_to").value.split(/[,;\s]+/).filter(Boolean);
+    if(!to.length||to.some(a=>!/^\S+@\S+\.\S+$/.test(a))){m.q("#m_e").textContent="Indique une adresse mail valide.";m.q("#m_to").focus();return}
+    const b=m.q("#m_s");b.disabled=true;b.textContent="Préparation…";
+    try{const d=doc||await buildPDF(e);b.textContent="Envoi…";
+      const data=d.output("datauristring").split(",")[1];
+      await api("sendRegistre",{entId:e.id,to:to.join(","),subject:m.q("#m_su").value.trim()||"Registre de sécurité",message:m.q("#m_tx").value,name:pdfName(e),data});
+      m.close();toast(DEMO?"Mode démo : le mail partira une fois l’outil en ligne":"Registre envoyé à "+to.join(", "));
+    }catch(x){b.disabled=false;b.textContent="Envoyer";m.q("#m_e").textContent=x.message}};
+}
+
 /* ============ FICHIERS ============ */
 async function saveFile(name,blob){
   try{if(window.claude&&window.claude.use){const dl=await window.claude.use("downloads");if(dl){await dl.save({filename:name,data:blob});return}}}catch(x){if(x&&x.code==="declined")return}
@@ -532,20 +593,95 @@ async function uploadPhoto(e,f){
   const url=c.toDataURL("image/jpeg",.85);toast("Envoi de la photo…");
   try{await api("upload",{entId:e.id,kind:"photo",name:"photo_"+e.nom+".jpg",mime:"image/jpeg",data:url.split(",")[1]});S.photos[e.id]=url;e.photoId=e.photoId||"ok";renderEnt();toast("Photo enregistrée")}catch(z){toast(z.message)}
 }
+/* ============ DÉPÔT INTELLIGENT (lecture automatique) ============ */
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
 function deposer(e,f){
-  if(!f)return;
+  if(!f)return;$("#depf").value="";
+  const m=modal("Lecture du document",RUB.id.c,`<div class="calc">${esc(f.name)}</div><p id="d_st" style="margin:0">Envoi du document…</p><div class="err" id="d_e"></div>`,`<button class="btn" data-x2>Annuler</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  (async()=>{
+    let u;try{u=await uploadFile(e,f,"doc")}catch(z){m.q("#d_e").textContent=z.message;return}
+    m.q("#d_st").textContent="Lecture automatique du rapport en cours (15 à 30 secondes)…";
+    let r=null;
+    try{if(f.size>9e6)throw new Error("Fichier trop lourd pour la lecture automatique");
+      r=await api("lireDoc",{entId:e.id,name:f.name,mime:f.type||"application/pdf",data:await toB64(f)})}catch(z){r={err:z.message}}
+    m.close();
+    if(!r||r.err||!r.items||!r.items.length){toast(r&&r.err?"Lecture automatique indisponible : saisie manuelle":"Aucune vérification reconnue : saisie manuelle");return choixManuel(e,u.url)}
+    validerLecture(e,r.items,u.url);
+  })();
+}
+function choixManuel(e,url){
   const E=els(e.id);
-  const m=modal("Déposer un rapport",RUB.id.c,`<div class="calc">${esc(f.name)}</div>
-   <label class="f">Ce document concerne<select id="d_el"><option value="">Choisir…</option>${RUBS.filter(r=>CATA[r.k]).map(r=>`<optgroup label="${r.n}">${E.filter(x=>x.rub===r.k).map(x=>`<option value="${x.id}">${esc(x.libelle)}${x.detail?" – "+esc(x.detail):""}</option>`).join("")}<option value="new:${r.k}">+ Nouvel élément (${r.n})</option></optgroup>`).join("")}</select></label>
-   <p class="hint" style="margin:0">Après l’envoi, tu indiques la date et le résultat : l’échéance suivante se calcule toute seule.</p><div class="err" id="d_e"></div>`,
+  const m=modal("Ce document concerne…",RUB.id.c,`<label class="f">Élément du registre<select id="d_el"><option value="">Choisir…</option>${RUBS.filter(r=>CATA[r.k]).map(r=>`<optgroup label="${r.n}">${E.filter(x=>x.rub===r.k).map(x=>`<option value="${x.id}">${esc(x.libelle)}${x.detail?" – "+esc(x.detail):""}</option>`).join("")}<option value="new:${r.k}">+ Nouvel élément (${r.n})</option></optgroup>`).join("")}</select></label><div class="err" id="d_e"></div>`,
    `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="d_s">Continuer</button>`);
   m.ov.querySelector("[data-x2]").onclick=m.close;
-  m.q("#d_s").onclick=async()=>{const v=m.q("#d_el").value;if(!v){m.q("#d_e").textContent="Choisis l’élément concerné.";return}
-    m.q("#d_s").textContent="Envoi…";
-    try{const u=await uploadFile(e,f,"doc");m.close();
-      if(v.startsWith("new:"))elForm(e,{rub:v.slice(4),doc:u.url,dernier:today(),resultat:v.slice(4)==="form"?"":"C"});
-      else{const x=S.els.find(y=>y.id===v);elForm(e,{...x,dernier:today(),resultat:x.rub==="form"?"":"C",ref:"",doc:u.url},true)}}catch(z){m.q("#d_e").textContent=z.message;m.q("#d_s").textContent="Continuer"}};
-  $("#depf").value="";
+  m.q("#d_s").onclick=()=>{const v=m.q("#d_el").value;if(!v){m.q("#d_e").textContent="Choisis l’élément concerné.";return}m.close();
+    if(v.startsWith("new:"))elForm(e,{rub:v.slice(4),doc:url,dernier:today(),resultat:v.slice(4)==="form"?"":"C"});
+    else{const x=S.els.find(y=>y.id===v);elForm(e,{...x,dernier:today(),resultat:x.rub==="form"?"":"C",ref:"",doc:url},true)}};
+}
+function trouver(e,it){
+  const E=els(e.id).filter(x=>x.rub===it.rub),s=norm(it.serie);
+  return (s.length>=4&&E.find(x=>norm(x.detail+" "+x.libelle).includes(s)))||E.find(x=>norm(x.libelle)===norm(it.libelle))||null;
+}
+function validerLecture(e,items,url){
+  const L=items.map((it,i)=>{const ex=trouver(e,it);return{...it,i,ex,per:Number(it.per)||(ex?ex.per:12)}});
+  const res=r=>`<span class="pill p-${r==="NC"?"nc":r==="R"?"bientot":"ok"}">${RES[r]||"–"}</span>`;
+  const m=modal("Vérifié automatiquement – à valider","#B71C1C",`<p class="hint" style="margin:0">Voici ce que j’ai lu dans le document. Corrige si besoin, puis enregistre : tout est rangé dans la bonne rubrique.</p>
+   ${L.map(it=>`<div class="card" style="padding:12px;border-left:5px solid ${RUB[it.rub]?.c||"#5B6474"}">
+     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${esc(RUB[it.rub]?.n||"")}</b>${it.rub!=="form"?res(it.resultat):""}</div>
+     <div class="two" style="margin-top:8px"><label class="f">Élément<input data-k="libelle" data-i="${it.i}" value="${esc(it.libelle)}"></label><label class="f">Précisions<input data-k="detail" data-i="${it.i}" value="${esc(it.detail)}"></label></div>
+     <div class="two"><label class="f">Date<input type="date" data-k="dernier" data-i="${it.i}" value="${esc(it.dernier)}"></label><label class="f">Périodicité (mois)<input type="number" min="1" data-k="per" data-i="${it.i}" value="${esc(it.per)}"></label></div>
+     <div class="two"><label class="f">Vérifié par<input data-k="organisme" data-i="${it.i}" value="${esc(it.organisme)}"></label><label class="f">N° rapport<input data-k="ref" data-i="${it.i}" value="${esc(it.ref)}"></label></div>
+     ${(it.reserves||[]).length?`<div class="hint" style="margin-top:6px"><b>Réserves relevées :</b><br>${it.reserves.map(r=>"• "+esc(r.texte||r)).join("<br>")}</div>`:""}
+     <div class="hint" style="margin-top:6px">${it.ex?`Mise à jour de l’élément existant <b>${esc(it.ex.libelle)}</b>`:"Nouvel élément ajouté au registre"}${it.ex&&it.resultat!=="NC"&&ress(e.id).some(r=>r.elId===it.ex.id&&!r.levee)?" · les réserves précédentes de cet équipement seront levées":""}</div></div>`).join("")}<div class="err" id="v_e"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="v_s">Enregistrer dans le registre</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.ov.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>{L[inp.dataset.i][inp.dataset.k]=inp.value});
+  m.q("#v_s").onclick=async()=>{const b=m.q("#v_s");b.disabled=true;b.textContent="Enregistrement…";
+    try{for(const it of L){
+        const el={id:it.ex?.id||"",entId:e.id,rub:it.rub,libelle:it.libelle,detail:it.detail||it.ex?.detail||"",per:Number(it.per)||12,dernier:it.dernier,organisme:it.organisme,resultat:it.rub==="form"?"":(it.resultat||""),ref:it.ref,notes:it.notes||"",doc:url};
+        const r2=await api("saveEl",{el});const k=S.els.findIndex(y=>y.id===r2.el.id);if(k>=0)S.els[k]=r2.el;else S.els.push(r2.el);
+        if(it.ex&&it.resultat!=="NC")for(const o of ress(e.id).filter(r=>r.elId===it.ex.id&&!r.levee)){const x=await api("saveRes",{res:{...o,levee:it.dernier||today(),preuve:"Vérification "+(it.ref||"")+" du "+fr(it.dernier)}});const j=S.res.findIndex(y=>y.id===x.res.id);S.res[j]=x.res}
+        const rs=(it.reserves||[]).map(r=>typeof r==="string"?{texte:r}:r);
+        if(it.resultat==="NC"&&!rs.some(r=>/contre.?visite/i.test(r.texte)))rs.unshift({texte:"Contre-visite obligatoire avant remise en service",gravite:"haute"});
+        for(const r of rs){const x=await api("saveRes",{res:{entId:e.id,elId:r2.el.id,date:it.dernier||today(),texte:`${it.libelle}${it.detail?" ("+it.detail+")":""} : ${r.texte}`,gravite:r.gravite||(it.resultat==="NC"?"haute":"moyenne"),levee:"",preuve:""}});S.res.push(x.res)}
+      }
+      m.close();toast(L.length>1?`${L.length} vérifications enregistrées`:"Vérification enregistrée");renderEnt();
+    }catch(z){b.disabled=false;b.textContent="Enregistrer dans le registre";m.q("#v_e").textContent=z.message}};
+}
+
+/* ============ QR PAR MACHINE ============ */
+function etiquettes(e){
+  const L=els(e.id).filter(x=>["lev","epi","inst","inc"].includes(x.rub));
+  if(!L.length){toast("Aucun équipement à étiqueter");return}
+  if(!e.lecture){toast("Code de consultation manquant");return}
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4"}),lw=95,lh=54,mx=7.5,my=10,gx=5,gy=3.5;
+  L.forEach((x,i)=>{const k=i%10;if(i&&!k)doc.addPage();const X=mx+(k%2)*(lw+gx),Y=my+Math.floor(k/2)*(lh+gy);
+    doc.setDrawColor(200,205,214);doc.setLineWidth(.3);doc.roundedRect(X,Y,lw,lh,2.5,2.5);
+    for(let j=0;j<40;j++){const t=j/39;doc.setFillColor(Math.round(94+(211-94)*t),Math.round(10+(47-10)*t),Math.round(10+(47-10)*t));doc.rect(X+lw*j/40,Y,lw/40+.2,9,"F")}
+    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.text("Registre de sécurité",X+4,Y+6);
+    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(255,225,200);doc.text("3AIM CFA",X+lw-4,Y+6,{align:"right"});
+    doc.addImage(qrData(`${APP_URL}/?c=${e.lecture}&m=${x.id}`),"PNG",X+lw-37,Y+12,34,34);
+    doc.setTextColor(20,33,61);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(doc.splitTextToSize(P(x.libelle),54).slice(0,2),X+4,Y+16);
+    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(75,85,99);doc.text(doc.splitTextToSize(P(x.detail),54).slice(0,3),X+4,Y+26.5);
+    doc.setFontSize(7.2);doc.setTextColor(122,14,14);doc.text(doc.splitTextToSize("Scannez pour voir l'état à jour : apte ou non, dernière et prochaine vérification",54),X+4,Y+40);
+    doc.setTextColor(138,147,163);doc.setFontSize(6.8);doc.text(P(e.nom),X+4,Y+lh-3);
+  });
+  saveFile(`Etiquettes_QR_${e.nom.replace(/\W+/g,"_")}.pdf`,doc.output("blob"));
+}
+function renderMachine(){
+  const x=S.els.find(y=>y.id===V.el);if(!x){V={view:"ent",ent:S.entId||S.ents[0]?.id,tab:"id"};return render()}
+  const e=S.ents.find(z=>z.id===x.entId),s=statut(x),R=ress(x.entId).filter(r=>r.elId===x.id&&!r.levee);
+  const big={ok:["En service – à jour","#1E7F4F","#E5F3EB"],bientot:["En service – vérification à prévoir","#A86400","#FDF1DC"],retard:["Vérification en retard","#B42318","#FCE8E6"],nc:["Ne pas utiliser – non conforme","#B42318","#FCE8E6"],vide:["Vérification à renseigner","#6B7280","#EEF0F3"]}[s];
+  $("#main").innerHTML=`<section class="card" style="max-width:640px;margin:0 auto;overflow:hidden">
+   <div style="background:${big[2]};color:${big[1]};padding:22px 20px;border-bottom:4px solid ${big[1]}"><div style="font-family:'Barlow Condensed',Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.1">${big[0]}</div>${R.length?`<div style="margin-top:6px;font-weight:600">${R.length} réserve${R.length>1?"s":""} à lever</div>`:""}</div>
+   <div style="padding:18px 20px;display:grid;gap:12px"><div><div class="hint">${esc(e?.nom||"")} · ${esc(RUB[x.rub].n)}</div><h1 style="font-size:28px">${esc(x.libelle)}</h1><div class="hint">${esc(x.detail||"")}</div></div>
+   <div class="two"><div class="calc"><div class="hint">Dernière vérification</div><b>${x.dernier?fr(x.dernier):"–"}</b><div class="hint">${esc([x.organisme,x.ref].filter(Boolean).join(" · "))}${x.resultat?"<br>"+RES[x.resultat]:""}</div></div>
+   <div class="calc"><div class="hint">Prochaine vérification</div><b>${x.prochain?fr(x.prochain):"–"}</b><div class="hint">${x.prochain?(jours(x.prochain)<0?"en retard de "+(-jours(x.prochain))+" jours":"dans "+jours(x.prochain)+" jours"):""}</div></div></div>
+   ${R.length?`<div><b>Réserves à lever</b><ul style="margin:6px 0 0;padding-left:18px">${R.map(r=>`<li>${esc(r.texte)} <span class="hint">(${fr(r.date)})</span></li>`).join("")}</ul></div>`:""}
+   <div style="display:flex;gap:8px;flex-wrap:wrap">${x.doc&&x.doc!=="#"?`<a class="btn pri" href="${esc(x.doc)}" target="_blank" rel="noopener">Voir le rapport</a>`:""}<button class="btn" id="mc_r">Voir tout le registre</button></div>
+   <p class="hint" style="margin:0">Registre tenu par 3AIM CFA · ${ORG.tel}</p></div></section>`;
+  $("#mc_r").onclick=()=>{V={view:"ent",ent:x.entId,tab:x.rub};render()};
 }
 
 /* ============ EXPORT PDF ============ */
@@ -553,14 +689,91 @@ const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.sli
 const P=s=>String(s??"").replace(/[’‘]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,"-").replace(/œ/g,"oe").replace(/…/g,"...").replace(/[^\x00-\xFF]/g,"");
 async function getPhoto(e){if(S.photos[e.id])return S.photos[e.id];if(!e.photoId)return"";try{const r=await api("photo",{entId:e.id});if(r.data)S.photos[e.id]=r.data;return r.data||""}catch(x){return""}}
 function qrData(text){const d=document.createElement("div");new QRCode(d,{text,width:256,height:256,correctLevel:QRCode.CorrectLevel.M});return d.querySelector("canvas").toDataURL("image/png")}
+const TEXTES=[
+ ["h","Registre de sécurité"],
+ ["a","Article L.4711-1","Les attestations, consignes, résultats et rapports relatifs aux vérifications et contrôles mis à la charge de l'employeur au titre de la santé et de la sécurité au travail comportent des mentions obligatoires déterminées par voie réglementaire."],
+ ["a","Article L.4711-2","Les observations et mises en demeure notifiées par l'inspection du travail en matière de santé et de sécurité, de médecine du travail et de prévention des risques sont conservées par l'employeur."],
+ ["a","Article L.4711-3","Au cours de leurs visites, les agents de contrôle de l'inspection du travail mentionnés à l'article L.8112-1 et les agents du service de prévention des organismes de sécurité sociale ont accès aux documents mentionnés aux articles L.4711-1 et L.4711-2."],
+ ["a","Article L.4711-4","Les documents mentionnés aux articles L.4711-1 et L.4711-2 sont communiqués, dans des conditions déterminées par voie réglementaire, aux membres des comités sociaux et économiques, au médecin du travail et, le cas échéant, aux représentants des organismes professionnels d'hygiène, de sécurité et des conditions de travail prévus à l'article L.4643-2."],
+ ["a","Article L.4711-5","Lorsqu'il est prévu que les informations énumérées aux articles L.4711-1 et L.4711-2 figurent dans des registres distincts, l'employeur est autorisé à réunir ces informations dans un registre unique dès lors que cette mesure est de nature à faciliter la conservation et la consultation de ces informations."],
+ ["a","Article D.4711-2","Les attestations, consignes, résultats et rapports relatifs aux vérifications et contrôles mis à la charge de l'employeur au titre de la santé et de la sécurité au travail sont datés. Ils mentionnent l'identité de la personne ou de l'organisme chargé du contrôle ou de la vérification ainsi que celle de la personne qui a réalisé le contrôle ou la vérification."],
+ ["a","Article D.4711-3","Sauf dispositions particulières, l'employeur conserve les documents concernant les observations et mises en demeure de l'inspection du travail ainsi que ceux concernant les vérifications et contrôles mis à la charge des employeurs au titre de la santé et de la sécurité au travail des cinq dernières années et, en tout état de cause, ceux des deux derniers contrôles ou vérifications. Il conserve, pendant la même durée, les copies des déclarations d'accidents du travail déclarés à la caisse primaire d'assurance maladie."],
+ ["a","Article R.4721-11","L'agent de contrôle de l'inspection du travail peut mettre l'employeur en demeure de réduire l'intervalle entre les vérifications des équipements de travail ou catégories d'équipements de travail prévues par les arrêtés mentionnés à l'article R.4323-23 lorsque, en raison notamment des conditions ou de la fréquence d'utilisation, du mode de fonctionnement ou de la conception de certains organes, les équipements de travail sont soumis à des contraintes génératrices d'une usure prématurée susceptible d'être à l'origine de situations dangereuses."],
+ ["h","Équipements de travail"],
+ ["a","Article R.4323-22","Des arrêtés du ministre chargé du travail ou du ministre chargé de l'agriculture déterminent les équipements de travail ou les catégories d'équipement de travail pour lesquels l'employeur procède ou fait procéder à une vérification initiale, lors de leur mise en service dans l'établissement, en vue de s'assurer qu'ils sont installés conformément aux spécifications prévues, le cas échéant, par la notice d'instructions du fabricant et peuvent être utilisés en sécurité. Cette vérification est réalisée dans les mêmes conditions que les vérifications périodiques prévues à la sous-section 2."],
+ ["a","Article R.4323-23","Des arrêtés du ministre chargé du travail ou du ministre chargé de l'agriculture déterminent les équipements de travail ou les catégories d'équipement de travail pour lesquels l'employeur procède ou fait procéder à des vérifications générales périodiques afin que soit décelée en temps utile toute détérioration susceptible de créer des dangers. Ces arrêtés précisent la périodicité des vérifications, leur nature et leur contenu."],
+ ["a","Article R.4323-24","Les vérifications générales périodiques sont réalisées par des personnes qualifiées, appartenant ou non à l'établissement, dont la liste est tenue à la disposition de l'inspection du travail. Ces personnes sont compétentes dans le domaine de la prévention des risques présentés par les équipements de travail soumis à vérification et connaissent les dispositions réglementaires afférentes."],
+ ["a","Article R.4323-25","Le résultat des vérifications générales périodiques est consigné sur le ou les registres de sécurité mentionnés à l'article L.4711-5."],
+ ["a","Article R.4323-26","Lorsque les vérifications périodiques sont réalisées par des personnes n'appartenant pas à l'établissement, les rapports établis à la suite de ces vérifications sont annexés au registre de sécurité. A défaut, les indications précises relatives à la date des vérifications, à la date de remise des rapports correspondants et à leur archivage dans l'établissement sont portées sur le registre de sécurité."],
+ ["a","Article R.4323-27","Le registre de sécurité et les rapports peuvent être tenus et conservés sur tout support dans les conditions prévues par l'article L.8113-6."],
+ ["a","Article R.4323-28","Des arrêtés des ministres chargés du travail ou de l'agriculture déterminent les équipements et les catégories d'équipements de travail pour lesquels l'employeur procède ou fait procéder à une vérification, dans les conditions prévues à la sous-section 2, lors de leur remise en service après toute opération de démontage et remontage ou modification susceptible de mettre en cause leur sécurité, en vue de s'assurer de l'absence de toute défectuosité susceptible de créer des situations dangereuses."],
+ ["h","Équipements de protection individuelle"],
+ ["a","Article R.4323-99","Des arrêtés des ministres chargés du travail ou de l'agriculture déterminent les équipements de protection individuelle et catégories d'équipement de protection individuelle pour lesquels l'employeur procède ou fait procéder à des vérifications générales périodiques afin que soit décelé en temps utile toute défectuosité susceptible d'être à l'origine de situations dangereuses ou tout défaut d'accessibilité contraire aux conditions de mise à disposition ou d'utilisation déterminées en application de l'article R.4323-97. Ces arrêtés précisent la périodicité des vérifications et, en tant que de besoin, leur nature et leur contenu."],
+ ["a","Article R.4323-100","Les vérifications périodiques sont réalisées par des personnes qualifiées, appartenant ou non à l'établissement, dont la liste est tenue à la disposition de l'inspection du travail. Ces personnes ont la compétence nécessaire pour exercer leur mission en ce qui concerne les équipements de protection individuelle soumis à vérification et connaître les dispositions réglementaires correspondantes."],
+ ["a","Article R.4323-101","Le résultat des vérifications périodiques est consigné sur le ou les registres de sécurité mentionnés à l'article L.4711-5."],
+ ["a","Article R.4323-102","Lorsque les vérifications périodiques sont réalisées par des personnes n'appartenant pas à l'établissement, les rapports établis à la suite de ces vérifications sont annexés au registre de sécurité. A défaut, les indications précises relatives à la date des vérifications, à la date de remise des rapports correspondants et à leur archivage dans l'établissement sont portées sur le registre de sécurité."],
+ ["a","Article R.4323-103","Le registre de sécurité et les rapports peuvent être tenus et conservés sur tout support dans les conditions prévues par l'article L.8113-6."]
+];
+const NOTE=[
+ ["h","Pourquoi un registre de sécurité ?"],
+ ["p","Les équipements de travail, les installations et les moyens de protection doivent rester en bon état pour préserver la santé et la sécurité des salariés. L’employeur fait donc réaliser des vérifications et des contrôles périodiques : contrôles visuels, inspections ou essais selon le matériel."],
+ ["p","Chaque résultat est consigné sous forme d’attestation, de consigne ou de rapport, daté et indiquant qui a vérifié et quelles installations ont été contrôlées. Le registre fait apparaître les écarts avec la réglementation et les défauts qui peuvent affecter la sécurité d’utilisation."],
+ ["h","Une vérification n’est qu’un constat"],
+ ["p","Quand un défaut est relevé, l’employeur doit le corriger rapidement. La remise en état et l’entretien régulier sont indispensables, et les travaux réalisés se justifient par une facture ou une annotation sur le rapport. C’est le rôle de la rubrique « Observations et suites » de ce registre : chaque réserve y est suivie jusqu’à sa levée, avec sa preuve."],
+ ["h","Deux registres obligatoires partout"],
+ ["r","Incendie (art. R.4227-39)","Dates des exercices et essais périodiques (alarme, évacuation, extincteurs) et observations auxquelles ils ont donné lieu."],
+ ["r","Installations électriques (art. R.4226-19)","Résultats des vérifications et travaux réalisés pour corriger les défauts ; les rapports de l’organisme vérificateur y sont annexés."],
+ ["h","Un registre unique"],
+ ["p","La loi permet de réunir dans un seul registre toutes les informations des différents registres de sécurité, ainsi que les observations et mises en demeure de l’inspection du travail (art. L.4711-5). Ce n’est pas obligatoire, mais c’est plus simple pour conserver les documents, suivre les échéances et les présenter lors d’un contrôle. C’est le choix fait dans ce registre."],
+ ["h","Combien de temps conserver ?"],
+ ["p","Sauf règle particulière : les documents des 5 dernières années et, dans tous les cas, ceux des deux derniers contrôles ou vérifications (art. D.4711-3). Dans le BTP, les registres se conservent sur le chantier, ou à défaut au siège de l’établissement."],
+ ["h","Qui peut le consulter ?"],
+ ["p","Le registre est tenu à disposition et communiqué aux membres du CSE, qui peuvent le demander à tout moment, et au médecin du travail. Il est aussi présenté sur demande à l’inspection du travail, aux agents de prévention de la CARSAT et aux organismes de prévention comme l’OPPBTP. C’est l’occasion d’échanger sur les risques et de mettre à jour le document unique (DUERP)."],
+ ["h","Papier ou numérique ?"],
+ ["p","Aucun modèle n’est imposé. Le registre peut être papier ou dématérialisé, à condition d’être clair, facile à utiliser et de restituer sans altération toutes les mentions obligatoires (art. L.8113-6 et D.8113-2). Ce registre en ligne, exportable en PDF et Excel, répond à cette exigence."],
+ ["h","Les autres registres à connaître"],
+ ["r","Danger grave et imminent (art. D.4132-1 et D.4132-2)","Le CSE y consigne par écrit son alerte : cause et nature du danger, postes concernés, salariés exposés. Pages numérotées et tamponnées par le CSE."],
+ ["r","Accidents bénins (Code de la sécurité sociale, art. L.441-4)","Accidents sans arrêt ni soins pris en charge, inscrits dans les 48 heures. Il suppose notamment un poste de secours et une personne formée, par exemple titulaire du SST."],
+ ["r","Temps de travail","Composition des équipes successives et registre du repos hebdomadaire lorsque le repos n’est pas donné le dimanche (art. R.3172-2)."],
+ ["s","Note de synthèse rédigée par 3AIM CFA d’après « Quels sont les registres obligatoires en matière de santé et sécurité au travail ? », INRS, Travail & Sécurité n° 871, juin 2025. Pour aller plus loin : brochure INRS ED 828 « Principales vérifications périodiques »."]
+];
+function pageNote(doc,e,RD,INK){
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),cols=3,gap=9,cw=(W-28-gap*(cols-1))/cols,top=40,bot=H-15;
+  doc.addPage();hdr(doc,e,"Note – Les registres obligatoires en santé et sécurité",RD,"L’essentiel à retenir pour l’employeur, les salariés et le CSE");
+  let c=0,y=top;const x=()=>14+c*(cw+gap),lh=3.45;
+  const need=h=>{if(y+h>bot){c++;y=top;if(c>=cols){doc.addPage();hdr(doc,e,"Note (suite)",RD);c=0;y=top}}};
+  NOTE.forEach(t=>{
+    if(t[0]==="h"){need(22);if(y>top)y+=2.5;doc.setFillColor(...RD);doc.rect(x(),y-3.3,1.6,4.4,"F");doc.setFont("helvetica","bold");doc.setFontSize(10.2);doc.setTextColor(...RD);doc.text(P(t[1]),x()+3.6,y);y+=6;return}
+    if(t[0]==="s"){doc.setFont("helvetica","italic");doc.setFontSize(7.2);const T=doc.splitTextToSize(P(t[1]),cw);need(T.length*3.1+4);y+=2;doc.setTextColor(110,118,132);T.forEach(l=>{doc.text(l,x(),y);y+=3.1});return}
+    if(t[0]==="r"){doc.setFont("helvetica","bold");doc.setFontSize(8.2);const T=doc.splitTextToSize(P(t[1]),cw-4);need(T.length*lh+2*lh);doc.setTextColor(...INK);T.forEach(l=>{doc.text(l,x()+3,y);y+=lh});
+      doc.setFont("helvetica","normal");doc.setFontSize(8.2);doc.setTextColor(60,68,84);doc.splitTextToSize(P(t[2]),cw-4).forEach(l=>{need(lh);doc.text(l,x()+3,y);y+=lh});y+=2.2;return}
+    doc.setFont("helvetica","normal");doc.setFontSize(8.2);doc.setTextColor(...INK);doc.splitTextToSize(P(t[1]),cw).forEach(l=>{need(lh);doc.text(l,x(),y);y+=lh});y+=2.4;
+  });
+}
+function pageTextes(doc,e,RD,INK){
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),cols=4,gap=6,cw=(W-28-gap*(cols-1))/cols,top=38,bot=H-16;
+  doc.addPage();hdr(doc,e,"Textes de référence – Code du travail",RD,"Extraits en vigueur à la date d’édition – version à jour sur legifrance.gouv.fr");
+  let c=0,y=top;const x=()=>14+c*(cw+gap);
+  const need=h=>{if(y+h>bot){c++;y=top;if(c>=cols){doc.addPage();hdr(doc,e,"Textes de référence – Code du travail (suite)",RD);c=0;y=top}}};
+  TEXTES.forEach(t=>{
+    if(t[0]==="h"){need(26);if(y>top)y+=2;doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(P(t[1]),x(),y);doc.setDrawColor(...RD);doc.setLineWidth(.4);doc.line(x(),y+1.6,x()+cw,y+1.6);y+=7;return}
+    doc.setFont("helvetica","normal");doc.setFontSize(7.2);const L=doc.splitTextToSize(P(t[2]),cw),lh=3.05;
+    need(4.5+Math.min(L.length,4)*lh);
+    doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(...RD);doc.text(P(t[1]),x(),y);y+=3.8;
+    doc.setFont("helvetica","normal");doc.setFontSize(7.2);doc.setTextColor(...INK);
+    L.forEach(l=>{need(lh);doc.text(l,x(),y);y+=lh});y+=2.8;
+  });
+}
 async function cropTo(url,ratio){ // recadrage centré au format du cadre
   const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=url});
   let sw=im.width,sh=im.height;if(sw/sh>ratio)sw=sh*ratio;else sh=sw/ratio;
   const c=document.createElement("canvas"),k=Math.min(1,1600/sw);c.width=Math.round(sw*k);c.height=Math.round(sh*k);
   c.getContext("2d").drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.9);
 }
-async function exportPDF(e){
-  toast("Préparation du PDF…");
+async function exportPDF(e){const doc=await buildPDF(e);await saveFile(pdfName(e),doc.output("blob"))}
+const pdfName=e=>`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`;
+async function buildPDF(e){
+  toast("Préparation du registre…");
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",orientation:"landscape"}),W=297,H=210,E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
   const RD=hex("#7A0E0E"),RM=hex("#B71C1C"),INK=[20,33,61],OR=hex("#E87722"),GOLD=hex("#F5A623");
   const grad=(x,y,w,h,c1,c2,n=140)=>{for(let i=0;i<n;i++){const t=i/(n-1);doc.setFillColor(...c1.map((v,k)=>Math.round(v+(c2[k]-v)*t)));doc.rect(x+w*i/n,y,w/n+.3,h,"F")}};
@@ -644,18 +857,20 @@ async function exportPDF(e){
   y=doc.lastAutoTable.finalY+12;if(y>130){doc.addPage();y=hdr(doc,e,"Visas",RD)}else{doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...RD);doc.text("Visas (inspection du travail, CARSAT, vérificateurs)",14,y);y+=3}
   pg.vis=doc.getNumberOfPages();
   doc.autoTable({startY:y,head:[["Date","Nom","Qualité / organisme","Observations","Signature"]],body:Array.from({length:5},()=>["","","","",""]),theme:"grid",styles:{minCellHeight:12,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:7},columnStyles:{0:{cellWidth:28},1:{cellWidth:50},2:{cellWidth:55},4:{cellWidth:50}},margin:{left:14,right:14,top:30}});
+  pageNote(doc,e,RD,INK);pg.note=pg.vis+1;
+  pageTextes(doc,e,RD,INK);pg.txt=doc.getNumberOfPages();
   /* ===== Sommaire ===== */
   doc.setPage(pg.som);y=hdr(doc,e,"Sommaire",RD)+6;
   const items=[["Identification de l’établissement","Établissement, responsabilités et visa",pg.garde,"#7A0E0E"],["Synthèse du registre","État de chaque rubrique et points prioritaires",pg.syn,"#B71C1C"]]
     .concat(RUBS.filter(r=>CATA[r.k]).map((r,i)=>[`${i+1}. ${r.n}`,`${E.filter(x=>x.rub===r.k).length} élément(s) suivi(s)`,pg.rub[r.k],r.c]))
-    .concat([["7. Observations et suites",`${R.filter(r=>!r.levee).length} réserve(s) à lever`,pg.obs,RUB.obs.c],["Visas","Inspection du travail, CARSAT, vérificateurs",pg.vis,"#7A0E0E"]]);
+    .concat([["7. Observations et suites",`${R.filter(r=>!r.levee).length} réserve(s) à lever`,pg.obs,RUB.obs.c],["Visas","Inspection du travail, CARSAT, vérificateurs",pg.vis,"#7A0E0E"],["Note : les registres obligatoires","L’essentiel à retenir, d’après l’INRS",pg.note,"#B71C1C"],["Textes de référence","Code du travail : registre, équipements de travail, EPI",pg.txt,"#5B6474"]]);
   items.forEach(([t,d,p,c])=>{doc.setFillColor(...hex(c));doc.rect(30,y-4.6,3.2,8,"F");doc.setTextColor(...INK);doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.text(P(t),38,y);
     const tw=doc.getTextWidth(P(t));doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(120,128,140);doc.text(P(d),38,y+4.6);
     doc.setDrawColor(200,205,214);doc.setLineDashPattern([.6,1.4],0);doc.line(40+tw,y-.8,W-48,y-.8);doc.setLineDashPattern([],0);
-    doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(...RM);doc.text(String(p),W-34,y,{align:"right"});y+=15});
+    doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(...RM);doc.text(String(p),W-34,y,{align:"right"});y+=12.5});
   /* ===== Pieds de page ===== */
   const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setDrawColor(...RM);doc.setLineWidth(.6);doc.line(12,H-10,W-12,H-10);doc.setFontSize(8);doc.setTextColor(138,147,163);doc.setFont("helvetica","normal");doc.text(P(`${e.nom} – Registre de sécurité – édité le ${fr(today())}`),12,H-5.5);doc.text(`Page ${i} / ${n}`,W-12,H-5.5,{align:"right"})}
-  await saveFile(`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`,doc.output("blob"));
+  return doc;
 }
 function hdr(doc,e,title,col,sub){
   const W=doc.internal.pageSize.getWidth(),a=hex("#5E0A0A"),b=hex("#C62828");
@@ -727,7 +942,7 @@ async function exportXLS(e){
 
 /* ============ DÉMARRAGE ============ */
 (async()=>{
-  const u=new URLSearchParams(location.search).get("c"),c=u||store.get("reg3aim_code");
+  const Q=new URLSearchParams(location.search),u=Q.get("c"),c=u||store.get("reg3aim_code");PEND_M=Q.get("m");
   if(u)history.replaceState(null,"",location.pathname);
   if(c){try{await login(c)}catch(x){renderLogin(x.message)}}else renderLogin();
 })();
