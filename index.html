@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registre de sécurité – 3AIM CFA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --navy:#12213F;--orange:#E87722;--gold:#F5A623;
+  --bg:#F3F4F6;--card:#FFFFFF;--ink:#14213D;--ink2:#4B5563;--ink3:#8A93A3;--line:#E3E6EB;
+  --ok:#1E7F4F;--okbg:#E5F3EB;--warn:#A86400;--warnbg:#FDF1DC;--bad:#B42318;--badbg:#FCE8E6;--none:#6B7280;--nonebg:#EEF0F3;
+  --r-inst:#1F5FA8;--r-lev:#D99A00;--r-epi:#E87722;--r-inc:#C62828;--r-form:#1E7F4F;--r-obs:#5B6474;--r-id:#12213F;
+  color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1525;--card:#16203A;--ink:#EEF1F6;--ink2:#B7C0CF;--ink3:#7E8AA0;--line:#26324D;
+  --okbg:#14372A;--ok:#6FD3A0;--warnbg:#3D2E12;--warn:#F5B94F;--badbg:#3E1A1A;--bad:#F28B82;--nonebg:#232E47;--none:#A3AEC2;color-scheme:dark}}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Barlow,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.5;color:var(--ink);background:var(--bg)}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-weight:600;line-height:1.15;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--navy);color:#fff;border-bottom:4px solid var(--orange)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:11;background:var(--navy)}
+.top .in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.mark{width:36px;height:36px;border-radius:7px;background:var(--orange);display:grid;place-items:center;font-family:"Barlow Condensed";font-weight:700;font-size:17px;color:#fff}
+.brand b{font-family:"Barlow Condensed";font-size:20px;font-weight:600;display:block;line-height:1}
+.brand small{color:#C9D2E3;font-size:12.5px}
+.top .sp{flex:1}
+.top .who{font-size:13px;color:#C9D2E3}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:8px 13px;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:14px;transition:background .15s}
+.btn:hover{background:var(--bg)}
+.btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.pri:hover{background:#cf6611}
+.btn.dk{background:transparent;border-color:#3B4C72;color:#fff}
+.btn.dk:hover{background:#1E3158}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.danger{color:var(--bad)}
+.wrap{max-width:1180px;margin:auto;padding:22px 18px 60px}
+.demo{background:var(--warnbg);color:var(--warn);text-align:center;font-size:13px;padding:6px 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px}
+.hint{color:var(--ink2);font-size:13.5px}
+.grid{display:grid;gap:14px}
+/* tableau de bord */
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:16px 0 22px}
+.kpi{padding:14px 16px;border-left:5px solid var(--c,var(--navy));border-radius:0 10px 10px 0}
+.kpi .n{font-family:"Barlow Condensed";font-size:34px;font-weight:700;line-height:1}
+.kpi .l{color:var(--ink2);font-size:13px}
+.layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.sec-h h2{font-size:22px}
+.ents{display:grid;gap:10px}
+.ent{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 14px;cursor:pointer;text-align:left;width:100%}
+.ent:hover{border-color:var(--ink3)}
+.ent .nm{font-weight:600;font-size:16px}
+.ent .al{font-size:13px;margin-top:2px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pill{font-size:12px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.p-ok{background:var(--okbg);color:var(--ok)}.p-bientot{background:var(--warnbg);color:var(--warn)}.p-retard,.p-nc{background:var(--badbg);color:var(--bad)}.p-vide{background:var(--nonebg);color:var(--none)}
+/* jauge = étiquette de contrôle */
+.gauge{--v:0;--gc:var(--ok);width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--gc) calc(var(--v)*1%),var(--line) 0);display:grid;place-items:center;position:relative}
+.gauge::after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--card)}
+.gauge span{position:relative;z-index:1;font-family:"Barlow Condensed";font-weight:700;font-size:19px}
+.gauge.big{width:118px;height:118px}.gauge.big::after{inset:11px}.gauge.big span{font-size:34px}
+.opp{padding:14px 16px;border-top:4px solid var(--orange)}
+.opp li{margin:6px 0;font-size:14px}
+.opp .to{color:var(--orange);font-weight:600}
+.feed{padding:6px 14px;max-height:360px;overflow:auto}
+.feed div{padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.feed div:last-child{border:0}
+.feed small{color:var(--ink3);display:block}
+/* fiche entreprise */
+.hero{display:grid;grid-template-columns:240px minmax(0,1fr) auto;gap:20px;padding:18px;align-items:center}
+@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr)}.photo{max-width:320px}}
+.photo{aspect-ratio:4/3;border-radius:8px;border:2px dashed var(--line);display:grid;place-items:center;overflow:hidden;background:var(--bg);color:var(--ink3);font-size:13px;text-align:center;cursor:pointer;position:relative}
+.photo img{width:100%;height:100%;object-fit:cover}
+.photo.has{border-style:solid}
+.photo .chg{position:absolute;bottom:6px;right:6px;background:rgba(18,33,63,.82);color:#fff;font-size:12px;padding:3px 8px;border-radius:5px}
+.hero h1{font-size:32px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:4px 18px;margin-top:8px;font-size:14px}
+.meta span{color:var(--ink3)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:2px solid var(--line);margin-top:6px}
+.tab{border:0;background:none;padding:10px 13px 9px;border-bottom:4px solid transparent;margin-bottom:-2px;white-space:nowrap;font-weight:500;color:var(--ink2);display:flex;align-items:center;gap:7px}
+.tab .dot{width:10px;height:10px;border-radius:3px;background:var(--rc)}
+.tab.on{color:var(--ink);border-bottom-color:var(--rc)}
+.tab .ct{font-size:12px;background:var(--bg);border-radius:10px;padding:0 7px}
+.tab .ct.alert{background:var(--badbg);color:var(--bad)}
+.panel{margin-top:16px}
+.rubh{display:flex;align-items:center;gap:12px;padding:14px 16px;border-left:6px solid var(--rc);border-radius:0 10px 10px 0;margin-bottom:12px;flex-wrap:wrap}
+.rubh h2{font-size:24px}
+.rubh p{margin:2px 0 0;font-size:13px;color:var(--ink2)}
+.rubh .sp{flex:1}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.chip{border:1px dashed var(--ink3);background:transparent;border-radius:20px;padding:4px 11px;font-size:13px;color:var(--ink2)}
+.chip:hover{border-style:solid;border-color:var(--rc);color:var(--ink)}
+.rows{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:6px minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 12px 10px 0;overflow:hidden}
+.row .bar{align-self:stretch;background:var(--sc)}
+.row .t{font-weight:600}
+.row .d{font-size:13px;color:var(--ink2)}
+.row .k{font-size:12px;color:var(--ink3)}
+.row .bt{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:760px){.row{grid-template-columns:6px minmax(0,1fr);}.row>*:nth-child(n+3){grid-column:2}.row .bt{justify-content:flex-start}}
+.empty{padding:26px;text-align:center;color:var(--ink2)}
+.res{padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border-left:5px solid var(--sc);border-radius:0 10px 10px 0}
+.res.done{opacity:.7}
+/* modale */
+.ov{position:fixed;inset:0;background:rgba(10,16,30,.55);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{width:min(560px,100%);max-height:92vh;overflow:auto;background:var(--card);border-radius:12px;border-top:6px solid var(--rc,var(--orange))}
+.modal header{padding:16px 20px 6px;display:flex;justify-content:space-between;align-items:center}
+.modal header h2{font-size:24px}
+.modal .bd{padding:6px 20px 8px;display:grid;gap:12px}
+.modal footer{padding:12px 20px 18px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--ink2);font-weight:500}
+label.f input,label.f select,label.f textarea{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:var(--card);font-size:15px;width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--card);padding:9px 6px;font-weight:500;font-size:14px}
+.seg button.on[data-v="C"]{background:var(--ok);color:#fff}.seg button.on[data-v="R"]{background:var(--warn);color:#fff}.seg button.on[data-v="NC"]{background:var(--bad);color:#fff}
+.calc{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:14px}
+.err{color:var(--bad);font-size:13px;min-height:18px}
+/* connexion */
+.login{min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--navy)}
+.lbox{width:min(420px,100%);background:var(--card);border-radius:14px;overflow:hidden}
+.lbox .hd{padding:26px 26px 18px;border-bottom:4px solid var(--orange)}
+.lbox .hd h1{font-size:34px}
+.lbox .bd{padding:22px 26px 26px;display:grid;gap:14px}
+.stripes{height:8px;background:repeating-linear-gradient(135deg,#F5A623 0 14px,#12213F 14px 28px)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;z-index:60;font-size:14px;max-width:90vw}
+.qr{display:grid;place-items:center;padding:8px;background:#fff;border-radius:8px;width:max-content;margin:auto}
+.mono{font-family:Consolas,"Courier New",monospace;background:var(--bg);padding:2px 7px;border-radius:5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============ CONFIGURATION ============ */
+const API_URL = "";                       // ← colle ici l'URL de ton Apps Script (…/exec). Vide = mode démo
+const APP_URL = "https://registre.3aim.fr";
+const ORG = {nom:"3AIM CFA",adr:"548 rue de Cambuston – 97440 Saint-André",tel:"0692 09 85 92",mail:"contact@3aim.fr",siret:"937 988 905 00017"};
+
+/* ============ RÉFÉRENTIEL DES RUBRIQUES ============ */
+const RUBS = [
+ {k:"id",  n:"Identification",              c:"#12213F",ref:"Fiche de l’établissement"},
+ {k:"inst",n:"Installations et vérifications",c:"#1F5FA8",ref:"Code du travail R.4226-14 s. (électricité), R.4224-17 (portes), R.4222-20 (aération)"},
+ {k:"lev", n:"Levage et manutention",       c:"#D99A00",ref:"Code du travail R.4323-23 à R.4323-28 – arrêté du 1er mars 2004"},
+ {k:"epi", n:"EPI antichute",               c:"#E87722",ref:"Code du travail R.4323-99 à R.4323-103 – arrêté du 19 mars 1993"},
+ {k:"inc", n:"Incendie et secours",         c:"#C62828",ref:"Code du travail R.4227-28 à R.4227-41 – APSAD R4"},
+ {k:"form",n:"Formations et autorisations", c:"#1E7F4F",ref:"Code du travail R.4323-55 à 57 (conduite), R.4224-15 (SST), R.4544-10 (habilitation)"},
+ {k:"obs", n:"Observations et suites",      c:"#5B6474",ref:"Réserves des rapports et suites données"}
+];
+const RUB = Object.fromEntries(RUBS.map(r=>[r.k,r]));
+// catalogue : libellé + périodicité indicative (mois) – modifiable à chaque saisie
+const CATA = {
+ inst:[["Installations électriques",12],["Éclairage de sécurité",12],["Portes et portails automatiques",6],["Aération / assainissement",12],["Installations gaz",12],["Captage des fumées de soudage",12]],
+ lev:[["Chariot élévateur – VGP",6],["Grue auxiliaire / bras de levage – VGP",6],["Pont roulant – VGP",12],["Palan – VGP",12],["Nacelle (PEMP) – VGP",6],["Accessoires de levage",12],["Engin de chantier – VGP",12]],
+ epi:[["Harnais antichute",12],["Longe avec absorbeur",12],["Antichute à rappel automatique",12],["Ligne de vie",12]],
+ inc:[["Extincteurs",12],["Alarme incendie",12],["Désenfumage",12],["RIA",12],["Exercice d’évacuation",6],["Trousse / armoire de secours",12]],
+ form:[["SST – maintien des compétences",24],["PRAP – maintien des compétences",24],["Habilitation électrique – recyclage",36],["Autorisation de conduite chariot",60],["Autorisation de conduite nacelle",60],["AIPR",60],["Équipier de première intervention",12]]
+};
+const RES = {C:"Conforme",R:"Avec réserve",NC:"Non conforme / inapte"};
+const ST = {ok:"À jour",bientot:"À renouveler",retard:"En retard",nc:"Non conforme",vide:"À renseigner"};
+const STC = {ok:"#1E7F4F",bientot:"#C17D00",retard:"#B42318",nc:"#B42318",vide:"#8A93A3"};
+
+/* ============ OUTILS ============ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fr=iso=>{if(!iso)return"";const p=String(iso).slice(0,10).split("-");return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:iso};
+const jours=iso=>Math.round((new Date(String(iso).slice(0,10)+"T00:00:00")-new Date(today()+"T00:00:00"))/864e5);
+function addM(iso,m){const p=String(iso).slice(0,10).split("-").map(Number),d=new Date(p[0],p[1]-1+Number(m),1);d.setDate(Math.min(p[2],new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+const statut=x=>x.resultat==="NC"?"nc":!x.prochain?"vide":jours(x.prochain)<0?"retard":jours(x.prochain)<=30?"bientot":"ok";
+const els=id=>S.els.filter(x=>x.entId===id);
+const ress=id=>S.res.filter(x=>x.entId===id);
+function score(id){const E=els(id),o=ress(id).filter(r=>!r.levee).length,t=E.length+o;return t?Math.round(100*E.filter(x=>["ok","bientot"].includes(statut(x))).length/t):0}
+const scol=v=>v>=80?"#1E7F4F":v>=50?"#C17D00":"#B42318";
+function opps(id){const o=[];els(id).forEach(x=>{const s=statut(x),pr=x.prochain&&jours(x.prochain)<=60,d=x.detail?` (${x.detail})`:"";
+  if(x.rub==="form"&&(s==="vide"||s==="retard"||pr))o.push({t:x.libelle+d,qui:"Formation 3AIM CFA"});
+  if((x.rub==="lev"||x.rub==="epi")&&(s!=="ok"||pr))o.push({t:(s==="nc"?"Contre-visite : ":"")+x.libelle+d,qui:"RUNIXO CONTRÔLE"});});return o}
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200)}
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+const rid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const gen=n=>Array.from({length:n},()=>"ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*31)]).join("");
+
+/* ============ DONNÉES DE DÉPART ============ */
+const SEED={
+ ents:[
+  {id:"e3aim",nom:"3AIM CFA",forme:"SAS",siret:"937 988 905 00017",adresse:"548 rue de Cambuston",cp:"97440",ville:"Saint-André",activite:"Organisme de formation et CFA (2 salles)",effectif:"",contact:"Rachad MOHAMED",email:"contact@3aim.fr",tel:"0692 09 85 92",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"oui"},
+  {id:"ekaz",nom:"KAZ PILOTE",forme:"SAS",siret:"884 397 993 00012",adresse:"ZI Bras Fusil – 15 rue La Fayette",cp:"97470",ville:"Saint-Benoît",activite:"Métallerie (portails, clôtures, garde-corps) – site GARAGE PILOTE",effectif:"",contact:"Charlemagne ALAGAMA",email:"",tel:"",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"oui"},
+  {id:"etro",nom:"TROPIC INDUSTRIE (démo)",forme:"SARL",siret:"000 000 000 00000",adresse:"ZAC 2000",cp:"97420",ville:"Le Port",activite:"Métallerie et maintenance industrielle",effectif:"24",contact:"Responsable QSE",email:"",tel:"",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"non"}],
+ els:[
+  ["e3aim","inst","Installations électriques","Bâtiment 548 rue de Cambuston",12,"","","",""],
+  ["e3aim","inst","Éclairage de sécurité","Salles 1 et 2, circulations",12,"","","",""],
+  ["e3aim","inc","Extincteurs","Salles 1 et 2, accueil",12,"","","",""],
+  ["e3aim","inc","Alarme incendie","",12,"","","",""],
+  ["e3aim","inc","Exercice d’évacuation","",6,"","","",""],
+  ["e3aim","inc","Trousse / armoire de secours","Accueil",12,"","","",""],
+  ["ekaz","lev","Bras de levage HMF 2320K-RCS","N° 140 04 28343 – camion MAN GC-726-FV",6,"2026-07-24","RUNIXO CONTRÔLE","C","VGP-2026-0183"],
+  ["ekaz","lev","Grue auxiliaire HMF 2320K-RCS","N° 143 0305 – camion MAN GC-726-FV",6,"2026-07-24","RUNIXO CONTRÔLE","C","VGP-2026-0184"],
+  ["ekaz","lev","Chariot Fenwick-Linde H45D","N° H2X352R00599 – 4 500 kg",6,"2026-07-24","RUNIXO CONTRÔLE","NC","VGP-2026-0185"],
+  ["ekaz","lev","Chariot Nissan FD01A18Q","N° FD01E701543 – 795 h",6,"2026-07-24","RUNIXO CONTRÔLE","R","VGP-2026-0186"],
+  ["ekaz","lev","Chariot Fenwick-Linde H35D","N° H2X352N02294",6,"2026-07-24","RUNIXO CONTRÔLE","C","VGP-2026-0187"],
+  ["ekaz","lev","Chariot H30","N° de rapport à corriger (doublon)",6,"","RUNIXO CONTRÔLE","",""],
+  ["ekaz","lev","Chariot KAUP","N° de rapport à corriger (doublon)",6,"","RUNIXO CONTRÔLE","",""],
+  ["ekaz","form","Autorisation de conduite chariot","Caristes – aucune autorisation nominative",60,"","","",""],
+  ["ekaz","inc","Extincteurs","",12,"","","",""],
+  ["etro","inst","Installations électriques","Atelier et bureaux",12,"2026-03-12","Bureau Veritas","C","BV-26-1182"],
+  ["etro","inst","Éclairage de sécurité","",12,"2025-11-20","SOCOTEC","C",""],
+  ["etro","inst","Portes et portails automatiques","Portail d’entrée",6,"2026-02-05","Prestataire","C",""],
+  ["etro","lev","Pont roulant – VGP","Pont 5 t – atelier",12,"2026-06-15","RUNIXO CONTRÔLE","C","VGP-2026-0150"],
+  ["etro","lev","Chariot élévateur – VGP","Toyota 8FD25",6,"2026-06-01","RUNIXO CONTRÔLE","R","VGP-2026-0146"],
+  ["etro","lev","Nacelle (PEMP) – VGP","Genie Z-45",6,"2026-04-10","RUNIXO CONTRÔLE","C","VGP-2026-0098"],
+  ["etro","lev","Accessoires de levage","12 élingues, 6 manilles",12,"2026-01-15","RUNIXO CONTRÔLE","C",""],
+  ["etro","epi","Harnais antichute","4 harnais",12,"2026-02-20","RUNIXO CONTRÔLE","C","EPI-2026-0031"],
+  ["etro","inc","Extincteurs","18 appareils",12,"2026-09-01","Sicli","C",""],
+  ["etro","inc","Exercice d’évacuation","",6,"2026-03-15","Interne","C",""],
+  ["etro","form","SST – maintien des compétences","2 salariés",24,"2024-12-02","3AIM CFA","",""],
+  ["etro","form","Habilitation électrique – recyclage","3 salariés (B1V, BR)",36,"2024-05-10","3AIM CFA","",""],
+  ["etro","form","Autorisation de conduite chariot","4 caristes",60,"2022-01-10","3AIM CFA","",""]
+ ],
+ res:[
+  ["ekaz","Contre-visite obligatoire du chariot Fenwick H45D après remise en état (fuites importantes sur les 2 vérins de levage) – inapte en l’état","haute","2026-07-24"],
+  ["ekaz","Chariot Nissan : légère fuite au joint du vérin de gerbage gauche","moyenne","2026-07-24"],
+  ["ekaz","Chariots H30 et KAUP : flexibles hydrauliques à remplacer","moyenne","2026-07-24"],
+  ["ekaz","Chariots H30 et KAUP : horamètres illisibles à remettre en état","basse","2026-07-24"],
+  ["etro","Chariot Toyota : remplacer la ceinture de sécurité","moyenne","2026-06-01"],
+  ["etro","Portail : cellule de sécurité défaillante","haute","2026-02-05","2026-02-20"]
+ ]
+};
+function seedData(){
+  const ents=SEED.ents.map(e=>({...e,code:"ENT-"+gen(6),lecture:"LEC-"+gen(10),photoId:""}));
+  const els=SEED.els.map(a=>({id:rid("x"),entId:a[0],rub:a[1],libelle:a[2],detail:a[3],per:a[4],dernier:a[5],organisme:a[6],resultat:a[7],ref:a[8],notes:"",doc:"",prochain:a[5]?addM(a[5],a[4]):""}));
+  const res=SEED.res.map(a=>({id:rid("r"),entId:a[0],elId:"",texte:a[1],gravite:a[2],date:a[3],levee:a[4]||"",preuve:""}));
+  return {ents,els,res};
+}
+
+/* ============ ÉTAT + API ============ */
+const DEMO=!API_URL;
+let S={role:null,code:null,entId:null,ents:[],els:[],res:[],jr:[],photos:{}};
+let V={view:"dash",ent:null,tab:"id"};
+let DB=null;
+async function api(action,p={}){
+  if(DEMO)return demo(action,p);
+  const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,code:S.code,...p})});
+  const j=await r.json();if(!j.ok)throw new Error(j.err||"Erreur");return j;
+}
+function demo(a,p){
+  if(!DB){DB=seedData();DB.jr=[{date:today()+" 08:12",entId:"ekaz",qui:"admin",action:"VGP enregistrées (juillet 2026)"}];DB.photos={}}
+  const role=p.code==="DEMO"||S.code==="DEMO"?"admin":null;
+  const findE=c=>DB.ents.find(e=>e.code===c||e.lecture===c);
+  const who=(()=>{const c=p.code||S.code;if(c==="DEMO")return{role:"admin"};const e=findE(c);return e?{role:e.code===c?"client":"lecture",entId:e.id}:null})();
+  if(!who)throw new Error("Code d’accès inconnu");
+  const log=(entId,txt)=>DB.jr.unshift({date:today()+" "+new Date().toTimeString().slice(0,5),entId,qui:who.role,action:txt});
+  switch(a){
+   case"login":return{role:who.role,entId:who.entId||null};
+   case"load":{const f=x=>who.role==="admin"||x.entId===who.entId;return{role:who.role,entId:who.entId||null,ents:DB.ents.filter(e=>who.role==="admin"||e.id===who.entId).map(e=>({...e})),els:DB.els.filter(f).map(x=>({...x})),res:DB.res.filter(f).map(x=>({...x})),jr:DB.jr.filter(f)}}
+   case"saveEnt":{const e=p.ent;if(!e.id){e.id=rid("e");e.code="ENT-"+gen(6);e.lecture="LEC-"+gen(10);e.relances=e.relances||"oui"}const i=DB.ents.findIndex(x=>x.id===e.id);if(i>=0)DB.ents[i]={...DB.ents[i],...e};else DB.ents.push(e);log(e.id,i>=0?"Fiche entreprise mise à jour":"Entreprise créée");return{ent:DB.ents.find(x=>x.id===e.id)}}
+   case"delEnt":DB.ents=DB.ents.filter(x=>x.id!==p.id);DB.els=DB.els.filter(x=>x.entId!==p.id);DB.res=DB.res.filter(x=>x.entId!==p.id);return{};
+   case"newCode":{const e=DB.ents.find(x=>x.id===p.id);if(p.kind==="lecture")e.lecture="LEC-"+gen(10);else e.code="ENT-"+gen(6);return{ent:{...e}}}
+   case"saveEl":{const el=p.el;if(!el.id)el.id=rid("x");el.prochain=el.dernier&&el.per?addM(el.dernier,el.per):"";const i=DB.els.findIndex(x=>x.id===el.id);if(i>=0)DB.els[i]=el;else DB.els.push(el);log(el.entId,(el.dernier?"Vérification enregistrée : ":"Élément ajouté : ")+el.libelle);return{el:{...el}}}
+   case"delEl":DB.els=DB.els.filter(x=>x.id!==p.id);return{};
+   case"saveRes":{const r=p.res;if(!r.id)r.id=rid("r");const i=DB.res.findIndex(x=>x.id===r.id);if(i>=0)DB.res[i]=r;else DB.res.push(r);log(r.entId,(r.levee?"Réserve levée : ":"Observation enregistrée : ")+r.texte.slice(0,70));return{res:{...r}}}
+   case"delRes":DB.res=DB.res.filter(x=>x.id!==p.id);return{};
+   case"upload":{if(p.kind==="photo"){DB.photos[p.entId]="data:"+p.mime+";base64,"+p.data;const e=DB.ents.find(x=>x.id===p.entId);e.photoId="demo";log(p.entId,"Photo de l’entreprise mise à jour")}else log(p.entId,"Document déposé : "+p.name);return{id:"demo",url:"#"}}
+   case"photo":return{data:DB.photos[p.entId]||""};
+   case"sendAccess":{const e=DB.ents.find(x=>x.id===p.id);if(!e.email)throw new Error("Aucune adresse mail sur la fiche de "+e.nom);return{}}
+   case"testMail":return{};
+   case"seed":return{};
+  }
+}
+
+/* ============ CONNEXION ============ */
+async function login(code){
+  S.code=code.trim();
+  const r=await api("login",{code:S.code});
+  S.role=r.role;S.entId=r.entId;store.set("reg3aim_code",S.code);
+  await reload();
+  if(S.role!=="admin"){V={view:"ent",ent:S.entId,tab:"id"}}
+  render();
+}
+async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,jr:r.jr||[]});
+  if(!DEMO&&S.role==="admin"&&!S.ents.length&&!S.seedAsked){S.seedAsked=true}}
+function logout(){store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],jr:[],photos:{}};render()}
+
+function renderLogin(msg){
+  $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark">3A</div><div><b style="color:var(--ink)">3AIM CFA</b><small style="color:var(--ink2)">Registre de sécurité</small></div></div>
+  <h1 style="margin-top:18px">Votre registre de sécurité, toujours à jour</h1></div>
+  <form class="bd" id="lf"><label class="f">Code d’accès<input id="lc" autocomplete="off" placeholder="ENT-XXXXXX" required></label>
+  <div class="err" id="le">${esc(msg||"")}</div><button class="btn pri" style="justify-content:center">Ouvrir le registre</button>
+  ${DEMO?`<p class="hint" style="margin:0">Mode démonstration : entre le code <span class="mono">DEMO</span> pour l’espace 3AIM CFA. Les codes entreprise s’affichent dans « Accès client » de chaque fiche.</p>`:`<p class="hint" style="margin:0">Le code vous a été transmis par 3AIM CFA. Besoin d’aide : ${ORG.tel}</p>`}
+  </form></div></div>`;
+  $("#lf").onsubmit=async e=>{e.preventDefault();const c=$("#lc").value;if(!c.trim()){$("#le").textContent="Entre ton code d’accès.";return}
+    $("#le").textContent="Connexion…";try{await login(c)}catch(x){$("#le").textContent=x.message}};
+  $("#lc").oninput=()=>$("#le").textContent="";
+}
+
+/* ============ RENDU GÉNÉRAL ============ */
+function render(){
+  if(!S.role)return renderLogin();
+  const ent=S.ents.find(e=>e.id===S.entId);
+  const who=S.role==="admin"?"Espace 3AIM CFA":S.role==="client"?"Espace entreprise – "+(ent?.nom||""):"Consultation – "+(ent?.nom||"");
+  $("#app").innerHTML=`${DEMO?`<div class="demo">Mode démonstration : les données ne sont pas enregistrées. Colle l’URL de ton Apps Script dans le fichier pour passer en réel.</div>`:""}
+  <header class="top"><div class="in"><div class="brand" id="home"><div class="mark">3A</div><div><b>Registre de sécurité</b><small>3AIM CFA</small></div></div><div class="sp"></div>
+  <span class="who">${esc(who)}</span><button class="btn dk sm" id="out">Se déconnecter</button></div></header><main class="wrap" id="main"></main>`;
+  $("#out").onclick=logout;$("#home").onclick=()=>{if(S.role==="admin"){V={view:"dash"};render()}};
+  if(V.view==="ent"&&S.ents.find(e=>e.id===V.ent))renderEnt();else{V={view:"dash"};S.role==="admin"?renderDash():renderLogin("Accès introuvable")}
+}
+
+/* ============ TABLEAU DE BORD (admin) ============ */
+function renderDash(){
+  const all=S.ents.map(e=>{const E=els(e.id);return{e,s:score(e.id),ret:E.filter(x=>["retard","nc"].includes(statut(x))).length,bie:E.filter(x=>statut(x)==="bientot").length,vid:E.filter(x=>statut(x)==="vide").length,o:opps(e.id)}});
+  const T=k=>all.reduce((a,b)=>a+b[k],0),op=all.flatMap(a=>a.o.map(o=>({...o,nom:a.e.nom,id:a.e.id})));
+  const nom=id=>S.ents.find(e=>e.id===id)?.nom||"";
+  $("#main").innerHTML=`<div class="sec-h"><div><h1 style="font-size:34px">Tableau de bord</h1><div class="hint">${fr(today())} · ${S.ents.length} entreprise${S.ents.length>1?"s":""} suivie${S.ents.length>1?"s":""}</div></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">${!DEMO?`<button class="btn" id="tm">Tester les mails</button>`:""}<button class="btn pri" id="ne">+ Nouvelle entreprise</button></div></div>
+  <div class="grid kpis">
+   <div class="card kpi" style="--c:var(--navy)"><div class="n">${S.ents.length}</div><div class="l">Entreprises suivies</div></div>
+   <div class="card kpi" style="--c:#B42318"><div class="n" style="color:var(--bad)">${T("ret")}</div><div class="l">En retard ou non conformes</div></div>
+   <div class="card kpi" style="--c:#C17D00"><div class="n" style="color:var(--warn)">${T("bie")}</div><div class="l">À renouveler sous 30 jours</div></div>
+   <div class="card kpi" style="--c:var(--orange)"><div class="n" style="color:var(--orange)">${op.length}</div><div class="l">Opportunités détectées</div></div></div>
+  <div class="layout"><section><div class="sec-h"><h2>Entreprises</h2><input id="q" placeholder="Rechercher une entreprise" style="border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:var(--card);max-width:240px;width:100%"></div>
+   <div class="ents" id="el">${all.length?"":`<div class="card empty"><h3 style="font-size:20px">Ajoute ta première entreprise</h3><p>Commence par 3AIM CFA, puis tes clients.</p>${!DEMO?`<button class="btn" id="sd">Charger 3AIM CFA, KAZ PILOTE et l’exemple</button>`:""}</div>`}</div></section>
+  <aside class="grid"><div class="card opp"><h2 style="font-size:21px">Opportunités</h2><p class="hint" style="margin:2px 0 6px">Ce que les registres font apparaître</p>
+   ${op.length?`<ul style="padding-left:18px;margin:0">${op.slice(0,12).map(o=>`<li><b>${esc(o.nom)}</b> : ${esc(o.t)}<br><span class="to">→ ${o.qui}</span></li>`).join("")}</ul>${op.length>12?`<p class="hint">+ ${op.length-12} autre(s), résumé envoyé chaque lundi</p>`:""}`:`<p class="hint">Rien pour l’instant.</p>`}</div>
+   <div class="card"><h2 style="font-size:21px;padding:14px 14px 0">Dernières activités</h2><div class="feed">${S.jr.slice(0,25).map(j=>`<div>${esc(j.action)}<small>${esc(nom(j.entId))} · ${j.qui==="client"?"saisi par le client":j.qui==="admin"?"3AIM CFA":j.qui} · ${esc(j.date)}</small></div>`).join("")||`<div class="hint">Aucune activité.</div>`}</div></div></aside></div>`;
+  const list=f=>{$("#el").innerHTML=all.filter(a=>!f||a.e.nom.toLowerCase().includes(f)).sort((a,b)=>a.s-b.s).map(a=>{const first=els(a.e.id).filter(x=>["retard","nc"].includes(statut(x)))[0]||els(a.e.id).filter(x=>statut(x)==="bientot").sort((x,y)=>x.prochain.localeCompare(y.prochain))[0];
+   return `<button class="card ent" data-e="${a.e.id}"><div class="gauge" style="--v:${a.s};--gc:${scol(a.s)}"><span>${a.s}</span></div><div><div class="nm">${esc(a.e.nom)}</div><div class="hint">${esc([a.e.activite,a.e.ville].filter(Boolean).join(" · "))}</div>
+    ${first?`<div class="al" style="color:${STC[statut(first)]}">${statut(first)==="nc"?"Non conforme : ":statut(first)==="retard"?"En retard : ":"Bientôt : "}${esc(first.libelle)}${first.prochain&&statut(first)!=="nc"?" ("+fr(first.prochain)+")":""}</div>`:""}
+    <div class="pills">${a.ret?`<span class="pill p-retard">${a.ret} en retard / NC</span>`:""}${a.bie?`<span class="pill p-bientot">${a.bie} à renouveler</span>`:""}${a.vid?`<span class="pill p-vide">${a.vid} à renseigner</span>`:""}${!a.ret&&!a.bie&&!a.vid&&els(a.e.id).length?`<span class="pill p-ok">Tout est à jour</span>`:""}</div></div>
+    <span class="hint">Ouvrir</span></button>`}).join("")||(all.length?`<p class="hint">Aucun résultat.</p>`:$("#el").innerHTML);
+   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{V={view:"ent",ent:b.dataset.e,tab:"id"};render();scrollTo(0,0)})};
+  if(all.length)list("");
+  $("#q").oninput=e=>list(e.target.value.toLowerCase().trim());
+  $("#ne").onclick=()=>entForm();
+  if($("#sd"))$("#sd").onclick=async()=>{try{const d=seedData();await api("seed",{data:d});await reload();toast("Entreprises de départ chargées");render()}catch(x){toast(x.message)}};
+  if($("#tm"))$("#tm").onclick=async()=>{try{await api("testMail");toast("Mail de test envoyé à "+ORG.mail)}catch(x){toast(x.message)}};
+}
+
+/* ============ FICHE ENTREPRISE ============ */
+function renderEnt(){
+  const e=S.ents.find(x=>x.id===V.ent),E=els(e.id),R=ress(e.id),s=score(e.id),ro=S.role==="lecture",adm=S.role==="admin";
+  const cnt=k=>k==="obs"?R.filter(r=>!r.levee).length:E.filter(x=>x.rub===k).length;
+  const alert=k=>k==="obs"?R.some(r=>!r.levee):E.some(x=>x.rub===k&&["retard","nc"].includes(statut(x)));
+  $("#main").innerHTML=`${adm?`<button class="btn ghost sm" id="bk" style="margin-bottom:10px">← Tableau de bord</button>`:""}
+  <section class="card hero"><div class="photo ${S.photos[e.id]?"has":""}" id="ph" title="${ro?"":"Changer la photo"}">${S.photos[e.id]?`<img src="${S.photos[e.id]}" alt="Photo de ${esc(e.nom)}">${ro?"":`<span class="chg">Changer</span>`}`:ro?"Photo de l’entreprise":"Ajouter une photo<br>de l’entreprise"}</div>
+   <div><h1>${esc(e.nom)}</h1><div class="hint">${esc(e.activite||"")}</div>
+   <div class="meta"><div><span>Adresse</span><br>${esc([e.adresse,[e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))||"–"}</div><div><span>SIRET</span><br>${esc(e.siret||"–")}</div><div><span>Contact</span><br>${esc(e.contact||"–")}${e.email?`<br>${esc(e.email)}`:adm?`<br><span style="color:var(--bad)">Pas de mail : pas de relance</span>`:""}</div></div></div>
+   <div style="text-align:center"><div class="gauge big" style="--v:${s};--gc:${scol(s)}"><span>${s}%</span></div><div class="hint" style="margin-top:6px">Conformité</div></div></section>
+  <div class="acts">${ro?"":`<button class="btn pri" id="dep">Déposer un rapport</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
+   ${ro?"":`<button class="btn" id="ef">Modifier la fiche</button>`}${adm?`<button class="btn" id="ac">Accès client</button>`:""}<input type="file" id="phf" accept="image/*" hidden><input type="file" id="depf" hidden></div>
+  <nav class="tabs" role="tablist">${RUBS.map(r=>`<button class="tab ${V.tab===r.k?"on":""}" style="--rc:${r.c}" data-t="${r.k}" role="tab" aria-selected="${V.tab===r.k}"><span class="dot"></span>${r.n}${r.k!=="id"?` <span class="ct ${alert(r.k)?"alert":""}">${cnt(r.k)}</span>`:""}</button>`).join("")}</nav>
+  <div class="panel" id="pn"></div>`;
+  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{V.tab=b.dataset.t;renderEnt()});
+  if($("#bk"))$("#bk").onclick=()=>{V={view:"dash"};render()};
+  if(!ro){$("#ph").onclick=()=>$("#phf").click();$("#phf").onchange=ev=>uploadPhoto(e,ev.target.files[0]);$("#ef").onclick=()=>entForm(e);$("#dep").onclick=()=>$("#depf").click();$("#depf").onchange=ev=>deposer(e,ev.target.files[0])}
+  if(adm)$("#ac").onclick=()=>access(e);
+  $("#xp").onclick=()=>exportPDF(e);$("#xx").onclick=()=>exportXLS(e);
+  if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
+  const pn=$("#pn");
+  if(V.tab==="id")return panelId(e,pn);
+  if(V.tab==="obs")return panelObs(e,pn);
+  panelRub(e,V.tab,pn);
+}
+function panelId(e,pn){
+  const E=els(e.id),c=k=>E.filter(x=>statut(x)===k).length;
+  pn.innerHTML=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+   <div class="card" style="padding:16px"><h2 style="font-size:21px;margin-bottom:8px">Établissement</h2>
+    ${[["Raison sociale",[e.nom,e.forme].filter(Boolean).join(" – ")],["SIRET",e.siret],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["Activité",e.activite],["Effectif",e.effectif],["Responsable",e.contact],["Téléphone",e.tel],["Mail",e.email],["Organisme vérificateur",e.verificateur],["Document unique (DUERP)",e.duerp?`<a href="${esc(e.duerp)}" target="_blank" rel="noopener">Ouvrir</a>`:"À relier"]].map(([a,b])=>`<div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px"><span class="hint">${a}</span><span>${a.startsWith("Document")?b:esc(b||"–")}</span></div>`).join("")}</div>
+   <div class="card" style="padding:16px"><h2 style="font-size:21px;margin-bottom:8px">État du registre</h2>
+    ${["ok","bientot","retard","nc","vide"].map(k=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill p-${k}">${ST[k]}</span><b>${c(k)}</b></div>`).join("")}
+    <div style="display:flex;justify-content:space-between;padding:7px 0"><span class="pill p-vide">Réserves ouvertes</span><b>${ress(e.id).filter(r=>!r.levee).length}</b></div>
+    ${S.role!=="lecture"?`<p class="hint">Relances automatiques : <b>${e.relances==="non"?"désactivées":e.email?"actives (J-60, J-30, J-7 puis retard)":"inactives, ajoute un mail"}</b></p>`:""}</div>
+   ${S.role==="admin"&&opps(e.id).length?`<div class="card opp"><h2 style="font-size:21px">Opportunités</h2><ul style="padding-left:18px;margin:6px 0 0">${opps(e.id).map(o=>`<li>${esc(o.t)}<br><span class="to">→ ${o.qui}</span></li>`).join("")}</ul></div>`:""}</div>`;
+}
+function panelRub(e,k,pn){
+  const r=RUB[k],E=els(e.id).filter(x=>x.rub===k).sort((a,b)=>({nc:0,retard:1,bientot:2,vide:3,ok:4}[statut(a)]-{nc:0,retard:1,bientot:2,vide:3,ok:4}[statut(b)])),ro=S.role==="lecture";
+  pn.innerHTML=`<div class="card rubh" style="--rc:${r.c}"><div><h2>${r.n}</h2><p>${r.ref}</p></div><div class="sp"></div>${ro?"":`<button class="btn pri" id="add">+ Ajouter</button>`}</div>
+  ${ro?"":`<div class="quick" style="--rc:${r.c}">${CATA[k].map(([l,p],i)=>`<button class="chip" data-q="${i}">+ ${esc(l)}</button>`).join("")}</div>`}
+  <div class="rows">${E.map(x=>{const s=statut(x);return `<div class="card row" style="--sc:${STC[s]}"><div class="bar"></div>
+   <div><div class="t">${esc(x.libelle)}</div><div class="d">${esc(x.detail||"")}</div>${x.notes?`<div class="k">${esc(x.notes)}</div>`:""}</div>
+   <div><div class="k">Dernière</div><div>${x.dernier?fr(x.dernier):"–"}</div><div class="k">${esc([x.organisme,x.ref].filter(Boolean).join(" · "))}${x.resultat?` · ${RES[x.resultat]}`:""}</div></div>
+   <div><div class="k">Prochaine</div><div><b>${x.prochain?fr(x.prochain):"–"}</b></div><span class="pill p-${s}">${s==="bientot"?"Dans "+jours(x.prochain)+" j":s==="retard"?"Retard de "+(-jours(x.prochain))+" j":ST[s]}</span></div>
+   <div class="bt">${x.doc&&x.doc!=="#"?`<a class="btn sm" href="${esc(x.doc)}" target="_blank" rel="noopener">Rapport</a>`:""}${ro?"":`<button class="btn sm" data-v="${x.id}">${k==="form"?"Renouveler":"Nouvelle vérif."}</button><button class="btn sm ghost" data-m="${x.id}" aria-label="Modifier">Modifier</button>`}</div></div>`}).join("")||`<div class="card empty">Rien n’est encore suivi dans cette rubrique.${ro?"":" Choisis un élément ci-dessus en un clic."}</div>`}</div>`;
+  if(ro)return;
+  $("#add").onclick=()=>elForm(e,{rub:k});
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const [l,p]=CATA[k][b.dataset.q];elForm(e,{rub:k,libelle:l,per:p,organisme:k==="lev"||k==="epi"?(e.verificateur||""):k==="form"?"3AIM CFA":""})});
+  document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{const x=S.els.find(y=>y.id===b.dataset.v);elForm(e,{...x,dernier:today(),resultat:k==="form"?"":"C",ref:"",doc:""},true)});
+  document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>elForm(e,S.els.find(y=>y.id===b.dataset.m)));
+}
+function panelObs(e,pn){
+  const R=ress(e.id).sort((a,b)=>(!!a.levee-!!b.levee)||String(b.date).localeCompare(a.date)),ro=S.role==="lecture",gc={haute:"#B42318",moyenne:"#C17D00",basse:"#1F5FA8"};
+  pn.innerHTML=`<div class="card rubh" style="--rc:${RUB.obs.c}"><div><h2>Observations et suites</h2><p>Réserves relevées lors des vérifications, et date de leur levée</p></div><div class="sp"></div>${ro?"":`<button class="btn pri" id="add">+ Observation</button>`}</div>
+  <div class="rows">${R.map(r=>`<div class="card res ${r.levee?"done":""}" style="--sc:${r.levee?"#1E7F4F":gc[r.gravite]||"#5B6474"}"><div><div style="font-weight:500">${esc(r.texte)}</div>
+   <div class="hint">Relevée le ${fr(r.date)} · priorité ${esc(r.gravite||"–")}${r.levee?` · <b style="color:var(--ok)">levée le ${fr(r.levee)}</b>`:""}${r.preuve?` · ${esc(r.preuve)}`:""}</div></div>
+   <div class="bt" style="display:flex;gap:6px">${ro?"":r.levee?`<button class="btn sm ghost" data-m="${r.id}">Modifier</button>`:`<button class="btn sm pri" data-l="${r.id}">Lever</button><button class="btn sm ghost" data-m="${r.id}">Modifier</button>`}</div></div>`).join("")||`<div class="card empty">Aucune observation.</div>`}</div>`;
+  if(ro)return;
+  $("#add").onclick=()=>resForm(e,{});
+  document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>resForm(e,S.res.find(r=>r.id===b.dataset.m)));
+  document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>resForm(e,{...S.res.find(r=>r.id===b.dataset.l),levee:today()},true));
+}
+
+/* ============ MODALES ============ */
+function modal(title,color,body,actions){
+  const ov=document.createElement("div");ov.className="ov";
+  ov.innerHTML=`<div class="modal" role="dialog" aria-modal="true" style="--rc:${color}"><header><h2>${title}</h2><button class="btn ghost sm" data-x aria-label="Fermer">✕</button></header><div class="bd">${body}</div><footer>${actions}</footer></div>`;
+  document.body.appendChild(ov);
+  const close=()=>{ov.remove();document.removeEventListener("keydown",k)};const k=ev=>{if(ev.key==="Escape")close()};
+  document.addEventListener("keydown",k);ov.querySelector("[data-x]").onclick=close;ov.onclick=ev=>{if(ev.target===ov)close()};
+  setTimeout(()=>ov.querySelector("input,select,textarea")?.focus(),30);
+  return{ov,close,q:s=>ov.querySelector(s)};
+}
+function elForm(e,x,renew){
+  const r=RUB[x.rub],isF=x.rub==="form",edit=!!x.id&&!renew;
+  const m=modal(renew?(isF?"Renouvellement":"Nouvelle vérification"):edit?"Modifier":"Ajouter au registre",r.c,`
+   <label class="f">${isF?"Formation / autorisation":"Équipement ou installation"}<input id="f_l" value="${esc(x.libelle||"")}" placeholder="${isF?"SST – maintien des compétences":"Chariot élévateur – VGP"}"></label>
+   <label class="f">${isF?"Personnes concernées":"Précisions (marque, n° de série, emplacement)"}<input id="f_d" value="${esc(x.detail||"")}" placeholder="${isF?"Jean Payet, Marie Hoarau":"Toyota 8FD25 – n° 12345"}"></label>
+   <div class="two"><label class="f">${isF?"Date de la formation":"Date de la vérification"}<input type="date" id="f_dt" value="${esc(x.dernier||"")}"></label>
+   <label class="f">Périodicité (mois)<input type="number" min="1" max="120" step="1" id="f_p" value="${esc(x.per||12)}"></label></div>
+   <div class="calc" id="f_c"></div>
+   ${isF?"":`<div><div class="hint" style="margin-bottom:4px">Résultat</div><div class="seg" id="f_r">${Object.keys(RES).map(k=>`<button type="button" data-v="${k}" class="${x.resultat===k?"on":""}">${RES[k]}</button>`).join("")}</div></div>`}
+   <div class="two"><label class="f">${isF?"Organisme de formation":"Vérifié par"}<input id="f_o" value="${esc(x.organisme||"")}"></label><label class="f">N° de rapport / attestation<input id="f_rf" value="${esc(x.ref||"")}"></label></div>
+   <label class="f">Remarque<input id="f_n" value="${esc(x.notes||"")}"></label>
+   <label class="f">Joindre le rapport ou l’attestation (facultatif)<input type="file" id="f_f"></label>
+   ${!isF?`<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="f_obs"> Créer une observation à suivre pour cette réserve</label>`:""}
+   <div class="err" id="f_e"></div>`,
+   `${edit?`<button class="btn danger ghost" id="f_del" style="margin-right:auto">Retirer</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="f_s">Enregistrer</button>`);
+  let res=x.resultat||"";
+  const calc=()=>{const d=m.q("#f_dt").value,p=m.q("#f_p").value;m.q("#f_c").innerHTML=d&&p?`Prochaine échéance calculée : <b>${fr(addM(d,p))}</b> · relances à J-60, J-30 et J-7`:`Sans date, l’élément reste « à renseigner » dans le registre.`;
+    const o=m.q("#f_obs");if(o)o.closest("label").style.display=res==="R"||res==="NC"?"flex":"none"};
+  ["#f_dt","#f_p"].forEach(s=>m.q(s).oninput=calc);
+  m.q("#f_r")?.querySelectorAll("button").forEach(b=>b.onclick=()=>{res=b.dataset.v;m.q("#f_r").querySelectorAll("button").forEach(z=>z.classList.toggle("on",z===b));calc()});
+  calc();
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(edit)m.q("#f_del").onclick=async()=>{if(!confirm("Retirer cet élément du registre ?"))return;try{await api("delEl",{id:x.id});S.els=S.els.filter(y=>y.id!==x.id);m.close();toast("Élément retiré");renderEnt()}catch(z){m.q("#f_e").textContent=z.message}};
+  m.q("#f_s").onclick=async()=>{
+    const l=m.q("#f_l").value.trim();if(!l){m.q("#f_e").textContent="Indique l’équipement ou la formation.";m.q("#f_l").focus();return}
+    const p=Number(m.q("#f_p").value);if(!p||p<1){m.q("#f_e").textContent="Indique une périodicité en mois.";return}
+    const b=m.q("#f_s");b.disabled=true;b.textContent="Enregistrement…";
+    try{
+      const el={id:x.id||"",entId:e.id,rub:x.rub,libelle:l,detail:m.q("#f_d").value.trim(),per:p,dernier:m.q("#f_dt").value,organisme:m.q("#f_o").value.trim(),resultat:isF?"":res,ref:m.q("#f_rf").value.trim(),notes:m.q("#f_n").value.trim(),doc:x.doc||""};
+      const f=m.q("#f_f").files[0];if(f){const u=await uploadFile(e,f,"doc");el.doc=u.url}
+      const r2=await api("saveEl",{el});const i=S.els.findIndex(y=>y.id===r2.el.id);if(i>=0)S.els[i]=r2.el;else S.els.push(r2.el);
+      if(m.q("#f_obs")?.checked&&(res==="R"||res==="NC")){const rr=await api("saveRes",{res:{entId:e.id,elId:r2.el.id,date:el.dernier||today(),texte:`${l}${el.detail?" ("+el.detail+")":""} : ${el.notes||RES[res]}`,gravite:res==="NC"?"haute":"moyenne",levee:"",preuve:""}});S.res.push(rr.res)}
+      m.close();toast(el.dernier?`Enregistré · prochaine échéance le ${fr(r2.el.prochain)}`:"Ajouté au registre");renderEnt();
+    }catch(z){b.disabled=false;b.textContent="Enregistrer";m.q("#f_e").textContent=z.message}};
+}
+function resForm(e,r,lever){
+  const m=modal(lever?"Lever la réserve":r.id?"Modifier l’observation":"Nouvelle observation",RUB.obs.c,`
+   <label class="f">Observation<textarea id="r_t" rows="3">${esc(r.texte||"")}</textarea></label>
+   <div class="two"><label class="f">Relevée le<input type="date" id="r_d" value="${esc(r.date||today())}"></label>
+   <label class="f">Priorité<select id="r_g">${["haute","moyenne","basse"].map(g=>`<option ${r.gravite===g?"selected":""}>${g}</option>`).join("")}</select></label></div>
+   <div class="two"><label class="f">Levée le<input type="date" id="r_l" value="${esc(r.levee||"")}"></label><label class="f">Preuve (facture, photo, rapport)<input id="r_p" value="${esc(r.preuve||"")}"></label></div>
+   <label class="f">Joindre une preuve (facultatif)<input type="file" id="r_f"></label><div class="err" id="r_e"></div>`,
+   `${r.id&&!lever?`<button class="btn danger ghost" id="r_del" style="margin-right:auto">Supprimer</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="r_s">${lever?"Lever la réserve":"Enregistrer"}</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#r_del"))m.q("#r_del").onclick=async()=>{if(!confirm("Supprimer cette observation ?"))return;await api("delRes",{id:r.id});S.res=S.res.filter(y=>y.id!==r.id);m.close();renderEnt()};
+  m.q("#r_s").onclick=async()=>{const t=m.q("#r_t").value.trim();if(!t){m.q("#r_e").textContent="Décris l’observation.";return}
+    try{const o={...r,entId:e.id,texte:t,date:m.q("#r_d").value,gravite:m.q("#r_g").value,levee:m.q("#r_l").value,preuve:m.q("#r_p").value.trim()};
+      const f=m.q("#r_f").files[0];if(f){const u=await uploadFile(e,f,"doc");o.preuve=(o.preuve?o.preuve+" – ":"")+u.url}
+      const x=await api("saveRes",{res:o});const i=S.res.findIndex(y=>y.id===x.res.id);if(i>=0)S.res[i]=x.res;else S.res.push(x.res);m.close();toast(o.levee?"Réserve levée":"Observation enregistrée");renderEnt()}catch(z){m.q("#r_e").textContent=z.message}};
+}
+function entForm(e){
+  e=e||{relances:"oui",verificateur:"RUNIXO CONTRÔLE"};const adm=S.role==="admin";
+  const F=(k,l,ph="",t="text")=>`<label class="f">${l}<input id="n_${k}" type="${t}" value="${esc(e[k]||"")}" placeholder="${ph}"></label>`;
+  const m=modal(e.id?"Fiche entreprise":"Nouvelle entreprise",RUB.id.c,`${F("nom","Raison sociale","SARL EXEMPLE")}
+   <div class="two">${F("forme","Forme","SARL")}${F("siret","SIRET","123 456 789 00012")}</div>${F("adresse","Adresse")}<div class="two">${F("cp","Code postal","97440")}${F("ville","Ville","Saint-André")}</div>
+   ${F("activite","Activité","Gros œuvre, métallerie…")}<div class="two">${F("effectif","Effectif","12","number")}${F("contact","Responsable sécurité")}</div>
+   <div class="two">${F("email","Mail (reçoit les relances)","contact@entreprise.re","email")}${F("tel","Téléphone")}</div>
+   ${adm?`<div class="two">${F("verificateur","Organisme vérificateur")}<label class="f">Relances automatiques<select id="n_relances"><option value="oui" ${e.relances!=="non"?"selected":""}>Activées</option><option value="non" ${e.relances==="non"?"selected":""}>Désactivées</option></select></label></div>`:""}
+   ${F("duerp","Lien vers le document unique (DUERP)","https://…")}<div class="err" id="n_e"></div>`,
+   `${adm&&e.id?`<button class="btn danger ghost" id="n_del" style="margin-right:auto">Supprimer l’entreprise</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="n_s">Enregistrer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#n_del"))m.q("#n_del").onclick=async()=>{if(!confirm(`Supprimer ${e.nom} et tout son registre ?`))return;await api("delEnt",{id:e.id});await reload();m.close();V={view:"dash"};render()};
+  m.q("#n_s").onclick=async()=>{const o={id:e.id||""};["nom","forme","siret","adresse","cp","ville","activite","effectif","contact","email","tel","duerp"].concat(adm?["verificateur","relances"]:[]).forEach(k=>o[k]=m.q("#n_"+k).value.trim());
+    if(!o.nom){m.q("#n_e").textContent="Indique la raison sociale.";return}
+    if(o.email&&!/^\S+@\S+\.\S+$/.test(o.email)){m.q("#n_e").textContent="Le mail n’est pas valide.";return}
+    try{const r=await api("saveEnt",{ent:o});const i=S.ents.findIndex(x=>x.id===r.ent.id);if(i>=0)S.ents[i]=r.ent;else S.ents.push(r.ent);m.close();toast("Fiche enregistrée");V={view:"ent",ent:r.ent.id,tab:"id"};render()}catch(z){m.q("#n_e").textContent=z.message}};
+}
+function access(e){
+  const lk=`${APP_URL}/?c=${e.code}`,lec=`${APP_URL}/?c=${e.lecture}`;
+  const m=modal("Accès client – "+esc(e.nom),RUB.id.c,`
+   <p style="margin:0">L’entreprise ouvre son registre, le complète et dépose ses documents avec ce lien :</p>
+   <div class="calc" style="word-break:break-all"><b>${lk}</b><br><span class="hint">Code : <span class="mono">${e.code}</span></span></div>
+   <p style="margin:6px 0 0"><b>QR code à afficher dans l’entreprise</b> (consultation seule, pour un auditeur ou l’inspection du travail) :</p>
+   <div class="qr" id="qr"></div><div class="hint" style="text-align:center">Code de consultation : <span class="mono">${e.lecture}</span></div><div class="err" id="a_e"></div>`,
+   `<button class="btn" id="a_n">Nouveau code</button><button class="btn" id="a_c">Copier le lien</button><button class="btn" id="a_q">Télécharger le QR</button><button class="btn pri" id="a_m">Envoyer les accès par mail</button>`);
+  new QRCode(m.q("#qr"),{text:lec,width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
+  m.q("#a_c").onclick=()=>{navigator.clipboard?.writeText(lk).then(()=>toast("Lien copié"),()=>toast(lk))};
+  m.q("#a_q").onclick=()=>{const c=m.q("#qr canvas");if(!c)return;saveFile(`QR_registre_${e.nom.replace(/\W+/g,"_")}.png`,dataBlob(qrPoster(e,c)))};
+  m.q("#a_m").onclick=async()=>{try{await api("sendAccess",{id:e.id});toast(DEMO?"Mode démo : le mail partira une fois l’outil en ligne":"Accès envoyés à "+e.email)}catch(z){m.q("#a_e").textContent=z.message}};
+  m.q("#a_n").onclick=async()=>{if(!confirm("Générer un nouveau code ? L’ancien ne fonctionnera plus."))return;const r=await api("newCode",{id:e.id,kind:"code"});Object.assign(e,r.ent);m.close();access(e)};
+}
+function qrPoster(e,qr){ // affichette A5 prête à imprimer
+  const c=document.createElement("canvas");c.width=1240;c.height=1748;const g=c.getContext("2d");
+  g.fillStyle="#fff";g.fillRect(0,0,1240,1748);g.fillStyle="#12213F";g.fillRect(0,0,1240,330);g.fillStyle="#E87722";g.fillRect(0,330,1240,22);
+  g.fillStyle="#F5A623";g.font="600 44px Barlow, Arial";g.fillText("3AIM CFA",90,120);g.fillStyle="#fff";g.font="700 96px 'Barlow Condensed', Arial";g.fillText("Registre de sécurité",90,250);
+  g.fillStyle="#12213F";g.font="600 60px Barlow, Arial";g.fillText(e.nom.slice(0,32),90,470);
+  g.drawImage(qr,270,560,700,700);g.fillStyle="#4B5563";g.font="40px Barlow, Arial";
+  ["Scannez pour consulter le registre à jour","(vérifications, formations, réserves)"].forEach((t,i)=>g.fillText(t,620-g.measureText(t).width/2,1350+i*56));
+  g.font="32px Barlow, Arial";const f=`Tenu par ${ORG.nom} · ${ORG.tel} · ${ORG.mail}`;g.fillText(f,620-g.measureText(f).width/2,1660);
+  return c.toDataURL("image/png");
+}
+
+/* ============ FICHIERS ============ */
+async function saveFile(name,blob){
+  try{if(window.claude&&window.claude.use){const dl=await window.claude.use("downloads");if(dl){await dl.save({filename:name,data:blob});return}}}catch(x){if(x&&x.code==="declined")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+const dataBlob=u=>{const [h,b]=u.split(","),bin=atob(b),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:h.slice(5).split(";")[0]})};
+
+const toB64=f=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=ko;r.readAsDataURL(f)});
+async function uploadFile(e,f,kind){if(f.size>15e6)throw new Error("Fichier trop lourd (15 Mo maximum)");return api("upload",{entId:e.id,kind,name:f.name,mime:f.type||"application/octet-stream",data:await toB64(f)})}
+async function uploadPhoto(e,f){
+  if(!f)return;if(!f.type.startsWith("image/")){toast("Choisis une image");return}
+  const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=ko;i.src=URL.createObjectURL(f)});
+  const k=Math.min(1,1400/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  const url=c.toDataURL("image/jpeg",.85);toast("Envoi de la photo…");
+  try{await api("upload",{entId:e.id,kind:"photo",name:"photo_"+e.nom+".jpg",mime:"image/jpeg",data:url.split(",")[1]});S.photos[e.id]=url;e.photoId=e.photoId||"ok";renderEnt();toast("Photo enregistrée")}catch(z){toast(z.message)}
+}
+function deposer(e,f){
+  if(!f)return;
+  const E=els(e.id);
+  const m=modal("Déposer un rapport",RUB.id.c,`<div class="calc">${esc(f.name)}</div>
+   <label class="f">Ce document concerne<select id="d_el"><option value="">Choisir…</option>${RUBS.filter(r=>CATA[r.k]).map(r=>`<optgroup label="${r.n}">${E.filter(x=>x.rub===r.k).map(x=>`<option value="${x.id}">${esc(x.libelle)}${x.detail?" – "+esc(x.detail):""}</option>`).join("")}<option value="new:${r.k}">+ Nouvel élément (${r.n})</option></optgroup>`).join("")}</select></label>
+   <p class="hint" style="margin:0">Après l’envoi, tu indiques la date et le résultat : l’échéance suivante se calcule toute seule.</p><div class="err" id="d_e"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="d_s">Continuer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.q("#d_s").onclick=async()=>{const v=m.q("#d_el").value;if(!v){m.q("#d_e").textContent="Choisis l’élément concerné.";return}
+    m.q("#d_s").textContent="Envoi…";
+    try{const u=await uploadFile(e,f,"doc");m.close();
+      if(v.startsWith("new:"))elForm(e,{rub:v.slice(4),doc:u.url,dernier:today(),resultat:v.slice(4)==="form"?"":"C"});
+      else{const x=S.els.find(y=>y.id===v);elForm(e,{...x,dernier:today(),resultat:x.rub==="form"?"":"C",ref:"",doc:u.url},true)}}catch(z){m.q("#d_e").textContent=z.message;m.q("#d_s").textContent="Continuer"}};
+  $("#depf").value="";
+}
+
+/* ============ EXPORT PDF ============ */
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const P=s=>String(s??"").replace(/[’‘]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,"-").replace(/œ/g,"oe").replace(/…/g,"...").replace(/[^\x00-\xFF]/g,"");
+async function getPhoto(e){if(S.photos[e.id])return S.photos[e.id];if(!e.photoId)return"";try{const r=await api("photo",{entId:e.id});if(r.data)S.photos[e.id]=r.data;return r.data||""}catch(x){return""}}
+function qrData(text){const d=document.createElement("div");new QRCode(d,{text,width:256,height:256,correctLevel:QRCode.CorrectLevel.M});return d.querySelector("canvas").toDataURL("image/png")}
+async function exportPDF(e){
+  toast("Préparation du PDF…");
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4"}),W=210,H=297,E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
+  const NAVY=hex("#12213F"),OR=hex("#E87722");
+  // --- couverture
+  doc.setFillColor(...NAVY);doc.rect(0,0,W,92,"F");
+  for(let i=0;i<16;i++){doc.setFillColor(...(i%2?NAVY:hex("#F5A623")));doc.triangle(i*14,92,i*14+14,92,i*14+7,99,"F")}
+  doc.setFillColor(...OR);doc.rect(0,99,W,2.2,"F");
+  doc.setTextColor(245,166,35);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("3AIM CFA",18,24);
+  doc.setTextColor(255,255,255);doc.setFontSize(34);doc.text("Registre de sécurité",18,48);
+  doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(201,210,227);doc.text(P("Code du travail – Art. L.4711-1 à L.4711-5"),18,58);
+  doc.setFontSize(10);doc.text(P(`Édité le ${fr(today())}`),18,66);
+  // photo
+  const px=18,py=112,pw=110,ph=78;
+  doc.setDrawColor(...hex("#D5DAE3"));doc.setLineWidth(.4);
+  if(photo){const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=photo});const r=Math.min(pw/im.width,ph/im.height),w=im.width*r,h=im.height*r;
+    doc.setFillColor(...hex("#F3F4F6"));doc.rect(px,py,pw,ph,"F");doc.addImage(photo,"JPEG",px+(pw-w)/2,py+(ph-h)/2,w,h);doc.rect(px,py,pw,ph)}
+  else{doc.setLineDashPattern([2,2],0);doc.rect(px,py,pw,ph);doc.setLineDashPattern([],0);doc.setTextColor(150,158,172);doc.setFontSize(11);doc.text("Photo de l'entreprise",px+pw/2,py+ph/2,{align:"center"})}
+  // jauge conformité
+  const cx=165,cy=150,rr=24,col=hex(scol(s));
+  doc.setDrawColor(...hex("#E3E6EB"));doc.setLineWidth(6);doc.circle(cx,cy,rr);
+  doc.setDrawColor(...col);const steps=Math.max(1,Math.round(s*3.6));for(let i=0;i<steps;i++){const a1=-Math.PI/2+2*Math.PI*(i/360),a2=-Math.PI/2+2*Math.PI*((i+1.6)/360);doc.line(cx+rr*Math.cos(a1),cy+rr*Math.sin(a1),cx+rr*Math.cos(a2),cy+rr*Math.sin(a2))}
+  doc.setTextColor(...col);doc.setFont("helvetica","bold");doc.setFontSize(24);doc.text(s+"%",cx,cy+3,{align:"center"});
+  doc.setTextColor(...NAVY);doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Taux de conformité",cx,cy+rr+9,{align:"center"});
+  // identité
+  doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(24);doc.text(P(e.nom),18,210,{maxWidth:174});
+  doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(75,85,99);
+  const lines=[e.activite,[e.adresse,[e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "),e.siret?"SIRET "+e.siret:"",e.contact?"Responsable : "+e.contact:"",e.effectif?"Effectif : "+e.effectif+" salariés":""].filter(Boolean);
+  lines.forEach((l,i)=>doc.text(P(l),18,220+i*6.2,{maxWidth:130}));
+  doc.addImage(qrData(`${APP_URL}/?c=${e.lecture||(S.role==="lecture"?S.code:"")}`),"PNG",160,212,32,32);doc.setFontSize(8);doc.setTextColor(120,128,140);doc.text("Registre en ligne",176,248,{align:"center"});
+  doc.setFillColor(...hex("#F3F4F6"));doc.rect(0,262,W,35,"F");doc.setFillColor(...OR);doc.rect(0,262,4,35,"F");
+  doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Registre tenu et suivi par 3AIM CFA",14,273);
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(75,85,99);doc.text(P(`${ORG.adr} · ${ORG.tel} · ${ORG.mail}`),14,280);
+  if(e.verificateur)doc.text(P(`Organisme vérificateur : ${e.verificateur}`),14,286);
+  // --- synthèse
+  doc.addPage();let y=hdr(doc,e,"Synthèse du registre",hex("#12213F"));
+  const cnt=(k,st)=>E.filter(x=>x.rub===k&&statut(x)===st).length;
+  doc.autoTable({startY:y,head:[["Rubrique","À jour","À renouveler","En retard","Non conforme","À renseigner"]],
+    body:RUBS.filter(r=>CATA[r.k]).map(r=>[r.n,cnt(r.k,"ok"),cnt(r.k,"bientot"),cnt(r.k,"retard"),cnt(r.k,"nc"),cnt(r.k,"vide")]).concat([["Réserves ouvertes",{content:String(R.filter(r=>!r.levee).length),colSpan:5,styles:{halign:"left"}}]]),
+    theme:"grid",styles:{font:"helvetica",fontSize:10,cellPadding:3,lineColor:[227,230,235],textColor:[20,33,61]},headStyles:{fillColor:NAVY,textColor:255},
+    columnStyles:{0:{fontStyle:"bold",cellWidth:58},1:{halign:"center"},2:{halign:"center"},3:{halign:"center"},4:{halign:"center"},5:{halign:"center"}},
+    didParseCell:d=>{if(d.section==="body"&&d.column.index===0&&d.row.index<5){d.cell.styles.textColor=hex(RUBS[d.row.index+1].c)}
+      if(d.section==="body"&&d.column.index>0&&d.row.index<5&&Number(d.cell.raw)>0){const c=["#E5F3EB","#FDF1DC","#FCE8E6","#FCE8E6","#EEF0F3"][d.column.index-1];d.cell.styles.fillColor=hex(c);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:28}});
+  y=doc.lastAutoTable.finalY+10;
+  const af=E.filter(x=>["nc","retard","bientot"].includes(statut(x))).sort((a,b)=>String(a.prochain).localeCompare(b.prochain));
+  if(af.length){doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text("Points à traiter en priorité",14,y);
+    doc.autoTable({startY:y+3,head:[["Élément","Rubrique","Échéance","Statut"]],body:af.map(x=>[P(x.libelle+(x.detail?"\n"+x.detail:"")),RUB[x.rub].n,fr(x.prochain)||"-",ST[statut(x)]]),
+      theme:"grid",styles:{fontSize:9.5,cellPadding:2.6,lineColor:[227,230,235],textColor:[20,33,61]},headStyles:{fillColor:hex("#B42318"),textColor:255},
+      didParseCell:d=>{if(d.section==="body"&&d.column.index===3){const st=statut(af[d.row.index]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:28}})}
+  // --- rubriques
+  RUBS.filter(r=>CATA[r.k]).forEach((r,ri)=>{
+    const L=E.filter(x=>x.rub===r.k);doc.addPage();let y=hdr(doc,e,`${ri+1}. ${r.n}`,hex(r.c),r.ref);
+    const isF=r.k==="form";
+    doc.autoTable({startY:y,head:[[isF?"Formation / autorisation":"Équipement / installation",isF?"Personnes":"Précisions",isF?"Date":"Dernière vérif.",isF?"Organisme":"Vérifié par","N° rapport",isF?"Validité":"Résultat","Prochaine","Statut"]],
+      body:L.length?L.map(x=>[P(x.libelle),P(x.detail),fr(x.dernier)||"-",P(x.organisme),P(x.ref),isF?x.per+" mois":(RES[x.resultat]||"-"),fr(x.prochain)||"-",ST[statut(x)]]):[[{content:"Aucun élément suivi dans cette rubrique.",colSpan:8,styles:{halign:"center",textColor:[138,147,163]}}]],
+      theme:"grid",styles:{fontSize:8.2,cellPadding:2.2,lineColor:[227,230,235],textColor:[20,33,61],valign:"middle"},headStyles:{fillColor:hex(r.c),textColor:r.k==="lev"?[20,33,61]:255,fontSize:8.6},
+      alternateRowStyles:{fillColor:[249,250,251]},columnStyles:{0:{fontStyle:"bold",cellWidth:34},1:{cellWidth:29},2:{cellWidth:19},3:{cellWidth:22},4:{cellWidth:26},5:{cellWidth:19},6:{fontStyle:"bold",cellWidth:19},7:{cellWidth:18}},
+      didParseCell:d=>{if(d.section!=="body"||!L.length)return;const x=L[d.row.index],st=statut(x);
+        if(d.column.index===7){d.cell.styles.fillColor=hex({ok:"#E5F3EB",bientot:"#FDF1DC",retard:"#FCE8E6",nc:"#FCE8E6",vide:"#EEF0F3"}[st]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}
+        if(d.column.index===5&&!isF&&x.resultat)d.cell.styles.textColor=hex({C:"#1E7F4F",R:"#C17D00",NC:"#B42318"}[x.resultat])},margin:{left:12,right:12,top:28}});
+    let yy=doc.lastAutoTable.finalY+8;const nt=L.filter(x=>x.notes);
+    if(nt.length&&yy<260){doc.setFontSize(9);doc.setTextColor(75,85,99);doc.setFont("helvetica","bold");doc.text("Remarques",12,yy);doc.setFont("helvetica","normal");nt.forEach(x=>{yy+=5;if(yy<280)doc.text(P(`- ${x.libelle} : ${x.notes}`),12,yy,{maxWidth:186})})}
+  });
+  // --- observations
+  doc.addPage();y=hdr(doc,e,"7. Observations et suites",hex(RUB.obs.c),RUB.obs.ref);
+  const RR=R.slice().sort((a,b)=>(!!a.levee-!!b.levee)||String(a.date).localeCompare(b.date));
+  doc.autoTable({startY:y,head:[["Relevée le","Observation","Priorité","Levée le","Preuve / suite donnée"]],
+    body:RR.length?RR.map(r=>[fr(r.date),P(r.texte),r.gravite||"",r.levee?fr(r.levee):"À lever",P(r.preuve)]):[[{content:"Aucune observation.",colSpan:5,styles:{halign:"center"}}]],
+    theme:"grid",styles:{fontSize:9,cellPadding:2.6,lineColor:[227,230,235],textColor:[20,33,61]},headStyles:{fillColor:hex(RUB.obs.c),textColor:255},columnStyles:{0:{cellWidth:22},1:{cellWidth:78},2:{cellWidth:18},3:{cellWidth:22,fontStyle:"bold"}},
+    didParseCell:d=>{if(d.section==="body"&&RR.length&&d.column.index===3){d.cell.styles.textColor=hex(RR[d.row.index].levee?"#1E7F4F":"#B42318")}},margin:{left:14,right:14,top:28}});
+  // --- visas
+  y=doc.lastAutoTable.finalY+12;if(y>200){doc.addPage();y=hdr(doc,e,"Visas",NAVY)}else{doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text("Visas (inspection du travail, CARSAT, vérificateurs)",14,y);y+=3}
+  doc.autoTable({startY:y,head:[["Date","Nom","Qualité / organisme","Observations","Signature"]],body:Array.from({length:6},()=>["","","","",""]),theme:"grid",styles:{minCellHeight:13,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:NAVY,textColor:255,minCellHeight:7},margin:{left:14,right:14,top:28}});
+  // pieds de page
+  const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(138,147,163);doc.text(P(`${e.nom} – Registre de sécurité – édité le ${fr(today())}`),12,290);doc.text(`Page ${i} / ${n}`,198,290,{align:"right"});doc.setDrawColor(...OR);doc.setLineWidth(.6);doc.line(12,286,198,286)}
+  await saveFile(`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`,doc.output("blob"));
+}
+function hdr(doc,e,title,col,sub){
+  doc.setFillColor(...hex("#12213F"));doc.rect(0,0,210,12,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(P(e.nom),12,7.8);
+  doc.setFont("helvetica","normal");doc.setTextColor(245,166,35);doc.text("3AIM CFA · Registre de sécurité",198,7.8,{align:"right"});
+  doc.setFillColor(...col);doc.rect(12,18,4,sub?14:10,"F");doc.setTextColor(...col);doc.setFont("helvetica","bold");doc.setFontSize(17);doc.text(P(title),19,25);
+  if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(110,118,132);doc.text(P(sub),19,30.5)}
+  return sub?38:34;
+}
+
+/* ============ EXPORT EXCEL ============ */
+async function exportXLS(e){
+  toast("Préparation du fichier Excel…");
+  const wb=new ExcelJS.Workbook();wb.creator="3AIM CFA";const E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
+  const A=h=>"FF"+h.slice(1).toUpperCase(),fill=h=>({type:"pattern",pattern:"solid",fgColor:{argb:A(h)}}),thin={style:"thin",color:{argb:"FFE3E6EB"}},bd={top:thin,left:thin,bottom:thin,right:thin};
+  // couverture
+  const c=wb.addWorksheet("Couverture",{properties:{tabColor:{argb:A("#E87722")}},views:[{showGridLines:false}]});
+  c.columns=[{width:3},{width:26},{width:44},{width:20},{width:20}];
+  for(let r=1;r<=5;r++)for(let k=1;k<=5;k++)c.getCell(r,k).fill=fill("#12213F");
+  for(let k=1;k<=5;k++)c.getCell(6,k).fill=fill("#E87722");c.getRow(6).height=6;
+  c.getCell("B2").value="3AIM CFA";c.getCell("B2").font={bold:true,color:{argb:A("#F5A623")},size:11};
+  c.mergeCells("B3:E4");c.getCell("B3").value="Registre de sécurité";c.getCell("B3").font={bold:true,size:26,color:{argb:"FFFFFFFF"},name:"Calibri"};c.getCell("B3").alignment={vertical:"middle"};
+  c.getCell("B5").value="Édité le "+fr(today());c.getCell("B5").font={color:{argb:"FFC9D2E3"},size:10};
+  c.mergeCells("B8:E8");c.getCell("B8").value=e.nom;c.getCell("B8").font={bold:true,size:20,color:{argb:A("#12213F")}};
+  const info=[["Activité",e.activite],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["SIRET",e.siret],["Responsable",e.contact],["Mail",e.email],["Téléphone",e.tel],["Effectif",e.effectif],["Organisme vérificateur",e.verificateur],["Taux de conformité",s/100]];
+  info.forEach(([a,b],i)=>{const r=10+i;c.getCell(r,2).value=a;c.getCell(r,2).font={color:{argb:"FF6B7280"}};c.getCell(r,3).value=b||"–";c.getCell(r,3).font={bold:a==="Taux de conformité",size:a==="Taux de conformité"?16:11,color:{argb:a==="Taux de conformité"?A(scol(s)):"FF14213D"}};c.getCell(r,3).alignment={wrapText:true,vertical:"middle"};if(a==="Taux de conformité")c.getCell(r,3).numFmt="0%";[2,3].forEach(k=>c.getCell(r,k).border={bottom:thin})});
+  c.mergeCells("D10:E19");c.getCell("D10").alignment={horizontal:"center",vertical:"middle",wrapText:true};
+  if(photo){const id=wb.addImage({base64:photo,extension:"jpeg"});const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=photo});const w=270,h=Math.min(200,Math.round(w*im.height/im.width));c.addImage(id,{tl:{col:3.15,row:9.2},ext:{width:w,height:h}})}
+  else{const ds={style:"dashed",color:{argb:"FFB5BCC8"}};c.getCell("D10").value="Emplacement réservé à la photo de l’entreprise";c.getCell("D10").font={italic:true,color:{argb:"FF8A93A3"}};c.getCell("D10").border={top:ds,left:ds,bottom:ds,right:ds}}
+  c.mergeCells("B21:E21");c.getCell("B21").value=`Registre tenu et suivi par 3AIM CFA – ${ORG.adr} – ${ORG.tel} – ${ORG.mail}`;c.getCell("B21").font={size:9,color:{argb:"FF4B5563"}};c.getCell("B21").fill=fill("#F3F4F6");
+  // synthèse
+  const sy=wb.addWorksheet("Synthèse",{properties:{tabColor:{argb:A("#12213F")}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
+  sy.columns=[{width:34},{width:14},{width:16},{width:14},{width:16},{width:16}];
+  sy.mergeCells("A1:F1");sy.getCell("A1").value=`Synthèse – ${e.nom}`;sy.getCell("A1").font={bold:true,size:16,color:{argb:"FFFFFFFF"}};sy.getCell("A1").fill=fill("#12213F");sy.getRow(1).height=30;sy.getCell("A1").alignment={vertical:"middle",indent:1};
+  const hs=sy.getRow(3);hs.values=["Rubrique","À jour","À renouveler","En retard","Non conforme","À renseigner"];hs.eachCell(x=>{x.font={bold:true,color:{argb:"FFFFFFFF"}};x.fill=fill("#12213F");x.border=bd;x.alignment={horizontal:"center"}});
+  RUBS.filter(r=>CATA[r.k]).forEach((r,i)=>{const row=sy.getRow(4+i);row.values=[r.n,...["ok","bientot","retard","nc","vide"].map(st=>E.filter(x=>x.rub===r.k&&statut(x)===st).length)];
+    row.eachCell((x,k)=>{x.border=bd;if(k===1){x.font={bold:true,color:{argb:A(r.c)}};x.border={...bd,left:{style:"thick",color:{argb:A(r.c)}}}}else{x.alignment={horizontal:"center"};if(x.value>0){x.fill=fill(["#E5F3EB","#FDF1DC","#FCE8E6","#FCE8E6","#EEF0F3"][k-2]);x.font={bold:true}}}})});
+  const ro=sy.getRow(10);ro.values=["Réserves ouvertes",R.filter(r=>!r.levee).length];ro.getCell(1).font={bold:true};ro.getCell(2).alignment={horizontal:"center"};ro.eachCell(x=>x.border=bd);
+  // une feuille par rubrique
+  RUBS.filter(r=>CATA[r.k]).forEach((r,ri)=>{
+    const isF=r.k==="form",L=E.filter(x=>x.rub===r.k),ws=wb.addWorksheet(`${ri+1}. ${r.n}`.slice(0,31),{properties:{tabColor:{argb:A(r.c)}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
+    ws.columns=[{width:34},{width:34},{width:15},{width:22},{width:17},{width:20},{width:15},{width:16},{width:34}];
+    ws.mergeCells("A1:I1");ws.getCell("A1").value=`${ri+1}. ${r.n} – ${e.nom}`;ws.getCell("A1").font={bold:true,size:15,color:{argb:r.k==="lev"?"FF14213D":"FFFFFFFF"}};ws.getCell("A1").fill=fill(r.c);ws.getRow(1).height=28;ws.getCell("A1").alignment={vertical:"middle",indent:1};
+    ws.mergeCells("A2:I2");ws.getCell("A2").value=r.ref;ws.getCell("A2").font={italic:true,size:9,color:{argb:"FF6B7280"}};
+    const h=ws.getRow(3);h.values=[isF?"Formation / autorisation":"Équipement / installation",isF?"Personnes":"Précisions",isF?"Date":"Dernière vérif.",isF?"Organisme":"Vérifié par","N° rapport",isF?"Validité":"Résultat","Prochaine","Statut","Remarque"];
+    h.eachCell(x=>{x.font={bold:true,color:{argb:"FF14213D"}};x.fill=fill("#EEF0F3");x.border={...bd,bottom:{style:"medium",color:{argb:A(r.c)}}};x.alignment={vertical:"middle",wrapText:true}});h.height=22;
+    L.forEach((x,i)=>{const st=statut(x),row=ws.getRow(4+i);
+      row.values=[x.libelle,x.detail,x.dernier?new Date(x.dernier+"T12:00:00"):"",x.organisme,x.ref,isF?x.per+" mois":(RES[x.resultat]||""),x.prochain?new Date(x.prochain+"T12:00:00"):"",ST[st],x.notes];
+      row.eachCell({includeEmpty:true},(c2,k)=>{c2.border=bd;c2.alignment={vertical:"middle",wrapText:true};if(i%2)c2.fill=fill("#F9FAFB")});
+      [3,7].forEach(k=>row.getCell(k).numFmt="dd/mm/yyyy");row.getCell(1).font={bold:true};row.getCell(7).font={bold:true};
+      const sc=row.getCell(8);sc.fill=fill({ok:"#E5F3EB",bientot:"#FDF1DC",retard:"#FCE8E6",nc:"#FCE8E6",vide:"#EEF0F3"}[st]);sc.font={bold:true,color:{argb:A(STC[st])}};sc.alignment={horizontal:"center",vertical:"middle"};
+      if(!isF&&x.resultat)row.getCell(6).font={bold:true,color:{argb:A({C:"#1E7F4F",R:"#C17D00",NC:"#B42318"}[x.resultat])}}});
+    if(!L.length){ws.getCell("A4").value="Aucun élément suivi dans cette rubrique.";ws.getCell("A4").font={italic:true,color:{argb:"FF8A93A3"}}}
+    else ws.autoFilter={from:"A3",to:`I${3+L.length}`};
+  });
+  // observations
+  const ob=wb.addWorksheet("7. Observations",{properties:{tabColor:{argb:A(RUB.obs.c)}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
+  ob.columns=[{width:14},{width:70},{width:12},{width:14},{width:40}];
+  ob.mergeCells("A1:E1");ob.getCell("A1").value=`7. Observations et suites – ${e.nom}`;ob.getCell("A1").font={bold:true,size:15,color:{argb:"FFFFFFFF"}};ob.getCell("A1").fill=fill(RUB.obs.c);ob.getRow(1).height=28;ob.getCell("A1").alignment={vertical:"middle",indent:1};
+  const oh=ob.getRow(3);oh.values=["Relevée le","Observation","Priorité","Levée le","Preuve / suite donnée"];oh.eachCell(x=>{x.font={bold:true};x.fill=fill("#EEF0F3");x.border={...bd,bottom:{style:"medium",color:{argb:A(RUB.obs.c)}}}});
+  R.slice().sort((a,b)=>(!!a.levee-!!b.levee)||String(a.date).localeCompare(b.date)).forEach((r,i)=>{const row=ob.getRow(4+i);row.values=[r.date?new Date(r.date+"T12:00:00"):"",r.texte,r.gravite,r.levee?new Date(r.levee+"T12:00:00"):"À lever",r.preuve];
+    row.eachCell({includeEmpty:true},x=>{x.border=bd;x.alignment={vertical:"middle",wrapText:true}});row.getCell(1).numFmt="dd/mm/yyyy";row.getCell(4).numFmt="dd/mm/yyyy";
+    row.getCell(4).font={bold:true,color:{argb:r.levee?"FF1E7F4F":"FFB42318"}};row.getCell(4).fill=fill(r.levee?"#E5F3EB":"#FCE8E6")});
+  wb.eachSheet(ws=>{ws.pageSetup={paperSize:9,orientation:ws.name==="Couverture"?"portrait":"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.4,right:.4,top:.5,bottom:.5,header:.2,footer:.2}};ws.headerFooter={oddFooter:`&L${e.nom.replace(/&/g,"&&")} – Registre de sécurité&RPage &P / &N`}});
+  const buf=await wb.xlsx.writeBuffer();
+  await saveFile(`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.xlsx`,new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+
+/* ============ DÉMARRAGE ============ */
+(async()=>{
+  const u=new URLSearchParams(location.search).get("c"),c=u||store.get("reg3aim_code");
+  if(u)history.replaceState(null,"",location.pathname);
+  if(c){try{await login(c)}catch(x){renderLogin(x.message)}}else renderLogin();
+})();
+</script>
+</body>
+</html>
