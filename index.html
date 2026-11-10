@@ -148,6 +148,8 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);borde
 .rg-a{color:var(--red)}
 .rg-s{font-style:italic;color:var(--ink2);font-size:12.5px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rg-h,:root:not([data-theme="light"]) .rg-a{color:#F28B82}}
+.row.du{grid-template-columns:6px minmax(0,1.5fr) 96px minmax(0,1.6fr) 230px}
+@media (max-width:760px){.row.du{grid-template-columns:6px minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -194,7 +196,7 @@ const els=id=>S.els.filter(x=>x.entId===id);
 const ress=id=>S.res.filter(x=>x.entId===id);
 function score(id){const E=els(id),F=S.fic.filter(f=>f.entId===id&&(f.type==="perso"||f.type==="cons"||f.type==="dae")),o=ress(id).filter(r=>!r.levee).length,t=E.length+F.length+o;return t?Math.round(100*(E.filter(x=>["ok","bientot"].includes(statut(x))).length+F.filter(f=>["ok","bientot"].includes(statutF(f))).length)/t):0}
 const scol=v=>v>=80?"#1E7F4F":v>=50?"#C17D00":"#B42318";
-function opps(id){const o=[];if(S.fic.some(f=>f.entId===id&&f.type==="dae")&&!S.fic.some(f=>f.entId===id&&f.type==="perso"&&/SST/.test(f.b||""))&&!S.els.some(x=>x.entId===id&&/SST/.test(x.libelle)))o.push({t:"Défibrillateur installé sans personne formée aux gestes de secours",qui:"Formation 3AIM CFA (SST)"});S.fic.filter(f=>f.entId===id&&f.type==="perso").forEach(f=>{if(!f.echeance||jours(f.echeance)<=60)o.push({t:ficLib(f),qui:"Formation 3AIM CFA"})});els(id).forEach(x=>{const s=statut(x),pr=x.prochain&&jours(x.prochain)<=60,d=x.detail?` (${x.detail})`:"";
+function opps(id){const o=[...duOpps(id)];if(S.fic.some(f=>f.entId===id&&f.type==="dae")&&!S.fic.some(f=>f.entId===id&&f.type==="perso"&&/SST/.test(f.b||""))&&!S.els.some(x=>x.entId===id&&/SST/.test(x.libelle)))o.push({t:"Défibrillateur installé sans personne formée aux gestes de secours",qui:"Formation 3AIM CFA (SST)"});S.fic.filter(f=>f.entId===id&&f.type==="perso").forEach(f=>{if(!f.echeance||jours(f.echeance)<=60)o.push({t:ficLib(f),qui:"Formation 3AIM CFA"})});els(id).forEach(x=>{const s=statut(x),pr=x.prochain&&jours(x.prochain)<=60,d=x.detail?` (${x.detail})`:"";
   if(x.rub==="form"&&(s==="vide"||s==="retard"||pr))o.push({t:x.libelle+d,qui:"Formation 3AIM CFA"});
   if((x.rub==="lev"||x.rub==="epi")&&(s!=="ok"||pr))o.push({t:(s==="nc"?"Contre-visite : ":"")+x.libelle+d,qui:"RUNIXO CONTRÔLE"});});return o}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200)}
@@ -274,7 +276,7 @@ function seedData(){
 
 /* ============ ÉTAT + API ============ */
 const DEMO=!API_URL;
-let S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],jr:[],photos:{}};
+let S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};
 let V={view:"dash",ent:null,tab:"id"};
 let DB=null,PEND_M=null;
 async function api(action,p={}){
@@ -291,7 +293,7 @@ function demo(a,p){
   const log=(entId,txt)=>DB.jr.unshift({date:today()+" "+new Date().toTimeString().slice(0,5),entId,qui:who.role,action:txt});
   switch(a){
    case"login":return{role:who.role,entId:who.entId||null};
-   case"load":{const f=x=>who.role==="admin"||x.entId===who.entId;return{role:who.role,entId:who.entId||null,ents:DB.ents.filter(e=>who.role==="admin"||e.id===who.entId).map(e=>({...e})),els:DB.els.filter(f).map(x=>({...x})),res:DB.res.filter(f).map(x=>({...x})),fic:DB.fic.filter(f).map(x=>({...x})),jr:DB.jr.filter(f)}}
+   case"load":{const f=x=>who.role==="admin"||x.entId===who.entId;return{role:who.role,entId:who.entId||null,ents:DB.ents.filter(e=>who.role==="admin"||e.id===who.entId).map(e=>({...e})),els:DB.els.filter(f).map(x=>({...x})),res:DB.res.filter(f).map(x=>({...x})),fic:DB.fic.filter(f).map(x=>({...x})),du:(DB.du||[]).filter(f).map(x=>({...x})),jr:DB.jr.filter(f)}}
    case"saveEnt":{const e=p.ent;if(!e.id){e.id=rid("e");e.code="ENT-"+gen(6);e.lecture="LEC-"+gen(10);e.relances=e.relances||"oui"}const i=DB.ents.findIndex(x=>x.id===e.id);if(i>=0)DB.ents[i]={...DB.ents[i],...e};else DB.ents.push(e);log(e.id,i>=0?"Fiche entreprise mise à jour":"Entreprise créée");return{ent:DB.ents.find(x=>x.id===e.id)}}
    case"delEnt":DB.ents=DB.ents.filter(x=>x.id!==p.id);DB.fic=DB.fic.filter(x=>x.entId!==p.id);DB.els=DB.els.filter(x=>x.entId!==p.id);DB.res=DB.res.filter(x=>x.entId!==p.id);return{};
    case"newCode":{const e=DB.ents.find(x=>x.id===p.id);if(p.kind==="lecture")e.lecture="LEC-"+gen(10);else e.code="ENT-"+gen(6);return{ent:{...e}}}
@@ -305,6 +307,8 @@ function demo(a,p){
    case"testMail":return{};
    case"sendRegistre":return{};
    case"saveFiche":{const f=p.fic;if(!f.id)f.id=rid("f");const i=DB.fic.findIndex(x=>x.id===f.id);if(i>=0)DB.fic[i]=f;else DB.fic.push(f);log(f.entId,"Fiche : "+(f.a||""));return{fic:{...f}}}
+   case"saveDuerp":{const d=p.du;if(!d.id)d.id=rid("d");DB.du=DB.du||[];const i=DB.du.findIndex(x=>x.id===d.id);if(i>=0)DB.du[i]=d;else DB.du.push(d);log(d.entId,"DUERP version "+d.version+" enregistré");return{du:{...d}}}
+   case"delDuerp":DB.du=(DB.du||[]).filter(x=>x.id!==p.id);return{};
    case"delFiche":DB.fic=DB.fic.filter(x=>x.id!==p.id);return{};
    case"lireDoc":return{items:[{rub:"lev",libelle:"Chariot élévateur – VGP",detail:"Toyota 8FD25 – n° 30215",serie:"30215",dernier:today(),per:6,organisme:"RUNIXO CONTRÔLE",resultat:"R",ref:"VGP-2026-0198",notes:"",reserves:[{texte:"Ceinture de sécurité à remplacer",gravite:"moyenne"}]}]};
    case"seed":return{};
@@ -317,8 +321,8 @@ const loadJS=k=>_ld[k]||(_ld[k]=new Promise((ok,ko)=>{const t=document.createEle
 async function need(...ks){for(const k of ks){if(k==="autotable")await loadJS("jspdf");await loadJS(k)}}
 /* ============ CONNEXION ============ */
 const cacheKey=c=>"reg3aim_cache_"+c;
-function applyData(r){Object.assign(S,{role:r.role,entId:r.entId,ents:r.ents||[],els:r.els||[],res:r.res||[],fic:r.fic||[],jr:r.jr||[]})}
-function saveCache(){if(DEMO)return;store.set(cacheKey(S.code),JSON.stringify({role:S.role,entId:S.entId,ents:S.ents,els:S.els,res:S.res,fic:S.fic,jr:S.jr.slice(0,40)}))}
+function applyData(r){Object.assign(S,{role:r.role,entId:r.entId,ents:r.ents||[],els:r.els||[],res:r.res||[],fic:r.fic||[],du:r.du||[],jr:r.jr||[]})}
+function saveCache(){if(DEMO)return;store.set(cacheKey(S.code),JSON.stringify({role:S.role,entId:S.entId,ents:S.ents,els:S.els,res:S.res,fic:S.fic,du:S.du.map(({_o,...x})=>x),jr:S.jr.slice(0,40)}))}
 function startView(){if(S.role!=="admin"&&(V.view==="dash"||!V.ent))V={view:"ent",ent:S.entId,tab:"id"};if(PEND_M&&S.els.some(x=>x.id===PEND_M)){V={view:"machine",el:PEND_M};PEND_M=null}}
 async function login(code){
   S.code=code.trim();
@@ -331,8 +335,8 @@ async function login(code){
   }catch(x){showSync(false);if(cached&&!/code/i.test(x.message)){toast("Hors connexion : données de ta dernière visite");return}store.set(cacheKey(S.code),null);throw x}
 }
 function showSync(on){let d=$("#sync");if(on&&!d&&$(".top .in")){d=document.createElement("span");d.id="sync";d.className="who";d.textContent="Mise à jour…";$(".top .in .sp").after(d)}else if(!on&&d)d.remove()}
-async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,fic:r.fic||[],jr:r.jr||[]});saveCache()}
-function logout(){store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],jr:[],photos:{}};render()}
+async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,fic:r.fic||[],du:r.du||[],jr:r.jr||[]});saveCache()}
+function logout(){store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};render()}
 
 function renderLogin(msg){
   $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark">3A</div><div><b style="color:var(--ink)">3AIM CFA</b><small style="color:var(--ink2)">Registre de sécurité</small></div></div>
@@ -390,9 +394,9 @@ function renderDash(){
 }
 
 /* ============ FICHE ENTREPRISE ============ */
-const TABS=["id","trav","inst","lev","epi","inc","form","maint","cons","dae","feu","obs","reg"];
-function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||{n:"Réglementation",c:"#B71C1C"};
-  const n=FT[k]?fics(e.id,k).length:k==="reg"||k==="id"?null:cnt(k),al=FT[k]?fics(e.id,k).some(f=>["retard"].includes(statutF(f))):k==="reg"||k==="id"?false:alert(k);
+const TABS=["id","duerp","trav","inst","lev","epi","inc","form","maint","cons","dae","feu","obs","reg"];
+function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||(k==="duerp"?{n:"DUERP",c:DG}:{n:"Réglementation",c:"#B71C1C"});
+  const n=FT[k]?fics(e.id,k).length:k==="reg"||k==="id"||k==="duerp"?null:cnt(k),al=FT[k]?fics(e.id,k).some(f=>["retard"].includes(statutF(f))):k==="reg"||k==="id"||k==="duerp"?false:alert(k);
   const lab=k==="trav"?"Travaux et contrôles":k==="maint"?"Maintenance":k==="cons"?"Consignes":k==="dae"?"Défibrillateur":k==="feu"?"Incidents":r.n;
   return `<button class="tab ${V.tab===k?"on":""}" style="--rc:${r.c}" data-t="${k}" role="tab" aria-selected="${V.tab===k}"><span class="dot"></span>${lab}${n!==null?` <span class="ct ${al?"alert":""}">${n}</span>`:""}</button>`}).join("")}
 function renderEnt(){
@@ -421,6 +425,7 @@ function renderEnt(){
   if(V.tab==="obs")return panelObs(e,pn);
   if(V.tab==="reg")return panelReg(pn);
   if(V.tab==="dae")return panelDAE(e,pn);
+  if(V.tab==="duerp")return panelDuerp(e,pn);
   if(V.tab==="trav"||V.tab==="maint"||V.tab==="cons"||V.tab==="feu")return listeFiches(e,V.tab,pn);
   panelRub(e,V.tab,pn);
   if(V.tab==="inc"){const d=document.createElement("div");d.style.marginTop="22px";pn.appendChild(d);listeFiches(e,"perso",d)}
@@ -581,6 +586,333 @@ function daejForm(e,j){
     try{const r=await api("saveFiche",{fic:o});const i=S.fic.findIndex(y=>y.id===r.fic.id);if(i>=0)S.fic[i]=r.fic;else S.fic.push(r.fic);
       if(o.a==="Contrôle visuel"){const f=S.fic.find(y=>y.id===o.e);if(f){const x=daeX(f);if(!x.visu||x.visu<o.date){x.visu=o.date;const r2=await api("saveFiche",{fic:{...f,d:JSON.stringify(x),echeance:daeEch(x)}});S.fic[S.fic.findIndex(y=>y.id===f.id)]=r2.fic}}}
       m.close();toast("Enregistré");renderEnt()}catch(z){m.q("#fi_e").textContent=z.message}};
+}
+
+/* ============ BANQUE DUERP : risques types, unités de travail, métiers ============ */
+// [clé, famille, danger, situation, dommage, G, F, mesures existantes, action à mettre en place, formation 3AIM]
+const DR=[
+ ["chute_pp","Chutes de plain-pied","Chute de plain-pied","Sol glissant ou encombré, circulation","Entorse, fracture","2","2","Nettoyage régulier","Rangement des zones de passage, signalisation sol mouillé, chaussures antidérapantes",""],
+ ["chute_mouille","Chutes de plain-pied","Chute sur sol mouillé","Sol humide (pluie, produit, carburant), entrées et sorties","Entorse, fracture","2","3","Sol antidérapant","Signalisation sol mouillé, procédure de nettoyage immédiat, chaussures antidérapantes",""],
+ ["chute_escabeau","Chutes de hauteur","Chute de hauteur (escabeau)","Accès aux étagères hautes","Traumatisme, fracture","3","2","Escabeau disponible","Escabeau conforme avec garde-corps, interdiction de monter sur le mobilier","Travail en hauteur"],
+ ["chute_hauteur","Chutes de hauteur","Chute de hauteur","Travail sur toiture, échafaudage, échelle, nacelle","Fracture grave, décès","4","2","Échelles disponibles","Protections collectives (garde-corps), harnais vérifié, nacelle avec opérateur autorisé, formation","Travail en hauteur"],
+ ["chute_vehicule","Chutes de hauteur","Chute depuis le véhicule","Montée et descente de la cabine ou du plateau","Entorse, fracture","3","2","Marchepied","Trois points d'appui, marchepieds antidérapants, éclairage",""],
+ ["manut","Manutention / TMS","Manutention manuelle","Port de charges, cartons, sacs, matériaux","Lombalgies, TMS","3","3","Chariots ou diables","Aides à la manutention, limitation des charges, stockage à hauteur ergonomique, formation","PRAP"],
+ ["tms_ms","Manutention / TMS","Gestes répétitifs","Mise en rayon, gestes répétés, bras en élévation","TMS membres supérieurs","2","3","Expérience des salariés","Rotation des tâches, pauses, aménagement des postes, sensibilisation aux postures","PRAP"],
+ ["station_debout","Manutention / TMS","Station debout prolongée","Poste de caisse ou d'accueil, poste fixe","Douleurs dos et jambes, fatigue","2","4","Tapis antifatigue","Siège assis-debout, alternance des postures, pauses","PRAP"],
+ ["manut_pers","Manutention / TMS","Manutention de personnes","Aide au lever, à la toilette, aux transferts","Lombalgies, TMS","3","4","Aides techniques partielles","Lève-personne, verticalisateur, travail en binôme, formation","PRAP"],
+ ["ecran","Travail sur écran","Travail sur écran","Saisie, poste informatique prolongé","Fatigue visuelle, TMS","2","4","Postes équipés","Réglage écran et siège, pauses visuelles, éclairage adapté",""],
+ ["machine","Machines et outils","Happement, écrasement par machine","Utilisation de machines (presse, scie, plieuse, pétrin…)","Amputation, écrasement","4","2","Protecteurs d'origine","Vérification des protecteurs et arrêts d'urgence, consignation, formation au poste",""],
+ ["outils_port","Machines et outils","Outils portatifs","Meuleuse, perceuse, scie, disqueuse","Coupures, projections","3","3","Outils entretenus","Port des EPI (lunettes, gants), vérification des carters, entretien des outils",""],
+ ["coupure","Coupures","Coupure","Ouverture de cartons, cutter, couteaux, tôles","Plaies, infection","2","3","Cutters standards","Cutters à lame rétractable, gants anti-coupure, formation aux gestes sûrs",""],
+ ["chute_objets","Chutes d'objets","Chute d'objets","Stockage en hauteur, racks, empilements","Traumatisme, écrasement","3","2","Rayonnages","Rayonnages fixés et vérifiés, charges lourdes en bas, port des chaussures de sécurité",""],
+ ["cariste","Circulation et engins","Renversement, collision (chariot élévateur)","Conduite de chariot, chargement, déchargement","Écrasement, décès","4","2","Chariot vérifié (VGP)","Autorisation de conduite, plan de circulation, port de la ceinture, VGP à jour","Autorisation de conduite"],
+ ["circulation","Circulation et engins","Heurt par un véhicule","Manœuvres de véhicules, clients, poids lourds","Traumatisme grave, décès","4","2","Marquage au sol","Plan de circulation, séparation piétons-véhicules, gilet haute visibilité, limitation de vitesse",""],
+ ["engin","Circulation et engins","Renversement, heurt (engin de chantier)","Conduite de pelle, chargeuse, tractopelle","Écrasement, décès","4","2","Engins vérifiés","Autorisation de conduite, VGP à jour, balisage de la zone d'évolution, guide au sol","Autorisation de conduite"],
+ ["levage","Circulation et engins","Chute de charge (levage)","Grue auxiliaire, pont roulant, élingage","Écrasement, décès","4","2","Appareils vérifiés","Accessoires de levage vérifiés, élingueur formé, interdiction de passer sous la charge","Autorisation de conduite"],
+ ["pont_auto","Circulation et engins","Chute du véhicule (pont élévateur)","Travail sous véhicule levé","Écrasement, décès","4","2","Pont vérifié","VGP du pont, chandelles, respect des points de levage",""],
+ ["routier","Déplacements routiers","Accident de la route","Déplacements professionnels, livraisons","Blessures graves, décès","4","2","Véhicules entretenus","Planification des tournées, entretien des véhicules, interdiction du téléphone au volant",""],
+ ["elec","Électricité","Électrisation","Utilisation d'appareils électriques, prises, rallonges","Brûlures, choc électrique","3","1","Installation vérifiée","Vérification périodique de l'installation, signalement des anomalies, pas de multiprises en cascade","Habilitation électrique"],
+ ["elec_trav","Électricité","Électrisation, électrocution","Travaux sur ou au voisinage d'installations électriques","Brûlures graves, décès","4","2","Matériel isolant","Consignation, habilitation électrique à jour, VAT, EPI isolants","Habilitation électrique"],
+ ["reseaux","Électricité","Contact avec réseaux enterrés","Terrassement à proximité des réseaux","Électrocution, explosion","4","2","DT-DICT réalisées","Marquage-piquetage, AIPR du personnel, terrassement manuel à proximité","AIPR"],
+ ["incendie","Incendie / explosion","Incendie","Appareils électriques, emballages, produits inflammables","Brûlures graves, décès","4","1","Extincteurs","Vérification annuelle des extincteurs, consignes affichées, exercice d'évacuation, formation","Incendie et évacuation"],
+ ["atex","Incendie / explosion","Incendie, explosion (ATEX)","Vapeurs inflammables, carburant, gaz, étincelles","Brûlures graves, décès","4","2","Extincteurs, consignes affichées","Interdiction de fumer et des flammes, matériel adapté, formation incendie, exercices d'évacuation","Incendie et évacuation"],
+ ["gaz_bout","Incendie / explosion","Explosion de bouteilles de gaz","Stockage et utilisation de bouteilles (oxygène, acétylène, propane)","Brûlures, explosion","4","2","Bouteilles en atelier","Bouteilles arrimées, stockage ventilé à l'extérieur, clapets anti-retour, vérification des flexibles",""],
+ ["chimique","Produits chimiques","Contact avec des produits chimiques","Utilisation de détergents, solvants, huiles, peintures","Brûlures, dermatites, troubles respiratoires","3","2","Étiquetage des produits","Fiches de données de sécurité disponibles, gants et lunettes adaptés, stockage séparé, ventilation",""],
+ ["phyto","Produits chimiques","Produits phytosanitaires","Préparation et application de traitements","Intoxication, troubles chroniques","4","2","EPI partiels","Certiphyto, local phyto ventilé, EPI complets, respect des délais de réentrée",""],
+ ["fumees","Poussières / fumées","Fumées de soudage","Soudage, découpage thermique","Troubles respiratoires, cancer","3","3","Ventilation naturelle","Captage à la source, masque adapté, aération de l'atelier",""],
+ ["poussieres","Poussières / fumées","Inhalation de poussières","Découpe, ponçage, ciment, bois, farine","Troubles respiratoires, allergies","3","3","Balayage","Aspiration à la source, arrosage, masque FFP2/FFP3, suivi médical",""],
+ ["echappement","Poussières / fumées","Gaz d'échappement","Moteurs tournant en atelier","Intoxication, maux de tête","3","2","Portes ouvertes","Extracteur de gaz d'échappement, ventilation de l'atelier",""],
+ ["bio","Biologique","Contamination biologique","Contacts avec le public, sanitaires, déchets","Maladie infectieuse","2","2","Gel hydroalcoolique","Lavage des mains, gants pour les déchets, désinfection des surfaces",""],
+ ["bio_soins","Biologique","Contamination biologique (soins)","Contacts avec des personnes malades, liquides biologiques","Maladie infectieuse","3","3","Gants à usage unique","Précautions standard, vaccination à jour, gestion des déchets de soins",""],
+ ["bruit","Bruit et vibrations","Exposition au bruit","Machines, outillage, circulation","Fatigue, surdité","2","3","Exposition limitée","Mesure du bruit, bouchons ou casques antibruit, capotage des machines",""],
+ ["vibrations","Bruit et vibrations","Vibrations","Conduite d'engins, outils vibrants","TMS, lombalgies","2","3","Sièges suspendus","Entretien des sièges et engins, rotation, outils anti-vibrations",""],
+ ["chaleur","Ambiances thermiques","Chaleur, soleil","Travail en extérieur ou près des fours","Coup de chaleur, déshydratation","3","3","Casquette","Eau fraîche à disposition, pauses à l'ombre, horaires adaptés, crème solaire",""],
+ ["froid","Ambiances thermiques","Froid","Chambres froides, surgelés","Engelures, troubles musculaires","2","3","Vêtements chauds","Vêtements isolants, temps de présence limité, ouverture intérieure des chambres froides",""],
+ ["brulure","Ambiances thermiques","Brûlure","Fours, friteuses, plaques, pièces chaudes","Brûlures","3","3","Gants de cuisine","Gants anti-chaleur, organisation des postes de cuisson, consignes",""],
+ ["uv_soudure","Ambiances thermiques","Rayonnement de soudage","Arc électrique, projections","Lésions oculaires, brûlures","3","3","Masque de soudeur","Masque adapté, écrans de protection, vêtements ignifugés",""],
+ ["rps","Risques psychosociaux","Stress, charge de travail","Affluence, multitâches, délais, pression commerciale","Stress chronique, épuisement","3","2","Autonomie des salariés","Organisation des pauses, planification, renfort en période chargée, points réguliers",""],
+ ["agression","Agression / violence","Agression","Conflits avec des clients, vol, refus de service","Blessures, stress post-traumatique","4","2","Caméras","Procédure en cas d'agression, limitation des espèces en caisse, formation à la gestion des conflits","Gestion des conflits"],
+ ["isole","Travail isolé","Travail isolé","Travail seul tôt le matin, le soir ou la nuit","Retard des secours, aggravation d'un accident","4","2","Téléphone personnel","Dispositif d'alarme pour travailleur isolé (DATI/PTI), procédure d'appel, consignes écrites",""],
+ ["secours","Travail isolé","Absence de prise en charge d'une victime","Malaise ou accident d'un salarié ou d'un client","Aggravation des blessures, décès","4","2","Trousse de secours, numéros d'urgence affichés","Former des sauveteurs secouristes du travail, défibrillateur à proximité","SST"],
+ ["nuit","Risques psychosociaux","Travail de nuit","Horaires décalés, fatigue","Troubles du sommeil, malaise","3","2","Autonomie des salariés","Suivi médical renforcé, adaptation des horaires, pauses",""],
+ ["ensevelissement","Chutes de hauteur","Ensevelissement","Tranchées et fouilles","Asphyxie, décès","4","2","Talutage partiel","Blindage des tranchées au-delà de 1,30 m, talutage, interdiction de stockage en bord de fouille",""],
+ ["animaux","Biologique","Morsure, coup d'animal","Contact avec les animaux","Blessures, infection","3","2","Expérience","Contention adaptée, vaccination antitétanique à jour",""]
+];
+const DRK=Object.fromEntries(DR.map(r=>[r[0],r]));
+// unités de travail types
+const DU={
+ admin:["Administratif / bureaux",["ecran","rps","chute_pp","elec","incendie","routier"]],
+ accueil:["Accueil / caisse",["station_debout","rps","agression","chute_mouille","bio","elec","incendie","secours"]],
+ vente:["Vente / mise en rayon",["manut","tms_ms","chute_pp","chute_escabeau","coupure","chimique","rps"]],
+ stock:["Réception / stockage",["manut","chute_objets","cariste","chute_pp","coupure","incendie"]],
+ cour:["Cour / stockage extérieur et cariste",["cariste","circulation","chute_objets","chaleur","bruit","manut"]],
+ livreur:["Chauffeur-livreur",["routier","manut","chute_vehicule","circulation","chaleur","levage"]],
+ nettoyage:["Nettoyage / entretien",["chimique","chute_mouille","tms_ms","coupure","bio","isole","elec"]],
+ isole:["Travail isolé / de nuit",["isole","agression","nuit","secours","chute_pp"]],
+ piste:["Piste carburant",["atex","circulation","agression","chute_mouille","chaleur","echappement","elec"]],
+ depotage:["Dépotage carburant (livraison)",["atex","circulation","chimique","chute_vehicule"]],
+ atelier_meca:["Atelier mécanique / entretien du matériel",["pont_auto","chimique","echappement","outils_port","manut","bruit","incendie","elec"]],
+ decoupe:["Découpe / pliage / usinage",["machine","outils_port","bruit","coupure","manut","poussieres"]],
+ soudure:["Soudure / assemblage",["fumees","uv_soudure","gaz_bout","incendie","bruit","manut","elec"]],
+ bureau_tech:["Bureau technique / direction",["ecran","rps","routier"]],
+ chantier:["Chantier",["chute_hauteur","circulation","manut","bruit","poussieres","chaleur","outils_port","reseaux","ensevelissement"]],
+ engins:["Conduite d'engins / poids lourds",["engin","routier","vibrations","bruit","chute_vehicule","levage"]],
+ hauteur:["Travaux en hauteur",["chute_hauteur","chute_objets","chaleur","outils_port"]],
+ elec_trav:["Travaux électriques",["elec_trav","chute_hauteur","outils_port","routier"]],
+ cuisine:["Cuisine",["brulure","coupure","chute_mouille","manut","chaleur","incendie","chimique","rps","froid"]],
+ salle:["Service en salle",["tms_ms","chute_mouille","rps","manut","agression"]],
+ plonge:["Plonge",["chimique","chute_mouille","tms_ms","coupure","brulure"]],
+ fournil:["Fabrication / fournil",["poussieres","brulure","machine","manut","nuit","chaleur"]],
+ chambres:["Entretien des chambres / étages",["manut","tms_ms","chimique","bio","chute_pp"]],
+ soins:["Soins / accompagnement des personnes",["manut_pers","bio_soins","agression","rps","chute_mouille"]],
+ domicile:["Intervention à domicile",["routier","manut_pers","chute_pp","chimique","isole","agression"]],
+ enfants:["Accueil des jeunes enfants",["manut","tms_ms","bio_soins","rps","bruit"]],
+ formation:["Salle de formation / pédagogie",["station_debout","rps","chute_pp","elec","incendie","ecran","secours"]],
+ plateau:["Plateau technique / exercices pratiques",["engin","cariste","manut","chute_hauteur","bruit","secours"]],
+ espaces_verts:["Espaces verts",["outils_port","bruit","chaleur","phyto","coupure","vibrations","chute_hauteur"]],
+ coiffure:["Poste de coiffure / esthétique",["chimique","station_debout","tms_ms","coupure","elec","rps"]],
+ champs:["Travaux agricoles",["engin","phyto","chaleur","manut","animaux","coupure","vibrations"]],
+ production:["Production / transformation",["machine","froid","bruit","manut","coupure","chute_mouille","chimique"]],
+ cabine:["Préparation et peinture (cabine)",["chimique","poussieres","atex","outils_port","bruit"]],
+ surveillance:["Surveillance / gardiennage",["agression","isole","nuit","routier","rps"]],
+ quai:["Quai de chargement",["cariste","circulation","chute_vehicule","manut","chute_objets"]],
+ boucherie:["Boucherie / préparation des produits frais",["coupure","machine","froid","manut","chute_mouille"]],
+ pharmacie:["Officine / comptoir",["station_debout","rps","agression","ecran","bio"]],
+ salle_sport:["Salle d'activité / encadrement sportif",["manut","chute_pp","rps","secours","bruit"]]
+};
+// métiers : [nom, unités]
+const DM=[
+ ["Station-service",["accueil","vente","nettoyage","piste","depotage","isole"]],
+ ["Négoce de matériaux",["admin","accueil","stock","cour","livreur"]],
+ ["Métallerie / chaudronnerie",["admin","decoupe","soudure","cour","bureau_tech"]],
+ ["BTP – VRD / terrassement",["admin","atelier_meca","cour","chantier","engins"]],
+ ["BTP – gros œuvre / maçonnerie",["admin","chantier","hauteur","engins"]],
+ ["BTP – second œuvre (plâtrerie, peinture, carrelage)",["admin","chantier","hauteur","livreur"]],
+ ["Électricité du bâtiment",["admin","elec_trav","hauteur","livreur"]],
+ ["Plomberie / climatisation",["admin","chantier","hauteur","soudure","livreur"]],
+ ["Menuiserie / ébénisterie",["admin","decoupe","stock","livreur"]],
+ ["Garage / mécanique automobile",["accueil","atelier_meca","nettoyage"]],
+ ["Carrosserie / peinture automobile",["accueil","atelier_meca","cabine"]],
+ ["Transport routier de marchandises",["admin","livreur","quai","atelier_meca"]],
+ ["Logistique / entrepôt",["admin","stock","quai","cour","nettoyage"]],
+ ["Commerce de détail / boutique",["accueil","vente","stock"]],
+ ["Supermarché / supérette",["accueil","vente","stock","boucherie","isole"]],
+ ["Restauration traditionnelle",["cuisine","salle","plonge","livreur"]],
+ ["Restauration rapide / snack",["cuisine","accueil","nettoyage"]],
+ ["Boulangerie / pâtisserie",["fournil","accueil","nettoyage"]],
+ ["Hôtellerie",["accueil","chambres","cuisine","salle","atelier_meca"]],
+ ["Bureaux / services administratifs",["admin"]],
+ ["Organisme de formation",["admin","formation","plateau"]],
+ ["Nettoyage / propreté",["nettoyage","isole","livreur"]],
+ ["Espaces verts / paysagiste",["espaces_verts","livreur","hauteur"]],
+ ["Aide à domicile",["domicile","admin"]],
+ ["EHPAD / établissement de soins",["soins","cuisine","nettoyage","admin","isole"]],
+ ["Crèche / petite enfance",["enfants","cuisine","nettoyage","admin"]],
+ ["Coiffure / esthétique",["coiffure","accueil"]],
+ ["Exploitation agricole",["champs","atelier_meca","livreur"]],
+ ["Industrie agroalimentaire",["production","nettoyage","stock","quai"]],
+ ["Sécurité / gardiennage",["surveillance","admin"]],
+ ["Pharmacie / commerce de santé",["pharmacie","stock","admin"]],
+ ["Association / salle de sport",["salle_sport","admin","nettoyage"]]
+];
+
+/* ============ MODULE DUERP ============ */
+const DG="#2E7D32",DGD="#1B5E20";
+const duList=id=>S.du.filter(d=>d.entId===id).sort((a,b)=>Number(b.version)-Number(a.version));
+const duObj=d=>{if(!d._o){try{d._o=JSON.parse(d.data||"{}")}catch(x){d._o={}}d._o.units=d._o.units||[]}return d._o};
+const RN=r=>Number(r.g||0)*Number(r.f||0);
+const LV=v=>v>=8?"eleve":v>=4?"modere":"faible";
+const LVL={faible:["Faible","#1E7F4F","#E5F3EB"],modere:["Modéré","#B26A00","#FDF1DC"],eleve:["Élevé","#B42318","#FCE8E6"]};
+const MAI={bonne:"Bonne",moyenne:"Moyenne",insuffisante:"Insuffisante"};
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function newRisk(k){const r=DRK[k];const g=Number(r[5]),f=Number(r[6]),lv=LV(g*f);
+  return{id:uid("k"),fam:r[1],d:r[2],s:r[3],dm:r[4],g,f,m:lv==="eleve"?"insuffisante":"moyenne",ex:r[7],ac:r[8],resp:"",dec:today(),delai:lv==="eleve"?3:lv==="modere"?6:12,fait:"",fo:r[9]}}
+const echR=r=>r.dec&&r.delai?addM(r.dec,r.delai):"";
+async function saveDu(d){const o=duObj(d);const row={id:d.id||"",entId:d.entId,version:d.version,metier:d.metier,date:d.date||"",redacteur:d.redacteur||"",effectif:d.effectif||"",statut:d.statut||"brouillon",data:JSON.stringify(o)};
+  const r=await api("saveDuerp",{du:row});const i=S.du.findIndex(x=>x.id===r.du.id);r.du._o=o;if(i>=0)S.du[i]=r.du;else S.du.push(r.du);return r.du}
+function duOpps(id){const d=duList(id)[0];if(!d)return[];const seen=new Set(),o=[];
+  duObj(d).units.forEach(u=>u.risks.forEach(r=>{if(r.fo&&!r.fait&&!seen.has(r.fo)){seen.add(r.fo);o.push({t:`${r.fo} (DUERP – ${u.nom})`,qui:"Formation 3AIM CFA"})}}));return o}
+function panelDuerp(e,pn){
+  const L=duList(e.id),ro=S.role==="lecture";
+  if(!L.length){
+    pn.innerHTML=`<div class="card rubh" style="--rc:${DG}"><div><h2>Document unique (DUERP)</h2><p>Code du travail, articles L.4121-1 à L.4121-3 et R.4121-1 à R.4121-4</p></div></div>
+    ${ro?`<div class="card empty">Aucun DUERP n’est encore enregistré.</div>`:`<div class="card" style="padding:18px;display:grid;gap:12px;max-width:640px">
+     <h3 style="font-size:20px">Créer le DUERP de ${esc(e.nom)}</h3>
+     <label class="f">Métier de l’entreprise<select id="du_m"><option value="">Choisir un métier…</option>${DM.map((m,i)=>`<option value="${i}">${esc(m[0])}</option>`).join("")}<option value="-1">Document vierge</option></select></label>
+     <div class="hint" id="du_p">Les unités de travail et les risques types sont pré-remplis : il ne te reste qu’à ajuster sur le terrain.</div>
+     <div class="two"><label class="f">Effectif<input id="du_e" type="number" value="${esc(e.effectif||"")}"></label><label class="f">Rédacteur (IPRP)<input id="du_r" value="Rachad MOHAMED – IPRP, 3AIM CFA"></label></div>
+     <div class="err" id="du_x"></div><div><button class="btn pri" id="du_c">Créer le DUERP</button></div></div>`}`;
+    if(ro)return;
+    $("#du_m").onchange=()=>{const v=$("#du_m").value;$("#du_p").innerHTML=v>=0&&v!==""?"Unités pré-remplies : <b>"+DM[v][1].map(k=>esc(DU[k][0])).join(", ")+"</b>":"Les unités de travail et les risques types sont pré-remplis : il ne te reste qu’à ajuster sur le terrain."};
+    $("#du_c").onclick=async()=>{const v=$("#du_m").value;if(v===""){$("#du_x").textContent="Choisis un métier ou « Document vierge ».";return}
+      const units=v>=0?DM[v][1].map(k=>({id:uid("u"),nom:DU[k][0],eff:"",desc:"",risks:DU[k][1].map(newRisk)})):[];
+      const d={entId:e.id,version:1,metier:v>=0?DM[v][0]:"",date:"",redacteur:$("#du_r").value.trim(),effectif:$("#du_e").value,statut:"brouillon",_o:{units}};
+      $("#du_c").disabled=true;$("#du_c").textContent="Création…";
+      try{await saveDu(d);V.duv=null;V.duu=0;toast("DUERP créé");renderEnt()}catch(z){$("#du_x").textContent=z.message;$("#du_c").disabled=false;$("#du_c").textContent="Créer le DUERP"}};
+    return;
+  }
+  const d=L.find(x=>x.id===V.duv)||L[0],o=duObj(d),U=o.units,ui=Math.min(V.duu||0,Math.max(0,U.length-1)),u=U[ui];
+  const all=U.flatMap(x=>x.risks),el=all.filter(r=>LV(RN(r))==="eleve").length,late=all.filter(r=>!r.fait&&echR(r)&&jours(echR(r))<0).length,done=all.filter(r=>r.fait).length;
+  const nxt=d.date?addM(d.date,12):"";
+  pn.innerHTML=`<div class="card rubh" style="--rc:${DG}"><div><h2>Document unique – version ${esc(d.version)}</h2><p>${esc(d.metier||"Document vierge")} · ${d.statut==="validé"?`validé le ${fr(d.date)} · prochaine mise à jour avant le <b>${fr(nxt)}</b>`:"brouillon, non encore validé"}</p></div><div class="sp"></div>
+   ${L.length>1?`<select id="du_v" style="border:1px solid var(--line);border-radius:7px;padding:7px">${L.map(x=>`<option value="${x.id}" ${x.id===d.id?"selected":""}>Version ${esc(x.version)}${x.statut==="validé"?" – "+fr(x.date):" – brouillon"}</option>`).join("")}</select>`:""}
+   <button class="btn pri" id="du_pdf">PDF du DUERP</button>${ro?"":`${d.statut!=="validé"?`<button class="btn" id="du_val">Valider</button>`:""}<button class="btn" id="du_nv">Nouvelle version</button><button class="btn ghost" id="du_inf">Infos</button>`}</div>
+  <div class="grid kpis" style="margin:0 0 14px">
+   <div class="card kpi" style="--c:${DG}"><div class="n">${U.length}</div><div class="l">Unités de travail</div></div>
+   <div class="card kpi" style="--c:#B42318"><div class="n" style="color:var(--bad)">${el}</div><div class="l">Risques élevés</div></div>
+   <div class="card kpi" style="--c:#C17D00"><div class="n" style="color:var(--warn)">${late}</div><div class="l">Actions en retard</div></div>
+   <div class="card kpi" style="--c:#1E7F4F"><div class="n" style="color:var(--ok)">${done} / ${all.length}</div><div class="l">Actions réalisées</div></div></div>
+  <div class="quick" style="--rc:${DG}">${U.map((x,i)=>{const m=Math.max(0,...x.risks.map(RN)),c=LVL[LV(m)];return `<button class="chip" data-u="${i}" style="${i===ui?`border-style:solid;border-color:${DG};color:var(--ink);font-weight:600`:""}"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${x.risks.length?c[1]:"#bbb"};margin-right:6px"></span>${esc(x.nom)} · ${x.risks.length}</button>`}).join("")}${ro?"":`<button class="chip" id="du_au">+ Unité de travail</button>`}</div>
+  ${u?`<div class="card" style="padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-left:5px solid ${DG};border-radius:0 10px 10px 0"><div style="flex:1;min-width:200px"><b style="font-size:17px">${esc(u.nom)}</b><div class="hint">${esc([u.eff?u.eff+" salarié(s)":"",u.desc].filter(Boolean).join(" · "))}</div></div>
+    ${ro?"":`<select id="du_ar" style="border:1px solid var(--line);border-radius:7px;padding:7px;max-width:260px"><option value="">+ Ajouter un risque…</option><option value="__">Risque libre</option>${[...new Set(DR.map(r=>r[1]))].map(f=>`<optgroup label="${esc(f)}">${DR.filter(r=>r[1]===f).map(r=>`<option value="${r[0]}">${esc(r[2])}</option>`).join("")}</optgroup>`).join("")}</select><button class="btn sm ghost" id="du_eu">Modifier l’unité</button>`}</div>
+  <div class="rows">${u.risks.slice().sort((a,b)=>RN(b)-RN(a)).map(r=>{const v=RN(r),c=LVL[LV(v)],ec=echR(r),lt=!r.fait&&ec&&jours(ec)<0;return `<div class="card row du" style="--sc:${c[1]}">
+    <div class="bar"></div><div><div class="t">${esc(r.d)}</div><div class="d">${esc(r.s)}</div><div class="k">${esc(r.dm)} · existant : ${esc(r.ex||"–")}</div></div>
+    <div><span class="pill" style="background:${c[2]};color:${c[1]}">${v} · ${c[0]}</span><div class="k" style="margin-top:4px">G${r.g} × F${r.f}<br>Maîtrise ${(MAI[r.m]||"–").toLowerCase()}</div></div>
+    <div><div style="font-size:14px">${esc(r.ac||"")}</div><div class="k">${esc(r.resp||"Responsable à désigner")} · ${r.fait?`<b style="color:var(--ok)">réalisé le ${fr(r.fait)}</b>`:ec?`<span style="color:${lt?"var(--bad)":"inherit"}">avant le ${fr(ec)}</span>`:""}${r.fo?` · <span class="to" style="color:var(--orange)">formation ${esc(r.fo)}</span>`:""}</div></div>
+    <div class="bt">${ro?"":`${r.fait?"":`<button class="btn sm" data-ok="${r.id}">Réalisé</button>`}${REG_FAM[r.fam]?`<button class="btn sm ghost" data-rg="${r.id}" title="Suivre dans le registre">→ Registre</button>`:""}<button class="btn sm ghost" data-rk="${r.id}">Modifier</button>`}</div></div>`}).join("")||`<div class="card empty">Aucun risque dans cette unité.</div>`}</div>`:`<div class="card empty">Ajoute une première unité de travail.</div>`}`;
+  if($("#du_v"))$("#du_v").onchange=ev=>{V.duv=ev.target.value;V.duu=0;renderEnt()};
+  pn.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{V.duu=Number(b.dataset.u);renderEnt()});
+  $("#du_pdf").onclick=()=>exportDUERP(e,d);
+  if(ro)return;
+  const persist=async msg=>{try{await saveDu(d);if(msg)toast(msg);renderEnt()}catch(z){toast(z.message)}};
+  if($("#du_val"))$("#du_val").onclick=()=>{if(!confirm("Valider cette version du DUERP à la date d’aujourd’hui ?"))return;d.date=today();d.statut="validé";persist("DUERP validé – mise à jour annuelle programmée")};
+  $("#du_nv").onclick=async()=>{if(!confirm("Créer une nouvelle version ? L’actuelle reste conservée telle quelle."))return;
+    const n={entId:e.id,version:Number(L[0].version)+1,metier:d.metier,date:"",redacteur:d.redacteur,effectif:d.effectif,statut:"brouillon",_o:JSON.parse(JSON.stringify(o))};
+    try{const r=await saveDu(n);V.duv=r.id;toast("Version "+n.version+" créée");renderEnt()}catch(z){toast(z.message)}};
+  $("#du_inf").onclick=()=>{const m=modal("Informations du DUERP",DG,`<div class="two"><label class="f">Effectif<input id="i_e" type="number" value="${esc(d.effectif||"")}"></label><label class="f">Date de validation<input id="i_d" type="date" value="${esc(d.date||"")}"></label></div><label class="f">Rédacteur (IPRP)<input id="i_r" value="${esc(d.redacteur||"")}"></label>${S.role==="admin"?`<button class="btn danger ghost" id="i_x" style="justify-self:start">Supprimer cette version</button>`:""}`,`<button class="btn" data-x2>Annuler</button><button class="btn pri" id="i_s">Enregistrer</button>`);
+    m.ov.querySelector("[data-x2]").onclick=m.close;
+    if(m.q("#i_x"))m.q("#i_x").onclick=async()=>{if(!confirm("Supprimer définitivement cette version ?"))return;await api("delDuerp",{id:d.id});S.du=S.du.filter(x=>x.id!==d.id);V.duv=null;m.close();renderEnt()};
+    m.q("#i_s").onclick=()=>{d.effectif=m.q("#i_e").value;d.date=m.q("#i_d").value;if(d.date)d.statut="validé";d.redacteur=m.q("#i_r").value.trim();m.close();persist("Enregistré")}};
+  $("#du_au").onclick=()=>unitForm(d,null,persist);
+  if(!u)return;
+  $("#du_eu").onclick=()=>unitForm(d,u,persist);
+  $("#du_ar").onchange=ev=>{const k=ev.target.value;if(!k)return;const r=k==="__"?{id:uid("k"),fam:"Autre",d:"",s:"",dm:"",g:2,f:2,m:"moyenne",ex:"",ac:"",resp:"",dec:today(),delai:6,fait:"",fo:""}:newRisk(k);riskForm(d,u,r,true,persist)};
+  pn.querySelectorAll("[data-rk]").forEach(b=>b.onclick=()=>riskForm(d,u,u.risks.find(r=>r.id===b.dataset.rk),false,persist));
+  pn.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>{u.risks.find(r=>r.id===b.dataset.ok).fait=today();persist("Action réalisée")});
+  pn.querySelectorAll("[data-rg]").forEach(b=>b.onclick=async()=>{const r=u.risks.find(x=>x.id===b.dataset.rg),[rub,per]=REG_FAM[r.fam];
+    try{const x=await api("saveEl",{el:{entId:e.id,rub,libelle:(r.ac||r.d).slice(0,70),detail:"Issu du DUERP – "+u.nom,per,dernier:"",organisme:rub==="lev"||rub==="epi"?(e.verificateur||""):"",resultat:"",ref:"",notes:"",doc:""}});S.els.push(x.el);toast("Ajouté au registre (rubrique "+RUB[rub].n+")")}catch(z){toast(z.message)}});
+}
+const REG_FAM={"Incendie / explosion":["inc",12],"Électricité":["inst",12],"Circulation et engins":["lev",6],"Chutes de hauteur":["epi",12],"Machines et outils":["inst",12]};
+function unitForm(d,u,persist){const o=duObj(d);
+  const m=modal(u?"Modifier l’unité de travail":"Nouvelle unité de travail",DG,`<label class="f">Nom de l’unité<input id="u_n" value="${esc(u?.nom||"")}" list="u_list"><datalist id="u_list">${Object.values(DU).map(x=>`<option value="${esc(x[0])}">`).join("")}</datalist></label>
+   <div class="two"><label class="f">Effectif concerné<input id="u_e" type="number" value="${esc(u?.eff||"")}"></label><label class="f">Description (postes, lieux)<input id="u_d" value="${esc(u?.desc||"")}"></label></div>
+   ${u?"":`<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="u_t" checked> Pré-remplir avec les risques types si le nom correspond à une unité de la banque</label>`}<div class="err" id="u_x"></div>`,
+   `${u?`<button class="btn danger ghost" id="u_del" style="margin-right:auto">Supprimer l’unité</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="u_s">Enregistrer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#u_del"))m.q("#u_del").onclick=()=>{if(!confirm("Supprimer cette unité et ses risques ?"))return;o.units=o.units.filter(x=>x!==u);V.duu=0;m.close();persist("Unité supprimée")};
+  m.q("#u_s").onclick=()=>{const n=m.q("#u_n").value.trim();if(!n){m.q("#u_x").textContent="Indique le nom de l’unité.";return}
+    if(u){u.nom=n;u.eff=m.q("#u_e").value;u.desc=m.q("#u_d").value.trim()}
+    else{const t=Object.values(DU).find(x=>x[0]===n);o.units.push({id:uid("u"),nom:n,eff:m.q("#u_e").value,desc:m.q("#u_d").value.trim(),risks:t&&m.q("#u_t").checked?t[1].map(newRisk):[]});V.duu=o.units.length-1}
+    m.close();persist("Unité enregistrée")};
+}
+function riskForm(d,u,r,isNew,persist){
+  const sel=(id,v,opts)=>`<select id="${id}">${opts.map(([a,b])=>`<option value="${a}" ${String(v)===String(a)?"selected":""}>${b}</option>`).join("")}</select>`;
+  const m=modal(isNew?"Ajouter un risque":"Modifier le risque",DG,`
+   <div class="two"><label class="f">Danger / risque<input id="r_d" value="${esc(r.d)}"></label><label class="f">Famille<input id="r_fa" value="${esc(r.fam)}" list="fam_l"><datalist id="fam_l">${[...new Set(DR.map(x=>x[1]))].map(f=>`<option value="${esc(f)}">`).join("")}</datalist></label></div>
+   <label class="f">Situation de travail<input id="r_s" value="${esc(r.s)}"></label>
+   <label class="f">Dommage possible<input id="r_dm" value="${esc(r.dm)}"></label>
+   <label class="f">Mesures de prévention existantes<input id="r_ex" value="${esc(r.ex)}"></label>
+   <div class="two"><label class="f">Gravité${sel("r_g",r.g,[[1,"1 – Bénin"],[2,"2 – Sérieux (arrêt)"],[3,"3 – Grave (incapacité)"],[4,"4 – Très grave"]])}</label><label class="f">Fréquence${sel("r_f",r.f,[[1,"1 – Très rare"],[2,"2 – Rare"],[3,"3 – Fréquent"],[4,"4 – Très fréquent"]])}</label></div>
+   <div class="two"><div class="calc" id="r_lv"></div><label class="f">Maîtrise du risque${sel("r_m",r.m,[["bonne","Bonne"],["moyenne","Moyenne"],["insuffisante","Insuffisante"]])}</label></div>
+   <label class="f">Action à mettre en place<textarea id="r_ac" rows="2">${esc(r.ac)}</textarea></label>
+   <div class="two"><label class="f">Responsable<input id="r_re" value="${esc(r.resp)}"></label><label class="f">Formation liée (3AIM CFA)<input id="r_fo" value="${esc(r.fo)}" list="fo_l"><datalist id="fo_l">${["PRAP","SST","Incendie et évacuation","Travail en hauteur","Autorisation de conduite","Habilitation électrique","AIPR","Gestion des conflits"].map(f=>`<option value="${f}">`).join("")}</datalist></label></div>
+   <div class="two"><label class="f">Date de décision<input id="r_dc" type="date" value="${esc(r.dec)}"></label><label class="f">Délai (mois)<input id="r_dl" type="number" min="0" value="${esc(r.delai)}"></label></div>
+   <label class="f">Réalisé le<input id="r_fa2" type="date" value="${esc(r.fait)}"></label><div class="err" id="r_x"></div>`,
+   `${isNew?"":`<button class="btn danger ghost" id="r_del" style="margin-right:auto">Supprimer</button>`}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="r_sv">Enregistrer</button>`);
+  const lv=()=>{const v=Number(m.q("#r_g").value)*Number(m.q("#r_f").value),c=LVL[LV(v)];m.q("#r_lv").innerHTML=`Niveau de risque : <b style="color:${c[1]}">${v} – ${c[0]}</b>`};
+  ["#r_g","#r_f"].forEach(s=>m.q(s).onchange=lv);lv();
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#r_del"))m.q("#r_del").onclick=()=>{u.risks=u.risks.filter(x=>x!==r);m.close();persist("Risque supprimé")};
+  m.q("#r_sv").onclick=()=>{const dd=m.q("#r_d").value.trim();if(!dd){m.q("#r_x").textContent="Indique le danger.";return}
+    Object.assign(r,{d:dd,fam:m.q("#r_fa").value.trim()||"Autre",s:m.q("#r_s").value.trim(),dm:m.q("#r_dm").value.trim(),ex:m.q("#r_ex").value.trim(),g:Number(m.q("#r_g").value),f:Number(m.q("#r_f").value),m:m.q("#r_m").value,ac:m.q("#r_ac").value.trim(),resp:m.q("#r_re").value.trim(),fo:m.q("#r_fo").value.trim(),dec:m.q("#r_dc").value,delai:Number(m.q("#r_dl").value)||0,fait:m.q("#r_fa2").value});
+    if(isNew)u.risks.push(r);m.close();persist("Risque enregistré")};
+}
+function planGlobal(o){const F={};
+  o.units.forEach(u=>u.risks.forEach(r=>{const k=r.fam||"Autre";(F[k]=F[k]||{fam:k,max:0,units:new Set(),acts:new Set(),resp:{},ech:"",fait:0,n:0});const x=F[k];x.max=Math.max(x.max,RN(r));x.units.add(u.nom);if(r.ac)x.acts.add(r.ac);if(r.resp)x.resp[r.resp]=(x.resp[r.resp]||0)+1;const e=echR(r);if(!r.fait&&e&&(!x.ech||e<x.ech))x.ech=e;x.n++;if(r.fait)x.fait++}));
+  return Object.values(F).sort((a,b)=>b.max-a.max).map(x=>({...x,units:[...x.units],acts:[...x.acts],resp:Object.entries(x.resp).sort((a,b)=>b[1]-a[1]).map(a=>a[0])[0]||"Exploitant",prio:x.max>=12?"Critique":x.max>=8?"Élevée":x.max>=4?"Moyenne":"Faible"}))}
+
+/* ---------- PDF DUERP ---------- */
+function hdrD(doc,e,title,sub){const W=doc.internal.pageSize.getWidth(),a=hex("#1B5E20"),b=hex("#43A047");
+  for(let i=0;i<80;i++){const t=i/79;doc.setFillColor(...a.map((v,k)=>Math.round(v+(b[k]-v)*t)));doc.rect(W*i/80,0,W/80+.3,12,"F")}
+  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(P(e.nom),12,7.8);doc.setFont("helvetica","normal");doc.setTextColor(220,240,220);doc.text("Document unique d'évaluation des risques professionnels",W-12,7.8,{align:"right"});
+  doc.setFillColor(...hex(DG));doc.rect(12,18,4,sub?14:10,"F");doc.setTextColor(...hex(DGD));doc.setFont("helvetica","bold");doc.setFontSize(17);doc.text(P(title),19,25);
+  if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(110,118,132);doc.text(P(sub),19,30.5)}return sub?38:34}
+async function exportDUERP(e,d){
+  toast("Préparation du DUERP…");await need("autotable");
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",orientation:"landscape"}),W=297,H=210,o=duObj(d),INK=[20,33,61],G1=hex(DGD),G2=hex(DG),photo=await getPhoto(e);
+  const T=(y,txt,size=9.5,w=W-28,x=14,lh=4.6)=>{doc.setFont("helvetica","normal");doc.setFontSize(size);doc.setTextColor(...INK);const L=doc.splitTextToSize(P(txt),w);doc.text(L,x,y);return y+L.length*lh};
+  const H2=(y,txt)=>{doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(...G1);doc.text(P(txt),14,y);return y+6};
+  let curT="";const tbl={theme:"grid",styles:{fontSize:8.4,cellPadding:2.2,lineColor:[220,226,220],textColor:INK,valign:"middle"},headStyles:{fillColor:G2,textColor:255,fontSize:8.4},margin:{left:12,right:12,top:36},didDrawPage:x=>{if(x.pageNumber>1&&curT)hdrD(doc,e,curT+" (suite)")}};
+  // couverture
+  for(let i=0;i<120;i++){const t=i/119,a=hex("#1B5E20"),b=hex("#66BB6A");doc.setFillColor(...a.map((v,k)=>Math.round(v+(b[k]-v)*t)));doc.rect(0,H*i/120,118,H/120+.3,"F")}
+  doc.setTextColor(200,240,200);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("3AIM CFA",14,22);
+  doc.setTextColor(255,255,255);doc.setFontSize(44);doc.text("DUERP",14,48);doc.setFontSize(15);doc.text(["Document unique","d'évaluation des risques","professionnels"],14,62);
+  doc.setFillColor(255,255,255);doc.rect(14,86,26,1.4,"F");doc.setFontSize(18);const nm=doc.splitTextToSize(P(e.nom),96);doc.text(nm,14,100);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(220,245,220);let cy=100+nm.length*7.5;
+  [e.activite,[e.adresse,e.cp,e.ville].filter(Boolean).join(" "),d.effectif?d.effectif+" salariés":"","Version "+d.version+(d.date?" – validée le "+fr(d.date):" – document de travail")].filter(Boolean).forEach(l=>{const t=doc.splitTextToSize(P(l),96);doc.text(t,14,cy);cy+=t.length*5+1});
+  doc.setFontSize(8.5);doc.text(P("Réalisé par "+(d.redacteur||"3AIM CFA")),14,192);doc.text(P(ORG.adr+" · "+ORG.tel),14,197);
+  const px=128,py=16,pw=156,ph=178;doc.setFillColor(243,246,243);doc.rect(px,py,pw,ph,"F");
+  if(photo)doc.addImage(await cropTo(photo,pw/ph),"JPEG",px,py,pw,ph);else{doc.setTextColor(150,158,172);doc.setFontSize(11);doc.text("Photo de l'entreprise",px+pw/2,py+ph/2,{align:"center"})}
+  // informations générales
+  doc.addPage();let y=hdrD(doc,e,"Informations générales");const pg={inf:2};
+  doc.autoTable({...tbl,startY:y,theme:"plain",body:[["Entreprise",e.nom],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["SIRET",e.siret],["Activité",e.activite],["Métier de référence",d.metier||"–"],["Effectif",d.effectif?d.effectif+" salariés":"–"],["Responsable",e.mandataire||e.contact],["Rédacteur (IPRP)",d.redacteur],["Version",String(d.version)],["Date de validation",fr(d.date)||"Document de travail"],["Prochaine mise à jour",d.date?"Au plus tard le "+fr(addM(d.date,12))+", et à chaque changement important":"Après validation"]].map(([a,b])=>[a,P(b||"–")]),styles:{fontSize:10,cellPadding:2.6,textColor:INK,lineColor:[225,230,225],lineWidth:{bottom:.25}},columnStyles:{0:{cellWidth:62,textColor:[110,118,132]},1:{fontStyle:"bold"}},margin:{left:14,right:120}});
+  // sommaire (rempli à la fin)
+  doc.addPage();pg.som=doc.getNumberOfPages();
+  // réglementation
+  doc.addPage();pg.reg=doc.getNumberOfPages();y=hdrD(doc,e,"Réglementation","Code du travail – textes en vigueur, version officielle sur legifrance.gouv.fr");
+  [["Article L.4121-1","L'employeur prend les mesures nécessaires pour assurer la sécurité et protéger la santé physique et mentale des travailleurs : actions de prévention, d'information et de formation, organisation et moyens adaptés."],
+   ["Article L.4121-2","Les mesures de prévention reposent sur les principes généraux : éviter les risques, évaluer ceux qui ne peuvent être évités, les combattre à la source, adapter le travail à l'homme, tenir compte de l'évolution de la technique, remplacer ce qui est dangereux, planifier la prévention, privilégier la protection collective, donner les instructions appropriées."],
+   ["Article L.4121-3 et L.4121-3-1","L'employeur évalue les risques et transcrit les résultats dans le document unique. Les résultats débouchent, selon l'effectif, sur un programme annuel de prévention (50 salariés et plus) ou sur une liste d'actions de prévention (moins de 50 salariés). Le document unique et ses versions successives sont conservés par l'employeur."],
+   ["Article R.4121-1","Le document unique comporte un inventaire des risques identifiés dans chaque unité de travail de l'entreprise ou de l'établissement."],
+   ["Article R.4121-2","Le document unique est mis à jour au moins chaque année dans les entreprises d'au moins onze salariés, lors de toute décision d'aménagement important modifiant les conditions de santé, de sécurité ou de travail, et lorsqu'une information supplémentaire intéressant l'évaluation d'un risque est recueillie."],
+   ["Article R.4121-4","Le document unique est tenu à la disposition des travailleurs, des anciens travailleurs, des membres du CSE, du médecin du travail, de l'inspection du travail, des agents de prévention de la sécurité sociale et des organismes professionnels de prévention."]].forEach(([a,t])=>{doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...G1);doc.text(a,14,y);y=T(y+4.6,t,9.3)+3});
+  // méthodologie
+  doc.addPage();pg.met=doc.getNumberOfPages();y=hdrD(doc,e,"Méthodologie et cotation","Démarche conforme aux recommandations de l'INRS (ED 840)");
+  y=T(y,"L'évaluation est réalisée par unité de travail homogène (mêmes risques, même lieu, mêmes tâches), à partir de l'observation des postes, de l'analyse des tâches réelles et de l'avis des salariés. Pour chaque danger, on décrit la situation de travail, le dommage possible et les mesures déjà en place. Chaque risque est coté selon sa gravité (G) et sa fréquence d'exposition (F) : le niveau de risque R = G × F permet de hiérarchiser les actions de prévention, regroupées ensuite dans un plan d'action global.",9.5,150)+4;
+  const gx=180,gy=40,cs=20;doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...INK);doc.text("Gravité",gx-14,gy-4);doc.text("Fréquence",gx+cs*2,gy+cs*4+10,{align:"center"});
+  for(let g=4;g>=1;g--)for(let f=1;f<=4;f++){const v=g*f,c=LVL[LV(v)];doc.setFillColor(...hex(c[2]));doc.setDrawColor(255,255,255);doc.setLineWidth(.8);doc.rect(gx+(f-1)*cs,gy+(4-g)*cs,cs,cs,"FD");doc.setTextColor(...hex(c[1]));doc.setFontSize(12);doc.text(String(v),gx+(f-1)*cs+cs/2,gy+(4-g)*cs+cs/2+1.5,{align:"center"})}
+  doc.setFontSize(9);doc.setTextColor(...INK);for(let i=1;i<=4;i++){doc.text(String(i),gx-5,gy+(4-i)*cs+cs/2+1.5);doc.text(String(i),gx+(i-1)*cs+cs/2,gy+cs*4+5,{align:"center"})}
+  doc.autoTable({...tbl,startY:y,head:[["Cotation","1","2","3","4"]],body:[["Gravité","Bénin : sans arrêt","Sérieux : avec arrêt","Grave : incapacité partielle","Très grave : incapacité permanente ou décès"],["Fréquence","Très rare : moins d'1 fois par mois","Rare : moins d'1 fois par semaine","Fréquent : moins d'1 fois par jour","Très fréquent : plusieurs fois par jour"]],columnStyles:{0:{fontStyle:"bold",cellWidth:22}},margin:{left:14,right:W-160}});
+  y=doc.lastAutoTable.finalY+5;
+  doc.autoTable({...tbl,startY:y,head:[["Niveau de risque","Priorité"]],body:[["1 à 3 – Faible","À traiter à long terme ; s'assurer que les mesures restent en place"],["4 à 6 – Modéré","À traiter à moyen terme"],["8 à 16 – Élevé","À traiter en priorité et à surveiller"]],columnStyles:{0:{fontStyle:"bold",cellWidth:40}},didParseCell:x=>{if(x.section==="body"&&x.column.index===0){const c=LVL[["faible","modere","eleve"][x.row.index]];x.cell.styles.fillColor=hex(c[2]);x.cell.styles.textColor=hex(c[1])}},margin:{left:14,right:W-160}});
+  y=doc.lastAutoTable.finalY+5;
+  doc.autoTable({...tbl,startY:y,head:[["Maîtrise du risque","Signification"]],body:[["Bonne","Mesures efficaces en place, rien de plus à faire à ce jour"],["Moyenne","Mesures en place mais insuffisantes"],["Insuffisante","Aucune mesure ou mesures inefficaces"]],columnStyles:{0:{fontStyle:"bold",cellWidth:40}},margin:{left:14,right:W-160}});
+  // unités de travail
+  doc.addPage();pg.ut=doc.getNumberOfPages();curT="Les unités de travail";y=hdrD(doc,e,"Les unités de travail");
+  doc.autoTable({...tbl,startY:y,head:[["Unité de travail","Effectif","Description","Risques évalués","Niveau le plus élevé"]],body:o.units.map(u=>{const m=Math.max(0,...u.risks.map(RN));return[P(u.nom),u.eff||"-",P(u.desc),String(u.risks.length),u.risks.length?m+" – "+LVL[LV(m)][0]:"-"]}),columnStyles:{0:{fontStyle:"bold",cellWidth:70}},
+    didParseCell:x=>{if(x.section==="body"&&x.column.index===4){const u=o.units[x.row.index],m=Math.max(0,...u.risks.map(RN));if(u.risks.length){const c=LVL[LV(m)];x.cell.styles.textColor=hex(c[1]);x.cell.styles.fontStyle="bold"}}}});
+  // une fiche par unité
+  pg.u=[];
+  o.units.forEach((u,i)=>{const R=u.risks.slice().sort((a,b)=>RN(b)-RN(a));
+    doc.addPage();pg.u.push(doc.getNumberOfPages());curT=`Unité ${i+1} – ${u.nom}`;y=hdrD(doc,e,curT,"Évaluation des risques et actions de prévention existantes");
+    doc.autoTable({...tbl,startY:y,head:[["Danger","Situation de travail","Dommage possible","Mesures existantes","G","F","R","Maîtrise"]],body:R.map(r=>[P(r.d),P(r.s),P(r.dm),P(r.ex),r.g,r.f,RN(r),MAI[r.m]||"-"]),
+      columnStyles:{0:{fontStyle:"bold",cellWidth:42},1:{cellWidth:56},2:{cellWidth:44},4:{cellWidth:9,halign:"center"},5:{cellWidth:9,halign:"center"},6:{cellWidth:11,halign:"center",fontStyle:"bold"},7:{cellWidth:22}},
+      didParseCell:x=>{if(x.section!=="body")return;const r=R[x.row.index];if(x.column.index===6){const c=LVL[LV(RN(r))];x.cell.styles.fillColor=hex(c[2]);x.cell.styles.textColor=hex(c[1])}if(x.column.index===7)x.cell.styles.textColor=hex({bonne:"#1E7F4F",moyenne:"#B26A00",insuffisante:"#B42318"}[r.m]||"#6B7280")}});
+    y=doc.lastAutoTable.finalY+8;if(y>170){doc.addPage();y=hdrD(doc,e,curT+" (suite)")}
+    y=H2(y,"Plan d'action – "+u.nom);
+    doc.autoTable({...tbl,startY:y,head:[["Danger","Action à mettre en place","Responsable","Décision","Échéance","Réalisé le"]],body:R.map(r=>[P(r.d),P(r.ac),P(r.resp||"À désigner"),fr(r.dec)||"-",fr(echR(r))||"-",r.fait?fr(r.fait):""]),
+      columnStyles:{0:{fontStyle:"bold",cellWidth:46},2:{cellWidth:36},3:{cellWidth:22},4:{cellWidth:22},5:{cellWidth:22}},
+      didParseCell:x=>{if(x.section==="body"&&x.column.index===4){const r=R[x.row.index];if(!r.fait&&echR(r)&&jours(echR(r))<0)x.cell.styles.textColor=hex("#B42318")}if(x.section==="body"&&x.column.index===5)x.cell.styles.textColor=hex("#1E7F4F")}});
+  });
+  // plan d'action global
+  doc.addPage();pg.pg=doc.getNumberOfPages();curT="Plan d'action global";y=hdrD(doc,e,"Plan d'action global","Risques regroupés par familles homogènes, classés par priorité");
+  const PG=planGlobal(o);
+  doc.autoTable({...tbl,startY:y,head:[["N°","Famille de risques","Unités concernées","Actions à mettre en place","Responsable","Échéance","Priorité","Avancement"]],body:PG.map((x,i)=>[String(i+1),P(x.fam),P(x.units.join(", ")),P(x.acts.slice(0,4).join(" ; ")),P(x.resp),fr(x.ech)||(x.fait===x.n?"Terminé":"-"),x.prio,`${x.fait} / ${x.n}`]),
+    columnStyles:{0:{cellWidth:9},1:{cellWidth:38,fontStyle:"bold"},2:{cellWidth:42},4:{cellWidth:28},5:{cellWidth:22},6:{cellWidth:20,fontStyle:"bold"},7:{cellWidth:22}},
+    didParseCell:x=>{if(x.section==="body"&&x.column.index===6){const p=PG[x.row.index].prio;x.cell.styles.textColor=hex({Critique:"#B42318","Élevée":"#C2410C",Moyenne:"#B26A00",Faible:"#1E7F4F"}[p])}}});
+  // conclusion et signatures
+  doc.addPage();pg.fin=doc.getNumberOfPages();curT="";y=hdrD(doc,e,"Conclusion et engagement de l'employeur");
+  y=T(y,"Le présent document unique a permis d'identifier, d'analyser et de hiérarchiser les risques professionnels auxquels sont exposés les salariés, en tenant compte des conditions réelles de travail, des mesures de prévention existantes et des exigences réglementaires. Il débouche sur un plan d'action priorisé destiné à réduire les risques à la source. C'est un document vivant, appelé à évoluer avec l'organisation, les techniques et les équipes.",10,W-28,14,5)+4;
+  y=T(y,"Conformément aux articles L.4121-1 et suivants du Code du travail, l'employeur s'engage à mettre en œuvre les actions de prévention définies, à mobiliser les moyens nécessaires, à assurer la formation et l'information des salariés, à suivre la réalisation des actions et à mettre à jour le document unique au moins une fois par an ainsi qu'à chaque modification importante des conditions de travail.",10,W-28,14,5)+8;
+  doc.autoTable({...tbl,startY:y,head:[["","Nom","Date","Signature"]],body:[["Employeur",P(e.mandataire||e.contact||""),fr(d.date)||"",""],["IPRP / rédacteur",P(d.redacteur||""),fr(d.date)||"",""]],styles:{...tbl.styles,minCellHeight:26,fontSize:10},headStyles:{...tbl.headStyles,minCellHeight:7},columnStyles:{0:{cellWidth:40,fontStyle:"bold"},1:{cellWidth:80},2:{cellWidth:35}}});
+  // sommaire
+  doc.setPage(pg.som);y=hdrD(doc,e,"Sommaire")+6;
+  const items=[["Informations générales",pg.inf],["Réglementation",pg.reg],["Méthodologie et cotation",pg.met],["Les unités de travail",pg.ut]].concat(o.units.map((u,i)=>[`Unité ${i+1} – ${u.nom} et plan d'action`,pg.u[i]])).concat([["Plan d'action global",pg.pg],["Conclusion et signatures",pg.fin]]);
+  const half=Math.ceil(items.length/2),cw2=(W-28-16)/2,sp=Math.min(13,(H-30-y)/half);
+  items.forEach(([t,p],i)=>{const x0=14+(i<half?0:1)*(cw2+16),yy=y+(i%half)*sp;doc.setFillColor(...G2);doc.circle(x0+3,yy-1.5,2.2,"F");doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...INK);const tt=doc.splitTextToSize(P(t),cw2-24)[0];doc.text(tt,x0+8,yy);
+    const tw=doc.getTextWidth(tt);doc.setDrawColor(200,205,214);doc.setLineDashPattern([.6,1.4],0);doc.line(x0+10+tw,yy-.8,x0+cw2-10,yy-.8);doc.setLineDashPattern([],0);doc.setTextColor(...G1);doc.text(String(p),x0+cw2,yy,{align:"right"})});
+  const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setDrawColor(...G2);doc.setLineWidth(.6);doc.line(12,H-10,W-12,H-10);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(138,147,163);doc.text(P(`${e.nom} – DUERP version ${d.version}${d.date?" du "+fr(d.date):""}`),12,H-5.5);doc.text(`Page ${i} / ${n}`,W-12,H-5.5,{align:"right"})}
+  await saveFile(`DUERP_${e.nom.replace(/\W+/g,"_")}_v${d.version}.pdf`,doc.output("blob"));
 }
 
 /* ============ MODALES ============ */
