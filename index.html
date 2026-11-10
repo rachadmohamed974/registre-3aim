@@ -13,7 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
-  --navy:#12213F;--orange:#E87722;--gold:#F5A623;
+  --navy:#12213F;--orange:#E87722;--gold:#F5A623;--red:#C62828;--red-d:#7A0E0E;--grad:linear-gradient(100deg,#5E0A0A 0%,#9B1515 45%,#D32F2F 100%);
   --bg:#F3F4F6;--card:#FFFFFF;--ink:#14213D;--ink2:#4B5563;--ink3:#8A93A3;--line:#E3E6EB;
   --ok:#1E7F4F;--okbg:#E5F3EB;--warn:#A86400;--warnbg:#FDF1DC;--bad:#B42318;--badbg:#FCE8E6;--none:#6B7280;--nonebg:#EEF0F3;
   --r-inst:#1F5FA8;--r-lev:#D99A00;--r-epi:#E87722;--r-inc:#C62828;--r-form:#1E7F4F;--r-obs:#5B6474;--r-id:#12213F;
@@ -29,8 +29,8 @@ h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-wei
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--navy);color:#fff;border-bottom:4px solid var(--orange)}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:11;background:var(--navy)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--grad);color:#fff;border-bottom:3px solid var(--gold)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:11;background:#5E0A0A}
 .top .in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;cursor:pointer}
 .mark{width:36px;height:36px;border-radius:7px;background:var(--orange);display:grid;place-items:center;font-family:"Barlow Condensed";font-weight:700;font-size:17px;color:#fff}
@@ -40,10 +40,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .top .who{font-size:13px;color:#C9D2E3}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:8px 13px;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:14px;transition:background .15s}
 .btn:hover{background:var(--bg)}
-.btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
-.btn.pri:hover{background:#cf6611}
-.btn.dk{background:transparent;border-color:#3B4C72;color:#fff}
-.btn.dk:hover{background:#1E3158}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.pri:hover{background:#A31515}
+.btn.dk{background:transparent;border-color:rgba(255,255,255,.45);color:#fff}
+.btn.dk:hover{background:rgba(255,255,255,.14)}
 .btn.sm{padding:5px 10px;font-size:13px}
 .btn.ghost{border-color:transparent;background:transparent}
 .btn.danger{color:var(--bad)}
@@ -119,7 +119,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .res.done{opacity:.7}
 /* modale */
 .ov{position:fixed;inset:0;background:rgba(10,16,30,.55);display:grid;place-items:center;z-index:50;padding:16px}
-.modal{width:min(560px,100%);max-height:92vh;overflow:auto;background:var(--card);border-radius:12px;border-top:6px solid var(--rc,var(--orange))}
+.modal{width:min(560px,100%);max-height:92vh;overflow:auto;background:var(--card);border-radius:12px;border-top:6px solid var(--rc,var(--red))}
 .modal header{padding:16px 20px 6px;display:flex;justify-content:space-between;align-items:center}
 .modal header h2{font-size:24px}
 .modal .bd{padding:6px 20px 8px;display:grid;gap:12px}
@@ -134,13 +134,13 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);borde
 .calc{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:14px}
 .err{color:var(--bad);font-size:13px;min-height:18px}
 /* connexion */
-.login{min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--navy)}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--grad)}
 .lbox{width:min(420px,100%);background:var(--card);border-radius:14px;overflow:hidden}
-.lbox .hd{padding:26px 26px 18px;border-bottom:4px solid var(--orange)}
+.lbox .hd{padding:26px 26px 18px;border-bottom:4px solid var(--red)}
 .lbox .hd h1{font-size:34px}
 .lbox .bd{padding:22px 26px 26px;display:grid;gap:14px}
-.stripes{height:8px;background:repeating-linear-gradient(135deg,#F5A623 0 14px,#12213F 14px 28px)}
-.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;z-index:60;font-size:14px;max-width:90vw}
+.stripes{height:8px;background:repeating-linear-gradient(135deg,#F5A623 0 14px,#7A0E0E 14px 28px)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--red-d);color:#fff;padding:10px 18px;border-radius:8px;z-index:60;font-size:14px;max-width:90vw}
 .qr{display:grid;place-items:center;padding:8px;background:#fff;border-radius:8px;width:max-content;margin:auto}
 .mono{font-family:Consolas,"Courier New",monospace;background:var(--bg);padding:2px 7px;border-radius:5px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -156,11 +156,11 @@ const ORG = {nom:"3AIM CFA",adr:"548 rue de Cambuston – 97440 Saint-André",te
 
 /* ============ RÉFÉRENTIEL DES RUBRIQUES ============ */
 const RUBS = [
- {k:"id",  n:"Identification",              c:"#12213F",ref:"Fiche de l’établissement"},
+ {k:"id",  n:"Identification",              c:"#7A0E0E",ref:"Fiche de l’établissement"},
  {k:"inst",n:"Installations et vérifications",c:"#1F5FA8",ref:"Code du travail R.4226-14 s. (électricité), R.4224-17 (portes), R.4222-20 (aération)"},
  {k:"lev", n:"Levage et manutention",       c:"#D99A00",ref:"Code du travail R.4323-23 à R.4323-28 – arrêté du 1er mars 2004"},
  {k:"epi", n:"EPI antichute",               c:"#E87722",ref:"Code du travail R.4323-99 à R.4323-103 – arrêté du 19 mars 1993"},
- {k:"inc", n:"Incendie et secours",         c:"#C62828",ref:"Code du travail R.4227-28 à R.4227-41 – APSAD R4"},
+ {k:"inc", n:"Incendie et secours",         c:"#8B1A2B",ref:"Code du travail R.4227-28 à R.4227-41 – APSAD R4"},
  {k:"form",n:"Formations et autorisations", c:"#1E7F4F",ref:"Code du travail R.4323-55 à 57 (conduite), R.4224-15 (SST), R.4544-10 (habilitation)"},
  {k:"obs", n:"Observations et suites",      c:"#5B6474",ref:"Réserves des rapports et suites données"}
 ];
@@ -329,7 +329,7 @@ function renderDash(){
   $("#main").innerHTML=`<div class="sec-h"><div><h1 style="font-size:34px">Tableau de bord</h1><div class="hint">${fr(today())} · ${S.ents.length} entreprise${S.ents.length>1?"s":""} suivie${S.ents.length>1?"s":""}</div></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap">${!DEMO?`<button class="btn" id="tm">Tester les mails</button>`:""}<button class="btn pri" id="ne">+ Nouvelle entreprise</button></div></div>
   <div class="grid kpis">
-   <div class="card kpi" style="--c:var(--navy)"><div class="n">${S.ents.length}</div><div class="l">Entreprises suivies</div></div>
+   <div class="card kpi" style="--c:var(--red-d)"><div class="n">${S.ents.length}</div><div class="l">Entreprises suivies</div></div>
    <div class="card kpi" style="--c:#B42318"><div class="n" style="color:var(--bad)">${T("ret")}</div><div class="l">En retard ou non conformes</div></div>
    <div class="card kpi" style="--c:#C17D00"><div class="n" style="color:var(--warn)">${T("bie")}</div><div class="l">À renouveler sous 30 jours</div></div>
    <div class="card kpi" style="--c:var(--orange)"><div class="n" style="color:var(--orange)">${op.length}</div><div class="l">Opportunités détectées</div></div></div>
@@ -347,8 +347,8 @@ function renderDash(){
   if(all.length)list("");
   $("#q").oninput=e=>list(e.target.value.toLowerCase().trim());
   $("#ne").onclick=()=>entForm();
-  if($("#sd"))$("#sd").onclick=async()=>{try{const d=seedData();await api("seed",{data:d});await reload();toast("Entreprises de départ chargées");render()}catch(x){toast(x.message)}};
-  if($("#tm"))$("#tm").onclick=async()=>{try{await api("testMail");toast("Mail de test envoyé à "+ORG.mail)}catch(x){toast(x.message)}};
+  if($("#sd"))$("#sd").onclick=async ev=>{const b=ev.currentTarget;if(b.disabled)return;b.disabled=true;b.textContent="Chargement en cours… (30 secondes environ)";try{const d=seedData();await api("seed",{data:d});await reload();toast("Entreprises de départ chargées");render()}catch(x){await reload().catch(()=>{});if(S.ents.length){toast("Entreprises chargées");render()}else{b.disabled=false;b.textContent="Charger 3AIM CFA, KAZ PILOTE et l’exemple";toast(x.message)}}};
+  if($("#tm"))$("#tm").onclick=async ev=>{const b=ev.currentTarget;if(b.disabled)return;b.disabled=true;b.textContent="Envoi…";try{await api("testMail");toast("Mail de test envoyé à "+ORG.mail)}catch(x){toast(x.message)}b.disabled=false;b.textContent="Tester les mails"};
 }
 
 /* ============ FICHE ENTREPRISE ============ */
@@ -507,9 +507,9 @@ function access(e){
 }
 function qrPoster(e,qr){ // affichette A5 prête à imprimer
   const c=document.createElement("canvas");c.width=1240;c.height=1748;const g=c.getContext("2d");
-  g.fillStyle="#fff";g.fillRect(0,0,1240,1748);g.fillStyle="#12213F";g.fillRect(0,0,1240,330);g.fillStyle="#E87722";g.fillRect(0,330,1240,22);
+  g.fillStyle="#fff";g.fillRect(0,0,1240,1748);{const gr=g.createLinearGradient(0,0,1240,0);gr.addColorStop(0,"#5E0A0A");gr.addColorStop(1,"#D32F2F");g.fillStyle=gr;g.fillRect(0,0,1240,330);}g.fillStyle="#F5A623";g.fillRect(0,330,1240,16);
   g.fillStyle="#F5A623";g.font="600 44px Barlow, Arial";g.fillText("3AIM CFA",90,120);g.fillStyle="#fff";g.font="700 96px 'Barlow Condensed', Arial";g.fillText("Registre de sécurité",90,250);
-  g.fillStyle="#12213F";g.font="600 60px Barlow, Arial";g.fillText(e.nom.slice(0,32),90,470);
+  g.fillStyle="#7A0E0E";g.font="600 60px Barlow, Arial";g.fillText(e.nom.slice(0,32),90,470);
   g.drawImage(qr,270,560,700,700);g.fillStyle="#4B5563";g.font="40px Barlow, Arial";
   ["Scannez pour consulter le registre à jour","(vérifications, formations, réserves)"].forEach((t,i)=>g.fillText(t,620-g.measureText(t).width/2,1350+i*56));
   g.font="32px Barlow, Arial";const f=`Tenu par ${ORG.nom} · ${ORG.tel} · ${ORG.mail}`;g.fillText(f,620-g.measureText(f).width/2,1660);
@@ -555,84 +555,107 @@ async function getPhoto(e){if(S.photos[e.id])return S.photos[e.id];if(!e.photoId
 function qrData(text){const d=document.createElement("div");new QRCode(d,{text,width:256,height:256,correctLevel:QRCode.CorrectLevel.M});return d.querySelector("canvas").toDataURL("image/png")}
 async function exportPDF(e){
   toast("Préparation du PDF…");
-  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4"}),W=210,H=297,E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
-  const NAVY=hex("#12213F"),OR=hex("#E87722");
-  // --- couverture
-  doc.setFillColor(...NAVY);doc.rect(0,0,W,92,"F");
-  for(let i=0;i<16;i++){doc.setFillColor(...(i%2?NAVY:hex("#F5A623")));doc.triangle(i*14,92,i*14+14,92,i*14+7,99,"F")}
-  doc.setFillColor(...OR);doc.rect(0,99,W,2.2,"F");
-  doc.setTextColor(245,166,35);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text("3AIM CFA",18,24);
-  doc.setTextColor(255,255,255);doc.setFontSize(34);doc.text("Registre de sécurité",18,48);
-  doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(201,210,227);doc.text(P("Code du travail – Art. L.4711-1 à L.4711-5"),18,58);
-  doc.setFontSize(10);doc.text(P(`Édité le ${fr(today())}`),18,66);
-  // photo
-  const px=18,py=112,pw=110,ph=78;
-  doc.setDrawColor(...hex("#D5DAE3"));doc.setLineWidth(.4);
-  if(photo){const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=photo});const r=Math.min(pw/im.width,ph/im.height),w=im.width*r,h=im.height*r;
-    doc.setFillColor(...hex("#F3F4F6"));doc.rect(px,py,pw,ph,"F");doc.addImage(photo,"JPEG",px+(pw-w)/2,py+(ph-h)/2,w,h);doc.rect(px,py,pw,ph)}
-  else{doc.setLineDashPattern([2,2],0);doc.rect(px,py,pw,ph);doc.setLineDashPattern([],0);doc.setTextColor(150,158,172);doc.setFontSize(11);doc.text("Photo de l'entreprise",px+pw/2,py+ph/2,{align:"center"})}
-  // jauge conformité
-  const cx=165,cy=150,rr=24,col=hex(scol(s));
-  doc.setDrawColor(...hex("#E3E6EB"));doc.setLineWidth(6);doc.circle(cx,cy,rr);
-  doc.setDrawColor(...col);const steps=Math.max(1,Math.round(s*3.6));for(let i=0;i<steps;i++){const a1=-Math.PI/2+2*Math.PI*(i/360),a2=-Math.PI/2+2*Math.PI*((i+1.6)/360);doc.line(cx+rr*Math.cos(a1),cy+rr*Math.sin(a1),cx+rr*Math.cos(a2),cy+rr*Math.sin(a2))}
-  doc.setTextColor(...col);doc.setFont("helvetica","bold");doc.setFontSize(24);doc.text(s+"%",cx,cy+3,{align:"center"});
-  doc.setTextColor(...NAVY);doc.setFontSize(10);doc.setFont("helvetica","normal");doc.text("Taux de conformité",cx,cy+rr+9,{align:"center"});
-  // identité
-  doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(24);doc.text(P(e.nom),18,210,{maxWidth:174});
-  doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(75,85,99);
-  const lines=[e.activite,[e.adresse,[e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "),e.siret?"SIRET "+e.siret:"",e.contact?"Responsable : "+e.contact:"",e.effectif?"Effectif : "+e.effectif+" salariés":""].filter(Boolean);
-  lines.forEach((l,i)=>doc.text(P(l),18,220+i*6.2,{maxWidth:130}));
-  doc.addImage(qrData(`${APP_URL}/?c=${e.lecture||(S.role==="lecture"?S.code:"")}`),"PNG",160,212,32,32);doc.setFontSize(8);doc.setTextColor(120,128,140);doc.text("Registre en ligne",176,248,{align:"center"});
-  doc.setFillColor(...hex("#F3F4F6"));doc.rect(0,262,W,35,"F");doc.setFillColor(...OR);doc.rect(0,262,4,35,"F");
-  doc.setTextColor(...NAVY);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Registre tenu et suivi par 3AIM CFA",14,273);
-  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(75,85,99);doc.text(P(`${ORG.adr} · ${ORG.tel} · ${ORG.mail}`),14,280);
-  if(e.verificateur)doc.text(P(`Organisme vérificateur : ${e.verificateur}`),14,286);
-  // --- synthèse
-  doc.addPage();let y=hdr(doc,e,"Synthèse du registre",hex("#12213F"));
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",orientation:"landscape"}),W=297,H=210,E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
+  const RD=hex("#7A0E0E"),RM=hex("#B71C1C"),INK=[20,33,61],OR=hex("#E87722"),GOLD=hex("#F5A623");
+  const grad=(x,y,w,h,c1,c2,n=140)=>{for(let i=0;i<n;i++){const t=i/(n-1);doc.setFillColor(...c1.map((v,k)=>Math.round(v+(c2[k]-v)*t)));doc.rect(x+w*i/n,y,w/n+.3,h,"F")}};
+  const lec=`${APP_URL}/?c=${e.lecture||(S.role==="lecture"?S.code:"")}`,ouv=String(e.creeLe||"").slice(0,10)||today();
+  /* ===== 1. Couverture : classeur rouge ===== */
+  grad(0,0,W,H,hex("#5E0A0A"),hex("#D32F2F"));
+  doc.setFillColor(64,6,6);doc.rect(0,0,18,H,"F");doc.setFillColor(...GOLD);doc.rect(18,0,1.4,H,"F");
+  doc.setTextColor(255,215,160);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(P(`Registre de sécurité – ${e.nom}`),11.5,H-14,{angle:90});
+  doc.setTextColor(255,205,190);doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.text(P("Code du travail – Articles L.4711-1 à L.4711-5"),32,30);
+  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(46);doc.text("Registre",32,58);doc.text("de sécurité",32,78);
+  doc.setFillColor(255,255,255);doc.rect(32,88,36,1.6,"F");
+  doc.setFontSize(21);const nm=doc.splitTextToSize(P(e.nom),112);doc.text(nm,32,104);
+  doc.setFont("helvetica","normal");doc.setFontSize(11);doc.setTextColor(255,225,220);
+  let cy2=104+nm.length*8;const act=doc.splitTextToSize(P(e.activite||""),112);if(e.activite){doc.text(act,32,cy2);cy2+=act.length*5.2}
+  doc.text(P([e.cp,e.ville].filter(Boolean).join(" ")),32,cy2+1);
+  doc.setFontSize(9.5);doc.text(P(`Ouvert le ${fr(ouv)} · édition du ${fr(today())}`),32,cy2+10);
+  // cadre photo
+  const fx=160,fy=24,fw=118,fh=116;doc.setFillColor(255,255,255);doc.roundedRect(fx,fy,fw,fh,2,2,"F");
+  const px=fx+4,py=fy+4,pw=fw-8,ph=fh-8;
+  if(photo){const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=photo});const r=Math.min(pw/im.width,ph/im.height),w=im.width*r,h=im.height*r;doc.setFillColor(243,244,246);doc.rect(px,py,pw,ph,"F");doc.addImage(photo,"JPEG",px+(pw-w)/2,py+(ph-h)/2,w,h)}
+  else{doc.setDrawColor(200,205,214);doc.setLineDashPattern([2,2],0);doc.rect(px,py,pw,ph);doc.setLineDashPattern([],0);doc.setTextColor(150,158,172);doc.setFontSize(11);doc.text("Photo de l'entreprise",px+pw/2,py+ph/2,{align:"center"})}
+  // bandeau blanc 3AIM CFA
+  doc.setFillColor(255,255,255);doc.rect(19.4,166,W-19.4,44,"F");doc.setFillColor(...OR);doc.rect(19.4,166,W-19.4,1.4,"F");
+  doc.setFillColor(...OR);doc.roundedRect(32,177,16,16,2,2,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(12);doc.text("3A",40,187.5,{align:"center"});
+  doc.setTextColor(...RD);doc.setFontSize(14);doc.text("3AIM CFA",53,183);doc.setTextColor(75,85,99);doc.setFont("helvetica","normal");doc.setFontSize(9.5);
+  doc.text("Registre tenu et suivi par 3AIM CFA",53,189);doc.text(P(`${ORG.adr} · ${ORG.tel} · ${ORG.mail}`),53,194.5);
+  const col=hex(scol(s));doc.setTextColor(...col);doc.setFont("helvetica","bold");doc.setFontSize(22);doc.text(s+" %",210,187,{align:"center"});doc.setFontSize(8.5);doc.setTextColor(75,85,99);doc.setFont("helvetica","normal");doc.text("taux de conformité",210,193,{align:"center"});
+  doc.addImage(qrData(lec),"PNG",252,170,32,32);doc.setFontSize(7);doc.setTextColor(120,128,140);doc.text("Registre en ligne",244,204,{align:"right"});
+  /* ===== 2. Page de garde ===== */
+  doc.addPage();let y=hdr(doc,e,"Page de garde",RD,"Identification de l’établissement et responsabilités");const pg={garde:2};
+  const kv=(rows,left,right,title)=>{doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...RD);doc.text(title,left,y);
+    doc.autoTable({startY:y+3,body:rows.map(([a,b])=>[a,P(b||"–")]),theme:"plain",styles:{fontSize:9.5,cellPadding:{top:2.2,bottom:2.2,left:2,right:2},textColor:INK,lineColor:[232,226,226],lineWidth:{bottom:.25}},
+      columnStyles:{0:{cellWidth:46,textColor:[110,118,132]},1:{fontStyle:"bold"}},margin:{left,right},tableWidth:W-left-right})};
+  kv([["Raison sociale",[e.nom,e.forme].filter(Boolean).join(" – ")],["SIRET",e.siret],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["Activité",e.activite],["Effectif",e.effectif?e.effectif+" salariés":""],["Téléphone",e.tel],["Mail",e.email]],14,W/2+4,"L’établissement");
+  const y1=doc.lastAutoTable.finalY;
+  kv([["Chef d’établissement / responsable sécurité",e.contact],["Organisme vérificateur",e.verificateur],["Registre tenu par","3AIM CFA – "+ORG.adr],["Contact 3AIM CFA",ORG.tel+" · "+ORG.mail],["Registre ouvert le",fr(ouv)],["Document unique (DUERP)",e.duerp?"Relié au registre en ligne":"À relier"],["Registre en ligne",APP_URL]],W/2+4,14,"Responsabilités");
+  y=Math.max(y1,doc.lastAutoTable.finalY)+8;
+  doc.setFillColor(252,236,236);doc.rect(14,y,W-28,24,"F");doc.setFillColor(...RM);doc.rect(14,y,2.2,24,"F");
+  doc.setTextColor(...RD);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Objet du registre",20,y+6.5);
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...INK);
+  doc.text(doc.splitTextToSize(P("Ce registre rassemble les attestations, consignes, résultats et rapports des vérifications et contrôles mis à la charge de l’employeur au titre de la santé et de la sécurité au travail (articles L.4711-1 à L.4711-5 du Code du travail). Il est tenu à la disposition des travailleurs, des membres du CSE, de l’inspection du travail, des agents de la CARSAT et des organismes vérificateurs."),W-44),20,y+12);
+  y+=32;doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...RD);doc.text("Visa du chef d’établissement",14,y);
+  doc.autoTable({startY:y+3,head:[["Date","Nom et qualité","Signature et cachet"]],body:[["","",""]],theme:"grid",styles:{minCellHeight:24,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:7},columnStyles:{0:{cellWidth:40},1:{cellWidth:110}},margin:{left:14,right:14}});
+  /* ===== 3. Sommaire (rempli à la fin) ===== */
+  doc.addPage();pg.som=3;
+  /* ===== 4. Synthèse ===== */
+  doc.addPage();pg.syn=doc.getNumberOfPages();y=hdr(doc,e,"Synthèse du registre",RD);
   const cnt=(k,st)=>E.filter(x=>x.rub===k&&statut(x)===st).length;
   doc.autoTable({startY:y,head:[["Rubrique","À jour","À renouveler","En retard","Non conforme","À renseigner"]],
     body:RUBS.filter(r=>CATA[r.k]).map(r=>[r.n,cnt(r.k,"ok"),cnt(r.k,"bientot"),cnt(r.k,"retard"),cnt(r.k,"nc"),cnt(r.k,"vide")]).concat([["Réserves ouvertes",{content:String(R.filter(r=>!r.levee).length),colSpan:5,styles:{halign:"left"}}]]),
-    theme:"grid",styles:{font:"helvetica",fontSize:10,cellPadding:3,lineColor:[227,230,235],textColor:[20,33,61]},headStyles:{fillColor:NAVY,textColor:255},
-    columnStyles:{0:{fontStyle:"bold",cellWidth:58},1:{halign:"center"},2:{halign:"center"},3:{halign:"center"},4:{halign:"center"},5:{halign:"center"}},
+    theme:"grid",styles:{fontSize:10,cellPadding:3,lineColor:[227,230,235],textColor:INK},headStyles:{fillColor:RD,textColor:255},
+    columnStyles:{0:{fontStyle:"bold",cellWidth:80},1:{halign:"center"},2:{halign:"center"},3:{halign:"center"},4:{halign:"center"},5:{halign:"center"}},
     didParseCell:d=>{if(d.section==="body"&&d.column.index===0&&d.row.index<5){d.cell.styles.textColor=hex(RUBS[d.row.index+1].c)}
-      if(d.section==="body"&&d.column.index>0&&d.row.index<5&&Number(d.cell.raw)>0){const c=["#E5F3EB","#FDF1DC","#FCE8E6","#FCE8E6","#EEF0F3"][d.column.index-1];d.cell.styles.fillColor=hex(c);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:28}});
+      if(d.section==="body"&&d.column.index>0&&d.row.index<5&&Number(d.cell.raw)>0){d.cell.styles.fillColor=hex(["#E5F3EB","#FDF1DC","#FCE8E6","#FCE8E6","#EEF0F3"][d.column.index-1]);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:30}});
   y=doc.lastAutoTable.finalY+10;
   const af=E.filter(x=>["nc","retard","bientot"].includes(statut(x))).sort((a,b)=>String(a.prochain).localeCompare(b.prochain));
-  if(af.length){doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text("Points à traiter en priorité",14,y);
-    doc.autoTable({startY:y+3,head:[["Élément","Rubrique","Échéance","Statut"]],body:af.map(x=>[P(x.libelle+(x.detail?"\n"+x.detail:"")),RUB[x.rub].n,fr(x.prochain)||"-",ST[statut(x)]]),
-      theme:"grid",styles:{fontSize:9.5,cellPadding:2.6,lineColor:[227,230,235],textColor:[20,33,61]},headStyles:{fillColor:hex("#B42318"),textColor:255},
-      didParseCell:d=>{if(d.section==="body"&&d.column.index===3){const st=statut(af[d.row.index]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:28}})}
-  // --- rubriques
+  if(af.length){if(y>165){doc.addPage();y=hdr(doc,e,"Points à traiter en priorité",RM)}else{doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...RD);doc.text("Points à traiter en priorité",14,y);y+=3}
+    doc.autoTable({startY:y,head:[["Élément","Précisions","Rubrique","Échéance","Statut"]],body:af.map(x=>[P(x.libelle),P(x.detail),RUB[x.rub].n,fr(x.prochain)||"-",ST[statut(x)]]),
+      theme:"grid",styles:{fontSize:9.5,cellPadding:2.6,lineColor:[227,230,235],textColor:INK},headStyles:{fillColor:RM,textColor:255},
+      didParseCell:d=>{if(d.section==="body"&&d.column.index===4){const st=statut(af[d.row.index]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:30}})}
+  /* ===== 5. Rubriques ===== */
+  pg.rub={};
   RUBS.filter(r=>CATA[r.k]).forEach((r,ri)=>{
-    const L=E.filter(x=>x.rub===r.k);doc.addPage();let y=hdr(doc,e,`${ri+1}. ${r.n}`,hex(r.c),r.ref);
+    const L=E.filter(x=>x.rub===r.k);doc.addPage();pg.rub[r.k]=doc.getNumberOfPages();let y=hdr(doc,e,`${ri+1}. ${r.n}`,hex(r.c),r.ref);
     const isF=r.k==="form";
-    doc.autoTable({startY:y,head:[[isF?"Formation / autorisation":"Équipement / installation",isF?"Personnes":"Précisions",isF?"Date":"Dernière vérif.",isF?"Organisme":"Vérifié par","N° rapport",isF?"Validité":"Résultat","Prochaine","Statut"]],
-      body:L.length?L.map(x=>[P(x.libelle),P(x.detail),fr(x.dernier)||"-",P(x.organisme),P(x.ref),isF?x.per+" mois":(RES[x.resultat]||"-"),fr(x.prochain)||"-",ST[statut(x)]]):[[{content:"Aucun élément suivi dans cette rubrique.",colSpan:8,styles:{halign:"center",textColor:[138,147,163]}}]],
-      theme:"grid",styles:{fontSize:8.2,cellPadding:2.2,lineColor:[227,230,235],textColor:[20,33,61],valign:"middle"},headStyles:{fillColor:hex(r.c),textColor:r.k==="lev"?[20,33,61]:255,fontSize:8.6},
-      alternateRowStyles:{fillColor:[249,250,251]},columnStyles:{0:{fontStyle:"bold",cellWidth:34},1:{cellWidth:29},2:{cellWidth:19},3:{cellWidth:22},4:{cellWidth:26},5:{cellWidth:19},6:{fontStyle:"bold",cellWidth:19},7:{cellWidth:18}},
+    doc.autoTable({startY:y,head:[[isF?"Formation / autorisation":"Équipement / installation",isF?"Personnes":"Précisions",isF?"Date":"Dernière vérif.",isF?"Organisme":"Vérifié par","N° rapport",isF?"Validité":"Résultat","Prochaine","Statut","Remarque"]],
+      body:L.length?L.map(x=>[P(x.libelle),P(x.detail),fr(x.dernier)||"-",P(x.organisme),P(x.ref),isF?x.per+" mois":(RES[x.resultat]||"-"),fr(x.prochain)||"-",ST[statut(x)],P(x.notes)]):[[{content:"Aucun élément suivi dans cette rubrique.",colSpan:9,styles:{halign:"center",textColor:[138,147,163]}}]],
+      theme:"grid",styles:{fontSize:8.6,cellPadding:2.4,lineColor:[227,230,235],textColor:INK,valign:"middle"},headStyles:{fillColor:hex(r.c),textColor:r.k==="lev"?INK:255,fontSize:8.8},
+      alternateRowStyles:{fillColor:[249,250,251]},columnStyles:{0:{fontStyle:"bold",cellWidth:44},1:{cellWidth:42},2:{cellWidth:22},3:{cellWidth:30},4:{cellWidth:27},5:{cellWidth:25},6:{fontStyle:"bold",cellWidth:22},7:{cellWidth:24},8:{cellWidth:"auto"}},
       didParseCell:d=>{if(d.section!=="body"||!L.length)return;const x=L[d.row.index],st=statut(x);
         if(d.column.index===7){d.cell.styles.fillColor=hex({ok:"#E5F3EB",bientot:"#FDF1DC",retard:"#FCE8E6",nc:"#FCE8E6",vide:"#EEF0F3"}[st]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}
-        if(d.column.index===5&&!isF&&x.resultat)d.cell.styles.textColor=hex({C:"#1E7F4F",R:"#C17D00",NC:"#B42318"}[x.resultat])},margin:{left:12,right:12,top:28}});
-    let yy=doc.lastAutoTable.finalY+8;const nt=L.filter(x=>x.notes);
-    if(nt.length&&yy<260){doc.setFontSize(9);doc.setTextColor(75,85,99);doc.setFont("helvetica","bold");doc.text("Remarques",12,yy);doc.setFont("helvetica","normal");nt.forEach(x=>{yy+=5;if(yy<280)doc.text(P(`- ${x.libelle} : ${x.notes}`),12,yy,{maxWidth:186})})}
+        if(d.column.index===5&&!isF&&x.resultat)d.cell.styles.textColor=hex({C:"#1E7F4F",R:"#C17D00",NC:"#B42318"}[x.resultat])},margin:{left:12,right:12,top:30}});
   });
-  // --- observations
-  doc.addPage();y=hdr(doc,e,"7. Observations et suites",hex(RUB.obs.c),RUB.obs.ref);
+  /* ===== 6. Observations + visas ===== */
+  doc.addPage();pg.obs=doc.getNumberOfPages();y=hdr(doc,e,"7. Observations et suites",hex(RUB.obs.c),RUB.obs.ref);
   const RR=R.slice().sort((a,b)=>(!!a.levee-!!b.levee)||String(a.date).localeCompare(b.date));
   doc.autoTable({startY:y,head:[["Relevée le","Observation","Priorité","Levée le","Preuve / suite donnée"]],
     body:RR.length?RR.map(r=>[fr(r.date),P(r.texte),r.gravite||"",r.levee?fr(r.levee):"À lever",P(r.preuve)]):[[{content:"Aucune observation.",colSpan:5,styles:{halign:"center"}}]],
-    theme:"grid",styles:{fontSize:9,cellPadding:2.6,lineColor:[227,230,235],textColor:[20,33,61]},headStyles:{fillColor:hex(RUB.obs.c),textColor:255},columnStyles:{0:{cellWidth:22},1:{cellWidth:78},2:{cellWidth:18},3:{cellWidth:22,fontStyle:"bold"}},
-    didParseCell:d=>{if(d.section==="body"&&RR.length&&d.column.index===3){d.cell.styles.textColor=hex(RR[d.row.index].levee?"#1E7F4F":"#B42318")}},margin:{left:14,right:14,top:28}});
-  // --- visas
-  y=doc.lastAutoTable.finalY+12;if(y>200){doc.addPage();y=hdr(doc,e,"Visas",NAVY)}else{doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text("Visas (inspection du travail, CARSAT, vérificateurs)",14,y);y+=3}
-  doc.autoTable({startY:y,head:[["Date","Nom","Qualité / organisme","Observations","Signature"]],body:Array.from({length:6},()=>["","","","",""]),theme:"grid",styles:{minCellHeight:13,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:NAVY,textColor:255,minCellHeight:7},margin:{left:14,right:14,top:28}});
-  // pieds de page
-  const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(138,147,163);doc.text(P(`${e.nom} – Registre de sécurité – édité le ${fr(today())}`),12,290);doc.text(`Page ${i} / ${n}`,198,290,{align:"right"});doc.setDrawColor(...OR);doc.setLineWidth(.6);doc.line(12,286,198,286)}
+    theme:"grid",styles:{fontSize:9,cellPadding:2.6,lineColor:[227,230,235],textColor:INK},headStyles:{fillColor:hex(RUB.obs.c),textColor:255},columnStyles:{0:{cellWidth:24},1:{cellWidth:125},2:{cellWidth:22},3:{cellWidth:24,fontStyle:"bold"}},
+    didParseCell:d=>{if(d.section==="body"&&RR.length&&d.column.index===3){d.cell.styles.textColor=hex(RR[d.row.index].levee?"#1E7F4F":"#B42318")}},margin:{left:14,right:14,top:30}});
+  y=doc.lastAutoTable.finalY+12;if(y>130){doc.addPage();y=hdr(doc,e,"Visas",RD)}else{doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...RD);doc.text("Visas (inspection du travail, CARSAT, vérificateurs)",14,y);y+=3}
+  pg.vis=doc.getNumberOfPages();
+  doc.autoTable({startY:y,head:[["Date","Nom","Qualité / organisme","Observations","Signature"]],body:Array.from({length:5},()=>["","","","",""]),theme:"grid",styles:{minCellHeight:12,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:7},columnStyles:{0:{cellWidth:28},1:{cellWidth:50},2:{cellWidth:55},4:{cellWidth:50}},margin:{left:14,right:14,top:30}});
+  /* ===== Sommaire ===== */
+  doc.setPage(pg.som);y=hdr(doc,e,"Sommaire",RD)+6;
+  const items=[["Page de garde","Identification et responsabilités",pg.garde,"#7A0E0E"],["Synthèse du registre","État de chaque rubrique et points prioritaires",pg.syn,"#B71C1C"]]
+    .concat(RUBS.filter(r=>CATA[r.k]).map((r,i)=>[`${i+1}. ${r.n}`,`${E.filter(x=>x.rub===r.k).length} élément(s) suivi(s)`,pg.rub[r.k],r.c]))
+    .concat([["7. Observations et suites",`${R.filter(r=>!r.levee).length} réserve(s) à lever`,pg.obs,RUB.obs.c],["Visas","Inspection du travail, CARSAT, vérificateurs",pg.vis,"#7A0E0E"]]);
+  items.forEach(([t,d,p,c])=>{doc.setFillColor(...hex(c));doc.rect(30,y-4.6,3.2,8,"F");doc.setTextColor(...INK);doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.text(P(t),38,y);
+    const tw=doc.getTextWidth(P(t));doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(120,128,140);doc.text(P(d),38,y+4.6);
+    doc.setDrawColor(200,205,214);doc.setLineDashPattern([.6,1.4],0);doc.line(40+tw,y-.8,W-48,y-.8);doc.setLineDashPattern([],0);
+    doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(...RM);doc.text(String(p),W-34,y,{align:"right"});y+=15});
+  /* ===== Pieds de page ===== */
+  const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setDrawColor(...RM);doc.setLineWidth(.6);doc.line(12,H-10,W-12,H-10);doc.setFontSize(8);doc.setTextColor(138,147,163);doc.setFont("helvetica","normal");doc.text(P(`${e.nom} – Registre de sécurité – édité le ${fr(today())}`),12,H-5.5);doc.text(`Page ${i} / ${n}`,W-12,H-5.5,{align:"right"})}
   await saveFile(`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`,doc.output("blob"));
 }
 function hdr(doc,e,title,col,sub){
-  doc.setFillColor(...hex("#12213F"));doc.rect(0,0,210,12,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(P(e.nom),12,7.8);
-  doc.setFont("helvetica","normal");doc.setTextColor(245,166,35);doc.text("3AIM CFA · Registre de sécurité",198,7.8,{align:"right"});
+  const W=doc.internal.pageSize.getWidth(),a=hex("#5E0A0A"),b=hex("#C62828");
+  for(let i=0;i<80;i++){const t=i/79;doc.setFillColor(...a.map((v,k)=>Math.round(v+(b[k]-v)*t)));doc.rect(W*i/80,0,W/80+.3,12,"F")}
+  doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(P(e.nom),12,7.8);
+  doc.setFont("helvetica","normal");doc.setTextColor(255,225,200);doc.text("3AIM CFA · Registre de sécurité",W-12,7.8,{align:"right"});
   doc.setFillColor(...col);doc.rect(12,18,4,sub?14:10,"F");doc.setTextColor(...col);doc.setFont("helvetica","bold");doc.setFontSize(17);doc.text(P(title),19,25);
   if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(110,118,132);doc.text(P(sub),19,30.5)}
   return sub?38:34;
@@ -644,14 +667,14 @@ async function exportXLS(e){
   const wb=new ExcelJS.Workbook();wb.creator="3AIM CFA";const E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
   const A=h=>"FF"+h.slice(1).toUpperCase(),fill=h=>({type:"pattern",pattern:"solid",fgColor:{argb:A(h)}}),thin={style:"thin",color:{argb:"FFE3E6EB"}},bd={top:thin,left:thin,bottom:thin,right:thin};
   // couverture
-  const c=wb.addWorksheet("Couverture",{properties:{tabColor:{argb:A("#E87722")}},views:[{showGridLines:false}]});
+  const c=wb.addWorksheet("Couverture",{properties:{tabColor:{argb:A("#C62828")}},views:[{showGridLines:false}]});
   c.columns=[{width:3},{width:26},{width:44},{width:20},{width:20}];
-  for(let r=1;r<=5;r++)for(let k=1;k<=5;k++)c.getCell(r,k).fill=fill("#12213F");
-  for(let k=1;k<=5;k++)c.getCell(6,k).fill=fill("#E87722");c.getRow(6).height=6;
+  const gfill={type:"gradient",gradient:"angle",degree:0,stops:[{position:0,color:{argb:"FF5E0A0A"}},{position:1,color:{argb:"FFD32F2F"}}]};for(let r=1;r<=5;r++)for(let k=1;k<=5;k++)c.getCell(r,k).fill=gfill;
+  for(let k=1;k<=5;k++)c.getCell(6,k).fill=fill("#F5A623");c.getRow(6).height=6;
   c.getCell("B2").value="3AIM CFA";c.getCell("B2").font={bold:true,color:{argb:A("#F5A623")},size:11};
   c.mergeCells("B3:E4");c.getCell("B3").value="Registre de sécurité";c.getCell("B3").font={bold:true,size:26,color:{argb:"FFFFFFFF"},name:"Calibri"};c.getCell("B3").alignment={vertical:"middle"};
   c.getCell("B5").value="Édité le "+fr(today());c.getCell("B5").font={color:{argb:"FFC9D2E3"},size:10};
-  c.mergeCells("B8:E8");c.getCell("B8").value=e.nom;c.getCell("B8").font={bold:true,size:20,color:{argb:A("#12213F")}};
+  c.mergeCells("B8:E8");c.getCell("B8").value=e.nom;c.getCell("B8").font={bold:true,size:20,color:{argb:A("#7A0E0E")}};
   const info=[["Activité",e.activite],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["SIRET",e.siret],["Responsable",e.contact],["Mail",e.email],["Téléphone",e.tel],["Effectif",e.effectif],["Organisme vérificateur",e.verificateur],["Taux de conformité",s/100]];
   info.forEach(([a,b],i)=>{const r=10+i;c.getCell(r,2).value=a;c.getCell(r,2).font={color:{argb:"FF6B7280"}};c.getCell(r,3).value=b||"–";c.getCell(r,3).font={bold:a==="Taux de conformité",size:a==="Taux de conformité"?16:11,color:{argb:a==="Taux de conformité"?A(scol(s)):"FF14213D"}};c.getCell(r,3).alignment={wrapText:true,vertical:"middle"};if(a==="Taux de conformité")c.getCell(r,3).numFmt="0%";[2,3].forEach(k=>c.getCell(r,k).border={bottom:thin})});
   c.mergeCells("D10:E19");c.getCell("D10").alignment={horizontal:"center",vertical:"middle",wrapText:true};
@@ -659,10 +682,10 @@ async function exportXLS(e){
   else{const ds={style:"dashed",color:{argb:"FFB5BCC8"}};c.getCell("D10").value="Emplacement réservé à la photo de l’entreprise";c.getCell("D10").font={italic:true,color:{argb:"FF8A93A3"}};c.getCell("D10").border={top:ds,left:ds,bottom:ds,right:ds}}
   c.mergeCells("B21:E21");c.getCell("B21").value=`Registre tenu et suivi par 3AIM CFA – ${ORG.adr} – ${ORG.tel} – ${ORG.mail}`;c.getCell("B21").font={size:9,color:{argb:"FF4B5563"}};c.getCell("B21").fill=fill("#F3F4F6");
   // synthèse
-  const sy=wb.addWorksheet("Synthèse",{properties:{tabColor:{argb:A("#12213F")}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
+  const sy=wb.addWorksheet("Synthèse",{properties:{tabColor:{argb:A("#B71C1C")}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
   sy.columns=[{width:34},{width:14},{width:16},{width:14},{width:16},{width:16}];
-  sy.mergeCells("A1:F1");sy.getCell("A1").value=`Synthèse – ${e.nom}`;sy.getCell("A1").font={bold:true,size:16,color:{argb:"FFFFFFFF"}};sy.getCell("A1").fill=fill("#12213F");sy.getRow(1).height=30;sy.getCell("A1").alignment={vertical:"middle",indent:1};
-  const hs=sy.getRow(3);hs.values=["Rubrique","À jour","À renouveler","En retard","Non conforme","À renseigner"];hs.eachCell(x=>{x.font={bold:true,color:{argb:"FFFFFFFF"}};x.fill=fill("#12213F");x.border=bd;x.alignment={horizontal:"center"}});
+  sy.mergeCells("A1:F1");sy.getCell("A1").value=`Synthèse – ${e.nom}`;sy.getCell("A1").font={bold:true,size:16,color:{argb:"FFFFFFFF"}};sy.getCell("A1").fill=gfill;sy.getRow(1).height=30;sy.getCell("A1").alignment={vertical:"middle",indent:1};
+  const hs=sy.getRow(3);hs.values=["Rubrique","À jour","À renouveler","En retard","Non conforme","À renseigner"];hs.eachCell(x=>{x.font={bold:true,color:{argb:"FFFFFFFF"}};x.fill=fill("#7A0E0E");x.border=bd;x.alignment={horizontal:"center"}});
   RUBS.filter(r=>CATA[r.k]).forEach((r,i)=>{const row=sy.getRow(4+i);row.values=[r.n,...["ok","bientot","retard","nc","vide"].map(st=>E.filter(x=>x.rub===r.k&&statut(x)===st).length)];
     row.eachCell((x,k)=>{x.border=bd;if(k===1){x.font={bold:true,color:{argb:A(r.c)}};x.border={...bd,left:{style:"thick",color:{argb:A(r.c)}}}}else{x.alignment={horizontal:"center"};if(x.value>0){x.fill=fill(["#E5F3EB","#FDF1DC","#FCE8E6","#FCE8E6","#EEF0F3"][k-2]);x.font={bold:true}}}})});
   const ro=sy.getRow(10);ro.values=["Réserves ouvertes",R.filter(r=>!r.levee).length];ro.getCell(1).font={bold:true};ro.getCell(2).alignment={horizontal:"center"};ro.eachCell(x=>x.border=bd);
