@@ -7,10 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   --navy:#12213F;--orange:#E87722;--gold:#F5A623;--red:#C62828;--red-d:#7A0E0E;--grad:linear-gradient(100deg,#5E0A0A 0%,#9B1515 45%,#D32F2F 100%);
@@ -176,11 +172,11 @@ const RUBS = [
 const RUB = Object.fromEntries(RUBS.map(r=>[r.k,r]));
 // catalogue : libellé + périodicité indicative (mois) – modifiable à chaque saisie
 const CATA = {
- inst:[["Installations électriques",12],["Éclairage de sécurité",12],["Portes et portails automatiques",6],["Aération / assainissement",12],["Installations gaz",12],["Captage des fumées de soudage",12]],
+ inst:[["Installations électriques",12],["Éclairage de sécurité",12],["Portes et portails automatiques",6],["Aération / assainissement",12],["Installations gaz",12],["Captage des fumées de soudage",12],["Ascenseur – contrôle technique",60],["Chauffage, ventilation, climatisation",12],["Conduits de fumée – ramonage",12],["Appareils de cuisson (restauration)",12]],
  lev:[["Chariot élévateur – VGP",6],["Grue auxiliaire / bras de levage – VGP",6],["Pont roulant – VGP",12],["Palan – VGP",12],["Nacelle (PEMP) – VGP",6],["Accessoires de levage",12],["Engin de chantier – VGP",12]],
  epi:[["Harnais antichute",12],["Longe avec absorbeur",12],["Antichute à rappel automatique",12],["Ligne de vie",12]],
- inc:[["Extincteurs",12],["Alarme incendie",12],["Désenfumage",12],["RIA",12],["Exercice d’évacuation",6],["Trousse / armoire de secours",12]],
- form:[["SST – maintien des compétences",24],["PRAP – maintien des compétences",24],["Habilitation électrique – recyclage",36],["Autorisation de conduite chariot",60],["Autorisation de conduite nacelle",60],["AIPR",60],["Équipier de première intervention",12]]
+ inc:[["Extincteurs",12],["Alarme incendie",12],["Désenfumage",12],["RIA",12],["Exercice d’évacuation",6],["Trousse / armoire de secours",12],["Colonnes sèches",12],["Moyens d’extinction fixes (sprinklers…)",12]],
+ form:[["SST – maintien des compétences",24],["PRAP – maintien des compétences",24],["Habilitation électrique – recyclage",36],["Autorisation de conduite chariot",60],["Autorisation de conduite nacelle",60],["AIPR",60],["Équipier de première intervention",12],["Évacuation – guide-file / serre-file",12],["Manipulation des extincteurs",12]]
 };
 const RES = {C:"Conforme",R:"Avec réserve",NC:"Non conforme / inapte"};
 const ST = {ok:"À jour",bientot:"À renouveler",retard:"En retard",nc:"Non conforme",vide:"À renseigner"};
@@ -196,9 +192,9 @@ function addM(iso,m){const p=String(iso).slice(0,10).split("-").map(Number),d=ne
 const statut=x=>x.resultat==="NC"?"nc":!x.prochain?"vide":jours(x.prochain)<0?"retard":jours(x.prochain)<=30?"bientot":"ok";
 const els=id=>S.els.filter(x=>x.entId===id);
 const ress=id=>S.res.filter(x=>x.entId===id);
-function score(id){const E=els(id),o=ress(id).filter(r=>!r.levee).length,t=E.length+o;return t?Math.round(100*E.filter(x=>["ok","bientot"].includes(statut(x))).length/t):0}
+function score(id){const E=els(id),F=S.fic.filter(f=>f.entId===id&&(f.type==="perso"||f.type==="cons"||f.type==="dae")),o=ress(id).filter(r=>!r.levee).length,t=E.length+F.length+o;return t?Math.round(100*(E.filter(x=>["ok","bientot"].includes(statut(x))).length+F.filter(f=>["ok","bientot"].includes(statutF(f))).length)/t):0}
 const scol=v=>v>=80?"#1E7F4F":v>=50?"#C17D00":"#B42318";
-function opps(id){const o=[];els(id).forEach(x=>{const s=statut(x),pr=x.prochain&&jours(x.prochain)<=60,d=x.detail?` (${x.detail})`:"";
+function opps(id){const o=[];if(S.fic.some(f=>f.entId===id&&f.type==="dae")&&!S.fic.some(f=>f.entId===id&&f.type==="perso"&&/SST/.test(f.b||""))&&!S.els.some(x=>x.entId===id&&/SST/.test(x.libelle)))o.push({t:"Défibrillateur installé sans personne formée aux gestes de secours",qui:"Formation 3AIM CFA (SST)"});S.fic.filter(f=>f.entId===id&&f.type==="perso").forEach(f=>{if(!f.echeance||jours(f.echeance)<=60)o.push({t:ficLib(f),qui:"Formation 3AIM CFA"})});els(id).forEach(x=>{const s=statut(x),pr=x.prochain&&jours(x.prochain)<=60,d=x.detail?` (${x.detail})`:"";
   if(x.rub==="form"&&(s==="vide"||s==="retard"||pr))o.push({t:x.libelle+d,qui:"Formation 3AIM CFA"});
   if((x.rub==="lev"||x.rub==="epi")&&(s!=="ok"||pr))o.push({t:(s==="nc"?"Contre-visite : ":"")+x.libelle+d,qui:"RUNIXO CONTRÔLE"});});return o}
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3200)}
@@ -209,9 +205,9 @@ const gen=n=>Array.from({length:n},()=>"ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.fl
 /* ============ DONNÉES DE DÉPART ============ */
 const SEED={
  ents:[
-  {id:"e3aim",nom:"3AIM CFA",forme:"SAS",siret:"937 988 905 00017",adresse:"548 rue de Cambuston",cp:"97440",ville:"Saint-André",activite:"Organisme de formation et CFA (2 salles)",effectif:"",contact:"Rachad MOHAMED",email:"contact@3aim.fr",tel:"0692 09 85 92",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"oui"},
+  {id:"e3aim",nom:"3AIM CFA",forme:"SAS",erp:"oui",erpType:"R – Enseignement, formation",locaux:"2 salles de formation, accueil",siret:"937 988 905 00017",adresse:"548 rue de Cambuston",cp:"97440",ville:"Saint-André",activite:"Organisme de formation et CFA (2 salles)",effectif:"",contact:"Rachad MOHAMED",email:"contact@3aim.fr",tel:"0692 09 85 92",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"oui"},
   {id:"ekaz",nom:"KAZ PILOTE",forme:"SAS",siret:"884 397 993 00012",adresse:"ZI Bras Fusil – 15 rue La Fayette",cp:"97470",ville:"Saint-Benoît",activite:"Métallerie (portails, clôtures, garde-corps) – site GARAGE PILOTE",effectif:"",contact:"Charlemagne ALAGAMA",email:"",tel:"",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"oui"},
-  {id:"etro",nom:"TROPIC INDUSTRIE (démo)",forme:"SARL",siret:"000 000 000 00000",adresse:"ZAC 2000",cp:"97420",ville:"Le Port",activite:"Métallerie et maintenance industrielle",effectif:"24",contact:"Responsable QSE",email:"",tel:"",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"non"}],
+  {id:"etro",nom:"TROPIC INDUSTRIE (démo)",erp:"non",mandataire:"Paul GRONDIN, gérant",mandTel:"0692 00 00 01",suppleant:"Responsable QSE",suppTel:"0692 00 00 02",cdt:"Moins de 50 salariés – avec matières inflammables",icpe:"non",bConstr:"2008",bCompo:"Charpente métallique, bardage, dalle béton",bEtages:"RDC + mezzanine",bSurface:"850",ouverture:"2008-09-01",forme:"SARL",siret:"000 000 000 00000",adresse:"ZAC 2000",cp:"97420",ville:"Le Port",activite:"Métallerie et maintenance industrielle",effectif:"24",contact:"Responsable QSE",email:"",tel:"",verificateur:"RUNIXO CONTRÔLE",duerp:"",relances:"non"}],
  els:[
   ["e3aim","inst","Installations électriques","Bâtiment 548 rue de Cambuston",12,"","","",""],
   ["e3aim","inst","Éclairage de sécurité","Salles 1 et 2, circulations",12,"","","",""],
@@ -255,18 +251,36 @@ function seedData(){
   const ents=SEED.ents.map(e=>({...e,code:"ENT-"+gen(6),lecture:"LEC-"+gen(10),photoId:""}));
   const els=SEED.els.map(a=>({id:rid("x"),entId:a[0],rub:a[1],libelle:a[2],detail:a[3],per:a[4],dernier:a[5],organisme:a[6],resultat:a[7],ref:a[8],notes:"",doc:"",prochain:a[5]?addM(a[5],a[4]):""}));
   const res=SEED.res.map(a=>({id:rid("r"),entId:a[0],elId:"",texte:a[1],gravite:a[2],date:a[3],levee:a[4]||"",preuve:""}));
-  return {ents,els,res};
+  const fic=[
+   ["etro","contact","","SDIS 974 – urgences","Pompiers / SDIS","18","","Numéro d’urgence européen : 112"],
+   ["etro","contact","","Cabinet d’architecture (exemple)","Architecte","0262 00 00 00","contact@archi.re",""],
+   ["etro","contact","","RUNIXO CONTRÔLE","Organisme vérificateur","0692 09 85 92","contact@3aim.fr",""],
+   ["etro","trav","2023-09-12","Permis de construire","Extension de l’atelier (200 m²)","PC 974 07 23 00012","",""],
+   ["etro","trav","2024-02-20","Visite de réception","Réception de l’extension","PV n° 24-018","Favorable",""],
+   ["etro","trav","2025-10-07","Visite de l’inspection du travail","Contrôle des vérifications périodiques","","","Mme RIVIÈRE, contrôleuse du travail"],
+   ["etro","maint","2026-08-18","Portail automatique","Prestataire portail","Corrective (dépannage)","Remplacement de la cellule de sécurité"],
+   ["etro","maint","2026-05-06","Compresseur atelier","Maintenance industrielle","Préventive (entretien)","Vidange et contrôle des purges"],
+   ["etro","cons","2025-09-01","Consigne générale incendie","Consigne incendie / évacuation","Accueil, atelier, bureaux"],
+   ["etro","cons","2026-03-10","Plan d’évacuation RDC","Plan d’évacuation","Hall d’entrée"],
+   ["etro","feu","2026-02-14","Atelier – poste de soudure","Projection de soudure sur des cartons","Extincteur CO2","Rangement de la zone, rappel des consignes",""],
+   ["etro","perso","2025-03-03","Jean PAYET","Guide-file","Formation évacuation","12"],
+   ["etro","perso","2024-11-18","Marie HOARAU","Équipier de première intervention","Formation EPI – manipulation des extincteurs","12"]
+  ].map(a=>{const f={id:rid("f"),entId:a[0],type:a[1],date:a[2],a:a[3],b:a[4],c:a[5],d:a[6],e:a[7]||"",doc:"",echeance:""};
+    if(f.type==="cons")f.echeance=addM(f.date,12);if(f.type==="perso"){f.d=a[6];f.e="";f.echeance=addM(f.date,a[6])}return f});
+  fic.push({id:"fdae1",entId:"etro",type:"dae",date:"2023-06-01",a:"Hall d’accueil, à côté du vestiaire",b:"Philips HeartStart HS1",c:"A12B-3456",d:JSON.stringify({el:"2026-12-05",ee:"",bat:"2027-06-01",maint:"2027-01-15",visu:"2026-10-02",visuPer:"1",geo:"oui",geoDate:"2023-06-10",sign:"oui"}),doc:""});fic[fic.length-1].echeance=daeEch(daeX(fic[fic.length-1]));
+  fic.push({id:rid("f"),entId:"etro",type:"daej",date:"2026-01-15",a:"Maintenance",b:"Maintenance annuelle, autotest OK",c:"Prestataire DAE",e:"fdae1",d:"",doc:""});
+  return {ents,els,res,fic};
 }
 
 /* ============ ÉTAT + API ============ */
 const DEMO=!API_URL;
-let S={role:null,code:null,entId:null,ents:[],els:[],res:[],jr:[],photos:{}};
+let S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],jr:[],photos:{}};
 let V={view:"dash",ent:null,tab:"id"};
 let DB=null,PEND_M=null;
 async function api(action,p={}){
   if(DEMO)return demo(action,p);
   const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,code:S.code,...p})});
-  const j=await r.json();if(!j.ok)throw new Error(j.err||"Erreur");return j;
+  const j=await r.json();if(!j.ok)throw new Error(j.err||"Erreur");if(/^(save|del|seed|newCode)/.test(action))setTimeout(saveCache,0);return j;
 }
 function demo(a,p){
   if(!DB){DB=seedData();DB.jr=[{date:today()+" 08:12",entId:"ekaz",qui:"admin",action:"VGP enregistrées (juillet 2026)"}];DB.photos={}}
@@ -277,9 +291,9 @@ function demo(a,p){
   const log=(entId,txt)=>DB.jr.unshift({date:today()+" "+new Date().toTimeString().slice(0,5),entId,qui:who.role,action:txt});
   switch(a){
    case"login":return{role:who.role,entId:who.entId||null};
-   case"load":{const f=x=>who.role==="admin"||x.entId===who.entId;return{role:who.role,entId:who.entId||null,ents:DB.ents.filter(e=>who.role==="admin"||e.id===who.entId).map(e=>({...e})),els:DB.els.filter(f).map(x=>({...x})),res:DB.res.filter(f).map(x=>({...x})),jr:DB.jr.filter(f)}}
+   case"load":{const f=x=>who.role==="admin"||x.entId===who.entId;return{role:who.role,entId:who.entId||null,ents:DB.ents.filter(e=>who.role==="admin"||e.id===who.entId).map(e=>({...e})),els:DB.els.filter(f).map(x=>({...x})),res:DB.res.filter(f).map(x=>({...x})),fic:DB.fic.filter(f).map(x=>({...x})),jr:DB.jr.filter(f)}}
    case"saveEnt":{const e=p.ent;if(!e.id){e.id=rid("e");e.code="ENT-"+gen(6);e.lecture="LEC-"+gen(10);e.relances=e.relances||"oui"}const i=DB.ents.findIndex(x=>x.id===e.id);if(i>=0)DB.ents[i]={...DB.ents[i],...e};else DB.ents.push(e);log(e.id,i>=0?"Fiche entreprise mise à jour":"Entreprise créée");return{ent:DB.ents.find(x=>x.id===e.id)}}
-   case"delEnt":DB.ents=DB.ents.filter(x=>x.id!==p.id);DB.els=DB.els.filter(x=>x.entId!==p.id);DB.res=DB.res.filter(x=>x.entId!==p.id);return{};
+   case"delEnt":DB.ents=DB.ents.filter(x=>x.id!==p.id);DB.fic=DB.fic.filter(x=>x.entId!==p.id);DB.els=DB.els.filter(x=>x.entId!==p.id);DB.res=DB.res.filter(x=>x.entId!==p.id);return{};
    case"newCode":{const e=DB.ents.find(x=>x.id===p.id);if(p.kind==="lecture")e.lecture="LEC-"+gen(10);else e.code="ENT-"+gen(6);return{ent:{...e}}}
    case"saveEl":{const el=p.el;if(!el.id)el.id=rid("x");el.prochain=el.dernier&&el.per?addM(el.dernier,el.per):"";const i=DB.els.findIndex(x=>x.id===el.id);if(i>=0)DB.els[i]=el;else DB.els.push(el);log(el.entId,(el.dernier?"Vérification enregistrée : ":"Élément ajouté : ")+el.libelle);return{el:{...el}}}
    case"delEl":DB.els=DB.els.filter(x=>x.id!==p.id);return{};
@@ -290,24 +304,35 @@ function demo(a,p){
    case"sendAccess":{const e=DB.ents.find(x=>x.id===p.id);if(!e.email)throw new Error("Aucune adresse mail sur la fiche de "+e.nom);return{}}
    case"testMail":return{};
    case"sendRegistre":return{};
+   case"saveFiche":{const f=p.fic;if(!f.id)f.id=rid("f");const i=DB.fic.findIndex(x=>x.id===f.id);if(i>=0)DB.fic[i]=f;else DB.fic.push(f);log(f.entId,"Fiche : "+(f.a||""));return{fic:{...f}}}
+   case"delFiche":DB.fic=DB.fic.filter(x=>x.id!==p.id);return{};
    case"lireDoc":return{items:[{rub:"lev",libelle:"Chariot élévateur – VGP",detail:"Toyota 8FD25 – n° 30215",serie:"30215",dernier:today(),per:6,organisme:"RUNIXO CONTRÔLE",resultat:"R",ref:"VGP-2026-0198",notes:"",reserves:[{texte:"Ceinture de sécurité à remplacer",gravite:"moyenne"}]}]};
    case"seed":return{};
   }
 }
 
+/* ============ CHARGEMENT À LA DEMANDE ============ */
+const CDN="https://cdnjs.cloudflare.com/ajax/libs/",LIBS={jspdf:"jspdf/2.5.1/jspdf.umd.min.js",autotable:"jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js",exceljs:"exceljs/4.4.0/exceljs.min.js",qr:"qrcodejs/1.0.0/qrcode.min.js"},_ld={};
+const loadJS=k=>_ld[k]||(_ld[k]=new Promise((ok,ko)=>{const t=document.createElement("script");t.src=CDN+LIBS[k];t.onload=ok;t.onerror=()=>{delete _ld[k];ko(new Error("Chargement impossible, vérifie ta connexion"))};document.head.appendChild(t)}));
+async function need(...ks){for(const k of ks){if(k==="autotable")await loadJS("jspdf");await loadJS(k)}}
 /* ============ CONNEXION ============ */
+const cacheKey=c=>"reg3aim_cache_"+c;
+function applyData(r){Object.assign(S,{role:r.role,entId:r.entId,ents:r.ents||[],els:r.els||[],res:r.res||[],fic:r.fic||[],jr:r.jr||[]})}
+function saveCache(){if(DEMO)return;store.set(cacheKey(S.code),JSON.stringify({role:S.role,entId:S.entId,ents:S.ents,els:S.els,res:S.res,fic:S.fic,jr:S.jr.slice(0,40)}))}
+function startView(){if(S.role!=="admin"&&(V.view==="dash"||!V.ent))V={view:"ent",ent:S.entId,tab:"id"};if(PEND_M&&S.els.some(x=>x.id===PEND_M)){V={view:"machine",el:PEND_M};PEND_M=null}}
 async function login(code){
   S.code=code.trim();
-  const r=await api("login",{code:S.code});
-  S.role=r.role;S.entId=r.entId;store.set("reg3aim_code",S.code);
-  await reload();
-  if(S.role!=="admin"){V={view:"ent",ent:S.entId,tab:"id"}}
-  if(PEND_M&&S.els.some(x=>x.id===PEND_M)){V={view:"machine",el:PEND_M}}PEND_M=null;
-  render();
+  let cached=null;try{cached=JSON.parse(store.get(cacheKey(S.code))||"null")}catch(x){}
+  if(cached){applyData(cached);startView();render();showSync(true)}
+  try{const r=await api("login",{code:S.code});store.set("reg3aim_code",S.code);
+    if(r.ents)applyData(r);else{S.role=r.role;S.entId=r.entId;await reload()}
+    saveCache();startView();
+    if(!document.querySelector(".ov"))render();showSync(false);
+  }catch(x){showSync(false);if(cached&&!/code/i.test(x.message)){toast("Hors connexion : données de ta dernière visite");return}store.set(cacheKey(S.code),null);throw x}
 }
-async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,jr:r.jr||[]});
-  if(!DEMO&&S.role==="admin"&&!S.ents.length&&!S.seedAsked){S.seedAsked=true}}
-function logout(){store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],jr:[],photos:{}};render()}
+function showSync(on){let d=$("#sync");if(on&&!d&&$(".top .in")){d=document.createElement("span");d.id="sync";d.className="who";d.textContent="Mise à jour…";$(".top .in .sp").after(d)}else if(!on&&d)d.remove()}
+async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,fic:r.fic||[],jr:r.jr||[]});saveCache()}
+function logout(){store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],jr:[],photos:{}};render()}
 
 function renderLogin(msg){
   $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark">3A</div><div><b style="color:var(--ink)">3AIM CFA</b><small style="color:var(--ink2)">Registre de sécurité</small></div></div>
@@ -365,7 +390,13 @@ function renderDash(){
 }
 
 /* ============ FICHE ENTREPRISE ============ */
+const TABS=["id","trav","inst","lev","epi","inc","form","maint","cons","dae","feu","obs","reg"];
+function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||{n:"Réglementation",c:"#B71C1C"};
+  const n=FT[k]?fics(e.id,k).length:k==="reg"||k==="id"?null:cnt(k),al=FT[k]?fics(e.id,k).some(f=>["retard"].includes(statutF(f))):k==="reg"||k==="id"?false:alert(k);
+  const lab=k==="trav"?"Travaux et contrôles":k==="maint"?"Maintenance":k==="cons"?"Consignes":k==="dae"?"Défibrillateur":k==="feu"?"Incidents":r.n;
+  return `<button class="tab ${V.tab===k?"on":""}" style="--rc:${r.c}" data-t="${k}" role="tab" aria-selected="${V.tab===k}"><span class="dot"></span>${lab}${n!==null?` <span class="ct ${al?"alert":""}">${n}</span>`:""}</button>`}).join("")}
 function renderEnt(){
+  {const e0=S.ents.find(x=>x.id===V.ent);if(e0&&!S.photos[e0.id]&&e0.photoId){const pc=store.get("reg3aim_ph_"+e0.id+"_"+e0.photoId);if(pc)S.photos[e0.id]=pc}}
   const e=S.ents.find(x=>x.id===V.ent),E=els(e.id),R=ress(e.id),s=score(e.id),ro=S.role==="lecture",adm=S.role==="admin";
   const cnt=k=>k==="obs"?R.filter(r=>!r.levee).length:E.filter(x=>x.rub===k).length;
   const alert=k=>k==="obs"?R.some(r=>!r.levee):E.some(x=>x.rub===k&&["retard","nc"].includes(statut(x)));
@@ -376,30 +407,38 @@ function renderEnt(){
    <div style="text-align:center"><div class="gauge big" style="--v:${s};--gc:${scol(s)}"><span>${s}%</span></div><div class="hint" style="margin-top:6px">Conformité</div></div></section>
   <div class="acts">${ro?"":`<button class="btn" id="dep" title="Le document est lu automatiquement et rangé dans la bonne rubrique">Déposer un rapport</button>`}<button class="btn pri" id="vw">Voir le registre</button>${ro?"":`<button class="btn" id="ml">Envoyer par mail</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
    ${ro?"":`<button class="btn" id="ef">Modifier la fiche</button>`}${adm?`<button class="btn" id="ac">Accès client</button><button class="btn" id="qr">Étiquettes QR machines</button>`:""}<input type="file" id="phf" accept="image/*" hidden><input type="file" id="depf" hidden></div>
-  <nav class="tabs" role="tablist">${RUBS.map(r=>`<button class="tab ${V.tab===r.k?"on":""}" style="--rc:${r.c}" data-t="${r.k}" role="tab" aria-selected="${V.tab===r.k}"><span class="dot"></span>${r.n}${r.k!=="id"?` <span class="ct ${alert(r.k)?"alert":""}">${cnt(r.k)}</span>`:""}</button>`).join("")}<button class="tab ${V.tab==="reg"?"on":""}" style="--rc:#B71C1C" data-t="reg" role="tab" aria-selected="${V.tab==="reg"}"><span class="dot"></span>Réglementation</button></nav>
+  <nav class="tabs" role="tablist">${tabsHtml(e,cnt,alert)}</nav>
   <div class="panel" id="pn"></div>`;
   document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{V.tab=b.dataset.t;renderEnt()});
   if($("#bk"))$("#bk").onclick=()=>{V={view:"dash"};render()};
   if(!ro){$("#ph").onclick=()=>$("#phf").click();$("#phf").onchange=ev=>uploadPhoto(e,ev.target.files[0]);$("#ef").onclick=()=>entForm(e);$("#dep").onclick=()=>$("#depf").click();$("#depf").onchange=ev=>deposer(e,ev.target.files[0])}
   if(adm){$("#ac").onclick=()=>access(e);$("#qr").onclick=()=>etiquettes(e)}
   $("#xp").onclick=()=>exportPDF(e);$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
-  if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
+  if(!S.photos[e.id]&&e.photoId){const pc=store.get("reg3aim_ph_"+e.id+"_"+e.photoId);if(pc)S.photos[e.id]=pc}
+  if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;store.set("reg3aim_ph_"+e.id+"_"+e.photoId,r.data);if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
   const pn=$("#pn");
   if(V.tab==="id")return panelId(e,pn);
   if(V.tab==="obs")return panelObs(e,pn);
   if(V.tab==="reg")return panelReg(pn);
+  if(V.tab==="dae")return panelDAE(e,pn);
+  if(V.tab==="trav"||V.tab==="maint"||V.tab==="cons"||V.tab==="feu")return listeFiches(e,V.tab,pn);
   panelRub(e,V.tab,pn);
+  if(V.tab==="inc"){const d=document.createElement("div");d.style.marginTop="22px";pn.appendChild(d);listeFiches(e,"perso",d)}
 }
 function panelId(e,pn){
   const E=els(e.id),c=k=>E.filter(x=>statut(x)===k).length;
   pn.innerHTML=`<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+   <div class="card" style="padding:16px"><h2 style="font-size:21px;margin-bottom:8px">Établissement recevant du public</h2>${e.erp==="oui"?[["Type d’ERP",e.erpType],["Catégorie",e.erpCat?e.erpCat+"e catégorie":""],["Effectif admissible",[e.effPublic?e.effPublic+" public":"",e.effPerso?e.effPerso+" personnel":""].filter(Boolean).join(" + ")],["Date d’ouverture",fr(e.ouverture)],["Locaux",e.locaux]].map(([a,b])=>`<div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px"><span class="hint">${a}</span><span>${esc(b||"–")}</span></div>`).join(""):`<p class="hint">${e.erp==="non"?"Établissement non classé ERP.":"À préciser : l’établissement reçoit-il du public ? (Modifier la fiche)"}</p>`}
+   ${[["Locaux à sommeil",e.sommeil],["Code du travail",e.cdt],["Installation classée",e.icpe==="oui"?"Oui"+(e.icpeRub?" – rubrique "+e.icpeRub:""):e.icpe==="non"?"Non":""]].filter(([a,b])=>b).map(([a,b])=>`<div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px"><span class="hint">${a}</span><span>${esc(b)}</span></div>`).join("")}</div>
+   <div class="card" style="padding:16px"><h2 style="font-size:21px;margin-bottom:8px">Responsables et bâtiment</h2>${[["Mandataire",[e.mandataire,e.mandTel].filter(Boolean).join(" – ")],["Suppléant",[e.suppleant,e.suppTel].filter(Boolean).join(" – ")],["Construction",e.bConstr],["Composition",e.bCompo],["Étages",e.bEtages],["Surface",e.bSurface?e.bSurface+" m²":""],["Visites de la commission",e.visitFreq]].map(([a,b])=>`<div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px"><span class="hint">${a}</span><span>${esc(b||"–")}</span></div>`).join("")}</div>
    <div class="card" style="padding:16px"><h2 style="font-size:21px;margin-bottom:8px">Établissement</h2>
     ${[["Raison sociale",[e.nom,e.forme].filter(Boolean).join(" – ")],["SIRET",e.siret],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["Activité",e.activite],["Effectif",e.effectif],["Responsable",e.contact],["Téléphone",e.tel],["Mail",e.email],["Organisme vérificateur",e.verificateur],["Document unique (DUERP)",e.duerp?`<a href="${esc(e.duerp)}" target="_blank" rel="noopener">Ouvrir</a>`:"À relier"]].map(([a,b])=>`<div style="display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px"><span class="hint">${a}</span><span>${a.startsWith("Document")?b:esc(b||"–")}</span></div>`).join("")}</div>
    <div class="card" style="padding:16px"><h2 style="font-size:21px;margin-bottom:8px">État du registre</h2>
     ${["ok","bientot","retard","nc","vide"].map(k=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill p-${k}">${ST[k]}</span><b>${c(k)}</b></div>`).join("")}
     <div style="display:flex;justify-content:space-between;padding:7px 0"><span class="pill p-vide">Réserves ouvertes</span><b>${ress(e.id).filter(r=>!r.levee).length}</b></div>
     ${S.role!=="lecture"?`<p class="hint">Relances automatiques : <b>${e.relances==="non"?"désactivées":e.email?"actives (J-60, J-30, J-7 puis retard)":"inactives, ajoute un mail"}</b></p>`:""}</div>
-   ${S.role==="admin"&&opps(e.id).length?`<div class="card opp"><h2 style="font-size:21px">Opportunités</h2><ul style="padding-left:18px;margin:6px 0 0">${opps(e.id).map(o=>`<li>${esc(o.t)}<br><span class="to">→ ${o.qui}</span></li>`).join("")}</ul></div>`:""}</div>`;
+   ${S.role==="admin"&&opps(e.id).length?`<div class="card opp"><h2 style="font-size:21px">Opportunités</h2><ul style="padding-left:18px;margin:6px 0 0">${opps(e.id).map(o=>`<li>${esc(o.t)}<br><span class="to">→ ${o.qui}</span></li>`).join("")}</ul></div>`:""}</div><div id="ctc" style="margin-top:22px"></div>`;
+  listeFiches(e,"contact",$("#ctc"));
 }
 function panelRub(e,k,pn){
   const r=RUB[k],E=els(e.id).filter(x=>x.rub===k).sort((a,b)=>({nc:0,retard:1,bientot:2,vide:3,ok:4}[statut(a)]-{nc:0,retard:1,bientot:2,vide:3,ok:4}[statut(b)])),ro=S.role==="lecture";
@@ -428,6 +467,122 @@ function panelObs(e,pn){
   document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>resForm(e,{...S.res.find(r=>r.id===b.dataset.l),levee:today()},true));
 }
 
+/* ============ FICHES : contacts, travaux, maintenance, consignes, personnel ============ */
+const FT={
+ contact:{n:"Contacts utiles",c:"#7A0E0E",add:"+ Contact",f:[["a","Nom / entreprise"],["b","Rôle","select",["Architecte","Bureau de contrôle","Entreprise de construction","Électricien","Installateur alarme / SSI","Maintenance extincteurs","Ascensoriste","Chauffage / climatisation","Organisme vérificateur","Pompiers / SDIS","Mairie – service ERP","Autre"]],["c","Téléphone","tel"],["d","Mail","email"],["e","Remarque"]]},
+ trav:{n:"Travaux et contrôles officiels",c:"#6D4C41",add:"+ Travaux ou visite",ref:"Travaux, permis, visites de la commission de sécurité, de l’inspection du travail, de la médecine du travail, de la CARSAT…",f:[["date","Date","date"],["a","Nature","select",["Permis de construire","Autorisation de travaux (AT)","Travaux / aménagement","Modification d’installation","Visite de réception","Visite initiale de la commission de sécurité","Visite périodique de la commission de sécurité","Visite inopinée","Visite de l’inspection du travail","Visite de la médecine du travail","Visite de la CARSAT","Autre contrôle officiel"]],["e","Nom et qualité du visiteur"],["b","Description / observations"],["c","Référence (n° de permis, de PV…)"],["d","Avis","select",["","Favorable","Favorable avec prescriptions","Défavorable"]],["echeance","Prochaine visite prévue","date"]]},
+ maint:{n:"Maintenance des installations",c:"#00838F",add:"+ Intervention",ref:"Opérations d’entretien et de dépannage des installations techniques",f:[["date","Date","date"],["a","Installation concernée"],["b","Entreprise / intervenant"],["c","Type","select",["Préventive (entretien)","Corrective (dépannage)"]],["d","Travaux réalisés"]]},
+ cons:{n:"Consignes de sécurité",c:"#3949AB",add:"+ Consigne ou plan",ref:"Consignes générales et particulières, plans d’évacuation et d’implantation – revue annuelle conseillée",f:[["a","Titre"],["b","Type","select",["Consigne générale de sécurité","Consigne incendie / évacuation","Consigne particulière (local, poste, machine)","Plan d’évacuation","Plan d’implantation des équipements de sécurité"]],["c","Lieu d’affichage"],["date","Dernière mise à jour","date"]]},
+ dae:{n:"Défibrillateur (DAE)",c:"#2E7D32",ref:"Code de la santé publique – maintenance du DAE, déclaration Géo’DAE ; obligatoire selon le type et la catégorie d’ERP"},
+ feu:{n:"Incidents et départs de feu",c:"#E65100",add:"+ Incident",ref:"Enregistrement des incendies, départs de feu et incidents de sécurité",f:[["date","Date","date"],["a","Lieu"],["b","Cause présumée"],["c","Moyens utilisés (extincteur, RIA, pompiers…)"],["d","Suites données"],["e","Victimes ou dégâts"]]},
+ perso:{n:"Personnel chargé de la sécurité incendie",c:"#8B1A2B",add:"+ Personne désignée",f:[["a","Nom et prénom"],["b","Mission","select",["Responsable sécurité","Chargé d’évacuation","Guide-file","Serre-file","Équipier de première intervention","Sauveteur secouriste du travail (SST)"]],["c","Formation suivie"],["date","Date de la formation","date"],["d","Validité (mois)","number"]]}
+};
+const fics=(id,t)=>S.fic.filter(f=>f.entId===id&&(!t||f.type===t));
+const statutF=f=>!f.echeance?(f.type==="perso"?"vide":"none"):jours(f.echeance)<0?"retard":jours(f.echeance)<=30?"bientot":"ok";
+const ficLib=f=>f.type==="dae"?`Défibrillateur – ${f.a||""}`:f.type==="perso"?`${f.b||"Personnel sécurité"} – ${f.a||""}`:f.type==="cons"?`Revue de la consigne : ${f.a||""}`:"Visite de la commission de sécurité";
+function ficheForm(e,type,f){
+  f=f||{type,entId:e.id,date:type==="contact"?"":today()};const T=FT[type];
+  const inp=([k,l,t,opts])=>t==="select"?`<label class="f">${l}<select data-k="${k}">${opts.map(o=>`<option ${f[k]===o?"selected":""}>${esc(o)}</option>`).join("")}</select></label>`:`<label class="f">${l}<input data-k="${k}" type="${t||"text"}" value="${esc(f[k]||"")}"></label>`;
+  const m=modal((f.id?"Modifier – ":"")+T.n,T.c,`${T.f.map(inp).join("")}${type==="contact"?"":`<label class="f">Document joint (facultatif)<input type="file" id="fi_f"></label>`}<div class="calc" id="fi_c" style="${type==="cons"||type==="perso"?"":"display:none"}"></div><div class="err" id="fi_e"></div>`,
+   `${f.id?`<button class="btn danger ghost" id="fi_d" style="margin-right:auto">Supprimer</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="fi_s">Enregistrer</button>`);
+  const g=k=>m.ov.querySelector(`[data-k="${k}"]`)?.value.trim()??"";
+  const calc=()=>{if(type==="cons")m.q("#fi_c").innerHTML=g("date")?`Prochaine revue conseillée : <b>${fr(addM(g("date"),12))}</b>`:"Indique la date de mise à jour";
+    if(type==="perso")m.q("#fi_c").innerHTML=g("date")&&g("d")?`Recyclage à prévoir avant le <b>${fr(addM(g("date"),g("d")))}</b>`:"Indique la date et la validité pour suivre le recyclage"};
+  m.ov.querySelectorAll("[data-k]").forEach(x=>x.oninput=calc);calc();
+  if(type==="perso"){const mi=m.ov.querySelector('[data-k="b"]'),va=m.ov.querySelector('[data-k="d"]');mi.onchange=()=>{if(!va.value)va.value=/SST/.test(mi.value)?24:12;calc()};if(!f.id&&!va.value)va.value=12}
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#fi_d"))m.q("#fi_d").onclick=async()=>{if(!confirm("Supprimer cette ligne ?"))return;await api("delFiche",{id:f.id});S.fic=S.fic.filter(x=>x.id!==f.id);m.close();renderEnt()};
+  m.q("#fi_s").onclick=async()=>{
+    const o={...f,entId:e.id,type};T.f.forEach(([k])=>o[k]=g(k));
+    if(!o.a&&type!=="trav"){m.q("#fi_e").textContent="Complète au moins le premier champ.";return}
+    if(type==="cons")o.echeance=o.date?addM(o.date,12):"";
+    if(type==="perso")o.echeance=o.date&&o.d?addM(o.date,o.d):"";
+    const b=m.q("#fi_s");b.disabled=true;b.textContent="Enregistrement…";
+    try{const fl=m.q("#fi_f")?.files[0];if(fl){const u=await uploadFile(e,fl,"doc");o.doc=u.url}
+      const r=await api("saveFiche",{fic:o});const i=S.fic.findIndex(x=>x.id===r.fic.id);if(i>=0)S.fic[i]=r.fic;else S.fic.push(r.fic);
+      if(type==="trav"&&o.d==="Défavorable"&&!f.id){const x=await api("saveRes",{res:{entId:e.id,elId:"",date:o.date||today(),texte:`Avis défavorable – ${o.a}${o.c?" ("+o.c+")":""} : lever les prescriptions de la commission`,gravite:"haute",levee:"",preuve:""}});S.res.push(x.res)}
+      m.close();toast("Enregistré");renderEnt()}catch(z){b.disabled=false;b.textContent="Enregistrer";m.q("#fi_e").textContent=z.message}};
+}
+function listeFiches(e,type,box){
+  const T=FT[type],L=fics(e.id,type).sort((a,b)=>String(b.date).localeCompare(a.date)),ro=S.role==="lecture";
+  const pill=f=>{const s=statutF(f);return s==="none"?"":`<span class="pill p-${s}">${type==="cons"?(s==="ok"?"À jour":s==="vide"?"–":"À revoir"):type==="trav"?"Prochaine visite "+fr(f.echeance):s==="ok"?"Valide":s==="vide"?"Date à renseigner":s==="bientot"?"Recyclage à prévoir":"Recyclage dépassé"}</span>`};
+  const line=f=>{
+    if(type==="contact")return `<div><div class="t">${esc(f.a)}</div><div class="d">${esc(f.b||"")}</div>${f.e?`<div class="k">${esc(f.e)}</div>`:""}</div><div>${f.c?`<a href="tel:${esc(f.c.replace(/\s/g,""))}">${esc(f.c)}</a>`:""}${f.d?`<br><a href="mailto:${esc(f.d)}">${esc(f.d)}</a>`:""}</div>`;
+    if(type==="trav")return `<div><div class="t">${esc(f.a)}</div><div class="d">${esc(f.b||"")}</div><div class="k">${esc([f.e,f.c].filter(Boolean).join(" · "))}</div></div><div><div class="k">Date</div>${fr(f.date)||"–"}${f.d?`<br><span class="pill ${f.d==="Favorable"?"p-ok":f.d==="Défavorable"?"p-nc":"p-bientot"}">Avis ${f.d.toLowerCase()}</span>`:""} ${f.echeance?pill(f):""}</div>`;
+    if(type==="maint")return `<div><div class="t">${esc(f.a)}</div><div class="d">${esc(f.d||"")}</div><div class="k">${esc(f.b||"")}</div></div><div><div class="k">Date</div>${fr(f.date)||"–"}<br><span class="pill ${/Corrective/.test(f.c)?"p-bientot":"p-ok"}">${esc((f.c||"").split(" ")[0])}</span></div>`;
+    if(type==="feu")return `<div><div class="t">${esc(f.a)}</div><div class="d">${esc(f.b||"")}</div><div class="k">${esc([f.c,f.d].filter(Boolean).join(" · "))}</div></div><div><div class="k">Date</div>${fr(f.date)||"–"}${f.e?`<br><span class="pill p-nc">${esc(f.e)}</span>`:""}</div>`;
+    if(type==="cons")return `<div><div class="t">${esc(f.a)}</div><div class="d">${esc(f.b||"")}</div><div class="k">${f.c?"Affichée : "+esc(f.c):""}</div></div><div><div class="k">Mise à jour</div>${fr(f.date)||"–"}<br>${pill(f)}</div>`;
+    return `<div><div class="t">${esc(f.a)}</div><div class="d">${esc(f.b||"")}</div><div class="k">${esc(f.c||"")}</div></div><div><div class="k">Formé le</div>${fr(f.date)||"–"}<br>${pill(f)}</div>`;
+  };
+  box.innerHTML=`<div class="card rubh" style="--rc:${T.c}"><div><h2>${T.n}</h2>${T.ref?`<p>${T.ref}</p>`:""}</div><div class="sp"></div>${ro?"":`<button class="btn pri" data-fa="${type}">${T.add}</button>`}</div>
+   <div class="rows">${L.map(f=>`<div class="card row fic" style="--sc:${T.c}"><div class="bar"></div>${line(f)}<div class="bt">${f.doc&&f.doc!=="#"?`<a class="btn sm" href="${esc(f.doc)}" target="_blank" rel="noopener">Document</a>`:""}${ro?"":`<button class="btn sm ghost" data-fm="${f.id}">Modifier</button>`}</div></div>`).join("")||`<div class="card empty">Rien n’est encore renseigné.</div>`}</div>`;
+  if(ro)return;
+  box.querySelectorAll(`[data-fa="${type}"]`).forEach(b=>b.onclick=()=>ficheForm(e,type));
+  box.querySelectorAll("[data-fm]").forEach(b=>b.onclick=()=>ficheForm(e,type,S.fic.find(x=>x.id===b.dataset.fm)));
+}
+
+/* ============ DÉFIBRILLATEUR (DAE) ============ */
+const DAEK=[["el","Électrodes adultes – péremption"],["ee","Électrodes enfants – péremption"],["bat","Batterie – péremption"],["maint","Prochaine maintenance"],["visu","Dernier contrôle visuel"]];
+const daeX=f=>{try{return JSON.parse(f.d||"{}")}catch(x){return{}}};
+function daeEch(x){const l=["el","ee","bat","maint"].map(k=>x[k]).filter(Boolean);if(x.visu)l.push(addM(x.visu,Number(x.visuPer)||1));return l.sort()[0]||""}
+const daeSt=iso=>!iso?"vide":jours(iso)<0?"retard":jours(iso)<=30?"bientot":"ok";
+function daeForm(e,f){
+  f=f||{type:"dae",entId:e.id,date:""};const x=daeX(f);
+  const I=(k,l,t="date",v)=>`<label class="f">${l}<input data-x="${k}" type="${t}" value="${esc(v??x[k]??"")}"></label>`;
+  const m=modal(f.id?"Modifier le défibrillateur":"Ajouter un défibrillateur",FT.dae.c,`
+   <div class="two"><label class="f">Emplacement<input data-k="a" value="${esc(f.a||"")}" placeholder="Hall d’accueil, à côté de l’ascenseur"></label><label class="f">Marque et modèle<input data-k="b" value="${esc(f.b||"")}"></label></div>
+   <div class="two"><label class="f">N° de série<input data-k="c" value="${esc(f.c||"")}"></label><label class="f">Date d’installation<input data-k="date" type="date" value="${esc(f.date||"")}"></label></div>
+   <div class="two">${I("el","Électrodes adultes – péremption")}${I("ee","Électrodes enfants – péremption (si présentes)")}</div>
+   <div class="two">${I("bat","Batterie – péremption")}${I("maint","Prochaine maintenance (fabricant / prestataire)")}</div>
+   <div class="two">${I("visu","Dernier contrôle visuel (voyant)")}${I("visuPer","Contrôle visuel tous les (mois)","number",x.visuPer||1)}</div>
+   <div class="two"><label class="f">Déclaré sur Géo’DAE<select data-x="geo"><option value="">À faire</option><option ${x.geo==="oui"?"selected":""} value="oui">Oui</option></select></label>${I("geoDate","Date de déclaration")}</div>
+   <label class="f">Signalétique en place<select data-x="sign"><option value="">À vérifier</option><option ${x.sign==="oui"?"selected":""} value="oui">Oui</option><option ${x.sign==="non"?"selected":""} value="non">Non</option></select></label>
+   <label class="f">Document joint (facture, contrat de maintenance…)<input type="file" id="fi_f"></label><div class="err" id="fi_e"></div>`,
+   `${f.id?`<button class="btn danger ghost" id="fi_d" style="margin-right:auto">Supprimer</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="fi_s">Enregistrer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#fi_d"))m.q("#fi_d").onclick=async()=>{if(!confirm("Supprimer ce défibrillateur ?"))return;await api("delFiche",{id:f.id});S.fic=S.fic.filter(y=>y.id!==f.id);m.close();renderEnt()};
+  m.q("#fi_s").onclick=async()=>{const o={...f,entId:e.id,type:"dae"};m.ov.querySelectorAll("[data-k]").forEach(i=>o[i.dataset.k]=i.value.trim());
+    if(!o.a){m.q("#fi_e").textContent="Indique l’emplacement.";return}
+    const nx={};m.ov.querySelectorAll("[data-x]").forEach(i=>nx[i.dataset.x]=i.value.trim());o.d=JSON.stringify(nx);o.echeance=daeEch(nx);
+    try{const fl=m.q("#fi_f").files[0];if(fl){const u=await uploadFile(e,fl,"doc");o.doc=u.url}
+      const r=await api("saveFiche",{fic:o});const i=S.fic.findIndex(y=>y.id===r.fic.id);if(i>=0)S.fic[i]=r.fic;else S.fic.push(r.fic);m.close();toast("Défibrillateur enregistré");renderEnt()}catch(z){m.q("#fi_e").textContent=z.message}};
+}
+async function daeVisu(e,f){const x=daeX(f);x.visu=today();const o={...f,d:JSON.stringify(x),echeance:daeEch(x)};
+  const r=await api("saveFiche",{fic:o});S.fic[S.fic.findIndex(y=>y.id===f.id)]=r.fic;
+  const j=await api("saveFiche",{fic:{type:"daej",entId:e.id,date:today(),a:"Contrôle visuel",b:"Voyant d’état vérifié – appareil prêt",c:"",e:f.id}});S.fic.push(j.fic);toast("Contrôle visuel enregistré");renderEnt()}
+function panelDAE(e,pn){
+  const L=fics(e.id,"dae"),J=fics(e.id,"daej").sort((a,b)=>String(b.date).localeCompare(a.date)),ro=S.role==="lecture",T=FT.dae;
+  const pill=(iso,lab)=>{const s=daeSt(iso);return `<div class="calc" style="padding:8px 10px"><div class="hint">${lab}</div><b>${iso?fr(iso):"–"}</b> <span class="pill p-${s}">${s==="ok"?"OK":s==="bientot"?"Bientôt":s==="retard"?"Dépassé":"À renseigner"}</span></div>`};
+  pn.innerHTML=`<div class="card rubh" style="--rc:${T.c}"><div><h2>${T.n}</h2><p>${T.ref}</p></div><div class="sp"></div>${ro?"":`<button class="btn pri" id="dae_a">+ Défibrillateur</button>`}</div>
+   <div class="rows">${L.map(f=>{const x=daeX(f);return `<div class="card" style="padding:14px;border-left:6px solid ${T.c}">
+     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div class="t" style="font-weight:600;font-size:17px">${esc(f.a)}</div><div class="hint">${esc([f.b,f.c?"n° "+f.c:"",f.date?"installé le "+fr(f.date):""].filter(Boolean).join(" · "))}</div></div>
+     <div class="bt" style="display:flex;gap:6px;flex-wrap:wrap">${f.doc&&f.doc!=="#"?`<a class="btn sm" href="${esc(f.doc)}" target="_blank" rel="noopener">Document</a>`:""}${ro?"":`<button class="btn sm pri" data-dv="${f.id}">Contrôle visuel fait</button><button class="btn sm ghost" data-dm="${f.id}">Modifier</button>`}</div></div>
+     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:10px">${pill(x.el,"Électrodes adultes")}${x.ee?pill(x.ee,"Électrodes enfants"):""}${pill(x.bat,"Batterie")}${pill(x.maint,"Maintenance")}${pill(x.visu?addM(x.visu,Number(x.visuPer)||1):"","Prochain contrôle visuel")}</div>
+     <div class="pills" style="margin-top:8px"><span class="pill ${x.geo==="oui"?"p-ok":"p-retard"}">Géo’DAE : ${x.geo==="oui"?"déclaré"+(x.geoDate?" le "+fr(x.geoDate):""):"à déclarer"}</span><span class="pill ${x.sign==="oui"?"p-ok":x.sign==="non"?"p-retard":"p-vide"}">Signalétique : ${x.sign==="oui"?"en place":x.sign==="non"?"absente":"à vérifier"}</span></div></div>`}).join("")||`<div class="card empty">Aucun défibrillateur enregistré.</div>`}</div>
+   <div class="card rubh" style="--rc:${T.c};margin-top:22px"><div><h2 style="font-size:21px">Journal du défibrillateur</h2><p>Maintenances, contrôles, remplacements et utilisations</p></div><div class="sp"></div>${ro||!L.length?"":`<button class="btn" id="dae_j">+ Entrée au journal</button>`}</div>
+   <div class="rows">${J.map(j=>`<div class="card row fic" style="--sc:${T.c}"><div class="bar"></div><div><div class="t">${esc(j.a)}</div><div class="d">${esc(j.b||"")}</div><div class="k">${esc((L.find(f=>f.id===j.e)||{}).a||"")}${j.c?" · "+esc(j.c):""}</div></div><div><div class="k">Date</div>${fr(j.date)}</div><div class="bt">${ro?"":`<button class="btn sm ghost" data-jm="${j.id}">Modifier</button>`}</div></div>`).join("")||`<div class="card empty">Aucune entrée.</div>`}</div>`;
+  if(ro)return;
+  $("#dae_a").onclick=()=>daeForm(e);
+  pn.querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>daeForm(e,S.fic.find(y=>y.id===b.dataset.dm)));
+  pn.querySelectorAll("[data-dv]").forEach(b=>b.onclick=()=>daeVisu(e,S.fic.find(y=>y.id===b.dataset.dv)).catch(z=>toast(z.message)));
+  if($("#dae_j"))$("#dae_j").onclick=()=>daejForm(e);
+  pn.querySelectorAll("[data-jm]").forEach(b=>b.onclick=()=>daejForm(e,S.fic.find(y=>y.id===b.dataset.jm)));
+}
+function daejForm(e,j){
+  j=j||{type:"daej",entId:e.id,date:today()};const L=fics(e.id,"dae");
+  const m=modal("Journal du défibrillateur",FT.dae.c,`<div class="two"><label class="f">Date<input data-k="date" type="date" value="${esc(j.date)}"></label><label class="f">Appareil<select data-k="e">${L.map(f=>`<option value="${f.id}" ${j.e===f.id?"selected":""}>${esc(f.a)}</option>`).join("")}</select></label></div>
+   <label class="f">Type<select data-k="a">${["Maintenance","Contrôle visuel","Remplacement des électrodes","Remplacement de la batterie","Utilisation sur une victime","Panne / anomalie"].map(t=>`<option ${j.a===t?"selected":""}>${t}</option>`).join("")}</select></label>
+   <label class="f">Détails<input data-k="b" value="${esc(j.b||"")}"></label><label class="f">Intervenant<input data-k="c" value="${esc(j.c||"")}"></label>
+   <p class="hint" style="margin:0">Après un remplacement d’électrodes ou de batterie, pense à mettre à jour la nouvelle date de péremption dans « Modifier ».</p><div class="err" id="fi_e"></div>`,
+   `${j.id?`<button class="btn danger ghost" id="fi_d" style="margin-right:auto">Supprimer</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="fi_s">Enregistrer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(m.q("#fi_d"))m.q("#fi_d").onclick=async()=>{await api("delFiche",{id:j.id});S.fic=S.fic.filter(y=>y.id!==j.id);m.close();renderEnt()};
+  m.q("#fi_s").onclick=async()=>{const o={...j,entId:e.id,type:"daej"};m.ov.querySelectorAll("[data-k]").forEach(i=>o[i.dataset.k]=i.value.trim());
+    try{const r=await api("saveFiche",{fic:o});const i=S.fic.findIndex(y=>y.id===r.fic.id);if(i>=0)S.fic[i]=r.fic;else S.fic.push(r.fic);
+      if(o.a==="Contrôle visuel"){const f=S.fic.find(y=>y.id===o.e);if(f){const x=daeX(f);if(!x.visu||x.visu<o.date){x.visu=o.date;const r2=await api("saveFiche",{fic:{...f,d:JSON.stringify(x),echeance:daeEch(x)}});S.fic[S.fic.findIndex(y=>y.id===f.id)]=r2.fic}}}
+      m.close();toast("Enregistré");renderEnt()}catch(z){m.q("#fi_e").textContent=z.message}};
+}
+
 /* ============ MODALES ============ */
 function modal(title,color,body,actions){
   const ov=document.createElement("div");ov.className="ov";
@@ -442,7 +597,7 @@ function elForm(e,x,renew){
   const r=RUB[x.rub],isF=x.rub==="form",edit=!!x.id&&!renew;
   const m=modal(renew?(isF?"Renouvellement":"Nouvelle vérification"):edit?"Modifier":"Ajouter au registre",r.c,`
    <label class="f">${isF?"Formation / autorisation":"Équipement ou installation"}<input id="f_l" value="${esc(x.libelle||"")}" placeholder="${isF?"SST – maintien des compétences":"Chariot élévateur – VGP"}"></label>
-   <label class="f">${isF?"Personnes concernées":"Précisions (marque, n° de série, emplacement)"}<input id="f_d" value="${esc(x.detail||"")}" placeholder="${isF?"Jean Payet, Marie Hoarau":"Toyota 8FD25 – n° 12345"}"></label>
+   <label class="f">${isF?"Personnes concernées":x.rub==="inc"?"Emplacement et précisions (implantation, nombre, type)":"Précisions (marque, n° de série, emplacement)"}<input id="f_d" value="${esc(x.detail||"")}" placeholder="${isF?"Jean Payet, Marie Hoarau":"Toyota 8FD25 – n° 12345"}"></label>
    <div class="two"><label class="f">${isF?"Date de la formation":"Date de la vérification"}<input type="date" id="f_dt" value="${esc(x.dernier||"")}"></label>
    <label class="f">Périodicité (mois)<input type="number" min="1" max="120" step="1" id="f_p" value="${esc(x.per||12)}"></label></div>
    <div class="calc" id="f_c"></div>
@@ -496,16 +651,34 @@ function entForm(e){
    ${F("activite","Activité","Gros œuvre, métallerie…")}<div class="two">${F("effectif","Effectif","12","number")}${F("contact","Responsable sécurité")}</div>
    <div class="two">${F("email","Mail (reçoit les relances)","contact@entreprise.re","email")}${F("tel","Téléphone")}</div>
    ${adm?`<div class="two">${F("verificateur","Organisme vérificateur")}<label class="f">Relances automatiques<select id="n_relances"><option value="oui" ${e.relances!=="non"?"selected":""}>Activées</option><option value="non" ${e.relances==="non"?"selected":""}>Désactivées</option></select></label></div>`:""}
+   <label class="f">Établissement recevant du public (ERP)<select id="n_erp"><option value="">À préciser</option><option value="oui" ${e.erp==="oui"?"selected":""}>Oui</option><option value="non" ${e.erp==="non"?"selected":""}>Non</option></select></label>
+   <div id="n_erpb" style="display:${e.erp==="oui"?"grid":"none"};gap:12px"><div class="two"><label class="f">Type d’ERP<select id="n_erpType">${["","R – Enseignement, formation","W – Bureaux, administrations","M – Magasins, centres commerciaux","N – Restaurants, débits de boissons","L – Salles de réunion, spectacles","U – Établissements de soins","J – Structures d’accueil personnes âgées / handicapées","O – Hôtels","X – Établissements sportifs couverts","Autre"].map(t=>`<option ${e.erpType===t?"selected":""}>${t}</option>`).join("")}</select></label><label class="f">Catégorie<select id="n_erpCat">${["","1","2","3","4","5"].map(t=>`<option value="${t}" ${e.erpCat===t?"selected":""}>${t?t+"e catégorie":""}</option>`).join("")}</select></label></div>
+   <div class="two">${F("effPublic","Effectif admissible – public","","number")}${F("effPerso","Effectif – personnel","","number")}</div>
+   ${F("locaux","Description des locaux","2 salles de formation, accueil, RDC")}</div>
+   <div class="two">${F("ouverture","Date d’ouverture de l’établissement","","date")}<label class="f">Locaux à sommeil<select id="n_sommeil"><option value="">À préciser</option><option ${e.sommeil==="oui"?"selected":""} value="oui">Oui</option><option ${e.sommeil==="non"?"selected":""} value="non">Non</option></select></label></div>
+   <h3 style="font-size:17px;margin:6px 0 0;color:var(--red)">Responsables de la sécurité</h3>
+   <div class="two">${F("mandataire","Mandataire (exploitant / chef d’établissement)")}${F("mandTel","Téléphone du mandataire","","tel")}</div>
+   ${F("mandAdr","Adresse du mandataire (si différente)")}
+   <div class="two">${F("suppleant","Suppléant")}${F("suppTel","Téléphone du suppléant","","tel")}</div>
+   <h3 style="font-size:17px;margin:6px 0 0;color:var(--red)">Type d’établissement</h3>
+   <div class="two"><label class="f">Code du travail<select id="n_cdt">${["","Moins de 50 salariés – sans matières inflammables","Moins de 50 salariés – avec matières inflammables","50 salariés et plus – sans matières inflammables","50 salariés et plus – avec matières inflammables"].map(t=>`<option ${e.cdt===t?"selected":""}>${t}</option>`).join("")}</select></label>
+   <label class="f">Installation classée (ICPE)<select id="n_icpe"><option value="">À préciser</option><option ${e.icpe==="oui"?"selected":""} value="oui">Oui</option><option ${e.icpe==="non"?"selected":""} value="non">Non</option></select></label></div>
+   ${F("icpeRub","Rubrique(s) de la nomenclature ICPE","ex. 2560, 2565")}
+   <h3 style="font-size:17px;margin:6px 0 0;color:var(--red)">Nature du bâtiment</h3>
+   <div class="two">${F("bConstr","Date ou année de construction","2008")}${F("bCompo","Composition","béton, parpaing, charpente métallique…")}</div>
+   <div class="two">${F("bEtages","Nombre d’étages","R+1")}${F("bSurface","Surface approximative (m²)","350")}</div>
+   ${F("visitFreq","Fréquence des visites périodiques de la commission","tous les 3 ans, ou sans objet en 5e catégorie")}
    ${F("duerp","Lien vers le document unique (DUERP)","https://…")}<div class="err" id="n_e"></div>`,
    `${adm&&e.id?`<button class="btn danger ghost" id="n_del" style="margin-right:auto">Supprimer l’entreprise</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="n_s">Enregistrer</button>`);
+  m.q("#n_erp").onchange=()=>{m.q("#n_erpb").style.display=m.q("#n_erp").value==="oui"?"grid":"none"};
   m.ov.querySelector("[data-x2]").onclick=m.close;
   if(m.q("#n_del"))m.q("#n_del").onclick=async()=>{if(!confirm(`Supprimer ${e.nom} et tout son registre ?`))return;await api("delEnt",{id:e.id});await reload();m.close();V={view:"dash"};render()};
-  m.q("#n_s").onclick=async()=>{const o={id:e.id||""};["nom","forme","siret","adresse","cp","ville","activite","effectif","contact","email","tel","duerp"].concat(adm?["verificateur","relances"]:[]).forEach(k=>o[k]=m.q("#n_"+k).value.trim());
+  m.q("#n_s").onclick=async()=>{const o={id:e.id||""};["nom","forme","siret","adresse","cp","ville","activite","effectif","contact","email","tel","duerp","erp","erpType","erpCat","effPublic","effPerso","ouverture","locaux","sommeil","mandataire","mandTel","mandAdr","suppleant","suppTel","cdt","icpe","icpeRub","bConstr","bCompo","bEtages","bSurface","visitFreq"].concat(adm?["verificateur","relances"]:[]).forEach(k=>o[k]=m.q("#n_"+k).value.trim());
     if(!o.nom){m.q("#n_e").textContent="Indique la raison sociale.";return}
     if(o.email&&!/^\S+@\S+\.\S+$/.test(o.email)){m.q("#n_e").textContent="Le mail n’est pas valide.";return}
     try{const r=await api("saveEnt",{ent:o});const i=S.ents.findIndex(x=>x.id===r.ent.id);if(i>=0)S.ents[i]=r.ent;else S.ents.push(r.ent);m.close();toast("Fiche enregistrée");V={view:"ent",ent:r.ent.id,tab:"id"};render()}catch(z){m.q("#n_e").textContent=z.message}};
 }
-function access(e){
+async function access(e){await need("qr");
   const lk=`${APP_URL}/?c=${e.code}`,lec=`${APP_URL}/?c=${e.lecture}`;
   const m=modal("Accès client – "+esc(e.nom),RUB.id.c,`
    <p style="margin:0">L’entreprise ouvre son registre, le complète et dépose ses documents avec ce lien :</p>
@@ -651,7 +824,7 @@ function validerLecture(e,items,url){
 }
 
 /* ============ QR PAR MACHINE ============ */
-function etiquettes(e){
+async function etiquettes(e){await need("jspdf","qr");
   const L=els(e.id).filter(x=>["lev","epi","inst","inc"].includes(x.rub));
   if(!L.length){toast("Aucun équipement à étiqueter");return}
   if(!e.lecture){toast("Code de consultation manquant");return}
@@ -687,7 +860,7 @@ function renderMachine(){
 /* ============ EXPORT PDF ============ */
 const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const P=s=>String(s??"").replace(/[’‘]/g,"'").replace(/[“”«»]/g,'"').replace(/[–—]/g,"-").replace(/œ/g,"oe").replace(/…/g,"...").replace(/[^\x00-\xFF]/g,"");
-async function getPhoto(e){if(S.photos[e.id])return S.photos[e.id];if(!e.photoId)return"";try{const r=await api("photo",{entId:e.id});if(r.data)S.photos[e.id]=r.data;return r.data||""}catch(x){return""}}
+async function getPhoto(e){if(S.photos[e.id])return S.photos[e.id];const pc=store.get("reg3aim_ph_"+e.id+"_"+e.photoId);if(pc){S.photos[e.id]=pc;return pc}if(!e.photoId)return"";try{const r=await api("photo",{entId:e.id});if(r.data)S.photos[e.id]=r.data;return r.data||""}catch(x){return""}}
 function qrData(text){const d=document.createElement("div");new QRCode(d,{text,width:256,height:256,correctLevel:QRCode.CorrectLevel.M});return d.querySelector("canvas").toDataURL("image/png")}
 const TEXTES=[
  ["h","Registre de sécurité"],
@@ -772,8 +945,71 @@ async function cropTo(url,ratio){ // recadrage centré au format du cadre
 }
 async function exportPDF(e){const doc=await buildPDF(e);await saveFile(pdfName(e),doc.output("blob"))}
 const pdfName=e=>`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`;
+function ficPage(doc,e,type,INK){
+  const T=FT[type],L=fics(e.id,type).sort((a,b)=>String(b.date).localeCompare(a.date));
+  const C={contact:{h:["Nom / entreprise","Rôle","Téléphone","Mail","Remarque"],r:f=>[f.a,f.b,f.c,f.d,f.e],w:{0:{cellWidth:62,fontStyle:"bold"},1:{cellWidth:55},2:{cellWidth:34},3:{cellWidth:60}}},
+   trav:{h:["Date","Nature","Description","Référence","Avis","Prochaine visite"],r:f=>[fr(f.date),f.a,f.b,f.c,f.d||"-",fr(f.echeance)||"-"],w:{0:{cellWidth:22},1:{cellWidth:52,fontStyle:"bold"},3:{cellWidth:44},4:{cellWidth:24,fontStyle:"bold"},5:{cellWidth:28}}},
+   feu:{h:["Date","Lieu","Cause présumée","Moyens utilisés","Suites données","Victimes / dégâts"],r:f=>[fr(f.date),f.a,f.b,f.c,f.d,f.e],w:{0:{cellWidth:22},1:{cellWidth:44,fontStyle:"bold"}}},
+   maint:{h:["Date","Installation","Type","Travaux réalisés","Intervenant"],r:f=>[fr(f.date),f.a,f.c,f.d,f.b],w:{0:{cellWidth:22},1:{cellWidth:52,fontStyle:"bold"},2:{cellWidth:38},4:{cellWidth:52}}},
+   cons:{h:["Titre","Type","Lieu d'affichage","Mise à jour","Prochaine revue","Statut"],r:f=>[f.a,f.b,f.c,fr(f.date),fr(f.echeance)||"-",{ok:"À jour",bientot:"À revoir",retard:"À revoir",none:"-",vide:"-"}[statutF(f)]],w:{0:{cellWidth:62,fontStyle:"bold"},1:{cellWidth:62},3:{cellWidth:24},4:{cellWidth:28},5:{cellWidth:24,fontStyle:"bold"}}},
+   perso:{h:["Nom","Mission","Formation suivie","Date","Validité","Recyclage avant","Statut"],r:f=>[f.a,f.b,f.c,fr(f.date)||"-",f.d?f.d+" mois":"-",fr(f.echeance)||"-",{ok:"Valide",bientot:"À recycler",retard:"Dépassé",vide:"À renseigner",none:"-"}[statutF(f)]],w:{0:{cellWidth:46,fontStyle:"bold"},1:{cellWidth:52},3:{cellWidth:22},4:{cellWidth:20},5:{cellWidth:28},6:{cellWidth:26,fontStyle:"bold"}}}}[type];
+  doc.addPage();const pgn=doc.getNumberOfPages();const y=hdr(doc,e,T.n,hex(T.c),T.ref);
+  doc.autoTable({startY:y,head:[C.h],body:L.length?L.map(f=>C.r(f).map(v=>P(v))):[[{content:"Rien n’est encore renseigné.",colSpan:C.h.length,styles:{halign:"center",textColor:[138,147,163]}}]],
+    theme:"grid",styles:{fontSize:8.8,cellPadding:2.5,lineColor:[227,230,235],textColor:INK,valign:"middle"},headStyles:{fillColor:hex(T.c),textColor:255},alternateRowStyles:{fillColor:[249,250,251]},columnStyles:C.w,
+    didParseCell:d=>{if(d.section!=="body"||!L.length)return;const f=L[d.row.index],last=C.h.length-1;
+      if((type==="cons"||type==="perso")&&d.column.index===last){const st=statutF(f);d.cell.styles.textColor=hex({ok:"#1E7F4F",bientot:"#C17D00",retard:"#B42318",vide:"#6B7280",none:"#6B7280"}[st])}
+      if(type==="trav"&&d.column.index===4&&f.d)d.cell.styles.textColor=hex(f.d==="Favorable"?"#1E7F4F":"#B42318")},margin:{left:12,right:12,top:30}});
+  return pgn;
+}
+function daePage(doc,e,INK){
+  const T=FT.dae,L=fics(e.id,"dae"),J=fics(e.id,"daej").sort((a,b)=>String(b.date).localeCompare(a.date));
+  doc.addPage();const pgn=doc.getNumberOfPages();let y=hdr(doc,e,T.n,hex(T.c),T.ref);
+  const col={ok:"#1E7F4F",bientot:"#C17D00",retard:"#B42318",vide:"#6B7280"};
+  const rows=L.map(f=>{const x=daeX(f);return[f.a,[f.b,f.c?"n° "+f.c:""].filter(Boolean).join("\n"),fr(f.date)||"-",fr(x.el)||"-",fr(x.ee)||"-",fr(x.bat)||"-",fr(x.maint)||"-",x.visu?fr(x.visu):"-",x.geo==="oui"?"Oui":"À faire",x.sign==="oui"?"Oui":x.sign==="non"?"Non":"?"]});
+  doc.autoTable({startY:y,head:[["Emplacement","Appareil","Installé le","Électrodes adultes","Électrodes enfants","Batterie","Maintenance","Contrôle visuel","Géo'DAE","Signalétique"]],
+    body:rows.length?rows.map(r=>r.map(v=>P(v))):[[{content:"Aucun défibrillateur enregistré.",colSpan:10,styles:{halign:"center",textColor:[138,147,163]}}]],
+    theme:"grid",styles:{fontSize:8.6,cellPadding:2.4,lineColor:[227,230,235],textColor:INK,valign:"middle"},headStyles:{fillColor:hex(T.c),textColor:255},columnStyles:{0:{cellWidth:46,fontStyle:"bold"},1:{cellWidth:40}},
+    didParseCell:d=>{if(d.section!=="body"||!L.length)return;const x=daeX(L[d.row.index]),k={3:"el",4:"ee",5:"bat",6:"maint"}[d.column.index];
+      if(k&&x[k]){const st=daeSt(x[k]);d.cell.styles.textColor=hex(col[st]);d.cell.styles.fontStyle="bold"}
+      if(d.column.index===7&&x.visu){d.cell.styles.textColor=hex(col[daeSt(addM(x.visu,Number(x.visuPer)||1))])}
+      if(d.column.index===8)d.cell.styles.textColor=hex(x.geo==="oui"?"#1E7F4F":"#B42318")},margin:{left:12,right:12,top:30}});
+  y=doc.lastAutoTable.finalY+10;doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(...hex(T.c));doc.text("Journal du défibrillateur",12,y);
+  doc.autoTable({startY:y+3,head:[["Date","Appareil","Type","Détails","Intervenant"]],body:J.length?J.map(j=>[fr(j.date),(L.find(f=>f.id===j.e)||{}).a||"",j.a,j.b,j.c].map(v=>P(v))):[[{content:"Aucune entrée.",colSpan:5,styles:{halign:"center",textColor:[138,147,163]}}]],
+    theme:"grid",styles:{fontSize:8.6,cellPadding:2.3,lineColor:[227,230,235],textColor:INK},headStyles:{fillColor:hex(T.c),textColor:255},columnStyles:{0:{cellWidth:22},1:{cellWidth:50},2:{cellWidth:52,fontStyle:"bold"}},margin:{left:12,right:12,top:30}});
+  return pgn;
+}
+const _pic={};
+/* pictogrammes dessinés (identiques sur tous les ordinateurs) */
+const ICONS={
+ building:g=>{g.strokeRect(30,22,40,58);[[38,32],[54,32],[38,46],[54,46],[38,60],[54,60]].forEach(([x,y])=>g.fillRect(x,y,8,7));g.fillRect(46,68,8,12)},
+ search:g=>{g.beginPath();g.arc(44,44,18,0,7);g.stroke();g.beginPath();g.moveTo(57,57);g.lineTo(74,74);g.stroke()},
+ phone:g=>{g.beginPath();g.moveTo(33,24);g.quadraticCurveTo(22,30,28,46);g.quadraticCurveTo(38,68,58,76);g.quadraticCurveTo(70,80,76,68);g.stroke();g.fillRect(28,20,12,14);g.fillRect(64,62,14,12)},
+ hammer:g=>{g.lineWidth=9;g.beginPath();g.moveTo(30,78);g.lineTo(58,44);g.stroke();g.save();g.translate(60,42);g.rotate(0.71);g.fillRect(-22,-8,44,16);g.restore()},
+ zap:g=>{g.beginPath();g.moveTo(56,18);g.lineTo(32,54);g.lineTo(50,54);g.lineTo(44,82);g.lineTo(70,42);g.lineTo(52,42);g.closePath();g.fill()},
+ crane:g=>{g.beginPath();g.moveTo(34,80);g.lineTo(34,24);g.lineTo(76,24);g.moveTo(34,34);g.lineTo(46,24);g.moveTo(68,24);g.lineTo(68,48);g.stroke();g.beginPath();g.arc(68,54,6,-1.6,3.2);g.stroke();g.fillRect(24,76,22,6)},
+ hardhat:g=>{g.beginPath();g.moveTo(50,14);g.lineTo(50,30);g.stroke();g.beginPath();g.arc(50,36,7,0,7);g.fill();g.lineWidth=7;g.beginPath();g.moveTo(50,46);g.lineTo(50,64);g.moveTo(34,50);g.lineTo(66,50);g.moveTo(50,64);g.lineTo(38,82);g.moveTo(50,64);g.lineTo(62,82);g.stroke();g.lineWidth=4;g.strokeRect(42,46,16,20)},
+ extinguisher:g=>{g.fillRect(38,36,22,44);g.beginPath();g.arc(49,36,11,Math.PI,0);g.fill();g.fillRect(45,20,8,8);g.beginPath();g.moveTo(53,24);g.lineTo(68,24);g.lineTo(72,34);g.stroke()},
+ users:g=>{[[38,0],[62,4]].forEach(([x,d])=>{g.beginPath();g.arc(x,38+d,9,0,7);g.fill();g.beginPath();g.arc(x,72+d,16,Math.PI,0);g.fill()})},
+ cap:g=>{g.beginPath();g.moveTo(50,26);g.lineTo(84,40);g.lineTo(50,54);g.lineTo(16,40);g.closePath();g.fill();g.beginPath();g.moveTo(32,48);g.lineTo(32,62);g.quadraticCurveTo(50,74,68,62);g.lineTo(68,48);g.fill();g.beginPath();g.moveTo(80,42);g.lineTo(80,62);g.stroke()},
+ wrench:g=>{g.beginPath();g.moveTo(30,72);g.lineTo(58,44);g.stroke();g.beginPath();g.arc(64,36,13,2.6,1.2+Math.PI*2);g.stroke()},
+ clipboard:g=>{g.strokeRect(30,26,40,54);g.fillRect(40,20,20,10);[42,54,66].forEach(y=>{g.beginPath();g.moveTo(38,y);g.lineTo(62,y);g.stroke()})},
+ heart:(g,col)=>{g.beginPath();g.moveTo(50,80);g.bezierCurveTo(20,58,18,30,36,26);g.bezierCurveTo(44,24,50,32,50,36);g.bezierCurveTo(50,32,56,24,64,26);g.bezierCurveTo(82,30,80,58,50,80);g.fill();g.fillStyle=col;g.beginPath();g.moveTo(54,34);g.lineTo(42,52);g.lineTo(52,52);g.lineTo(46,68);g.lineTo(60,46);g.lineTo(50,46);g.closePath();g.fill()},
+ flame:g=>{g.beginPath();g.moveTo(50,18);g.bezierCurveTo(56,34,74,42,72,60);g.bezierCurveTo(70,74,60,82,50,82);g.bezierCurveTo(38,82,28,74,28,60);g.bezierCurveTo(28,48,38,42,40,32);g.bezierCurveTo(46,40,46,46,48,50);g.bezierCurveTo(52,40,52,28,50,18);g.fill()},
+ eye:(g,col)=>{g.beginPath();g.moveTo(16,50);g.quadraticCurveTo(50,16,84,50);g.quadraticCurveTo(50,84,16,50);g.fill();g.fillStyle=col;g.beginPath();g.arc(50,50,12,0,7);g.fill();g.fillStyle="#fff";g.beginPath();g.arc(50,50,5,0,7);g.fill()},
+ pen:g=>{g.save();g.translate(50,50);g.rotate(0.78);g.fillRect(-6,-32,12,44);g.beginPath();g.moveTo(-6,14);g.lineTo(6,14);g.lineTo(0,28);g.closePath();g.fill();g.restore();g.beginPath();g.moveTo(24,80);g.lineTo(52,80);g.stroke()},
+ bulb:g=>{g.beginPath();g.arc(50,42,18,0.75*Math.PI,0.25*Math.PI);g.lineTo(58,64);g.lineTo(42,64);g.closePath();g.fill();g.fillRect(42,68,16,5);g.fillRect(44,76,12,5)},
+ scale:g=>{g.beginPath();g.moveTo(50,22);g.lineTo(50,78);g.moveTo(24,32);g.lineTo(76,32);g.moveTo(36,80);g.lineTo(64,80);g.stroke();[[30,0],[70,0]].forEach(([x])=>{g.beginPath();g.moveTo(x,32);g.lineTo(x-10,54);g.lineTo(x+10,54);g.closePath();g.stroke();g.beginPath();g.arc(x,54,10,0,Math.PI);g.fill()})},
+ megaphone:g=>{g.beginPath();g.moveTo(26,42);g.lineTo(46,42);g.lineTo(72,26);g.lineTo(72,74);g.lineTo(46,58);g.lineTo(26,58);g.closePath();g.fill();g.fillRect(34,58,9,18)}
+};
+function picto(ic,color){const k=ic+color;if(_pic[k])return _pic[k];
+  const c=document.createElement("canvas");c.width=c.height=200;const g=c.getContext("2d"),[r,gg,b]=hex(color);
+  g.beginPath();g.arc(100,103,96,0,7);g.fillStyle="rgba(0,0,0,.2)";g.fill();
+  const gr=g.createRadialGradient(72,62,10,100,100,96);gr.addColorStop(0,`rgb(${Math.min(255,r+80)},${Math.min(255,gg+80)},${Math.min(255,b+80)})`);gr.addColorStop(1,color);
+  g.beginPath();g.arc(100,98,92,0,7);g.fillStyle=gr;g.fill();g.lineWidth=6;g.strokeStyle="rgba(255,255,255,.85)";g.beginPath();g.arc(100,98,82,0,7);g.stroke();
+  g.save();g.translate(15,13);g.scale(1.7,1.7);g.fillStyle="#fff";g.strokeStyle="#fff";g.lineWidth=6;g.lineCap="round";g.lineJoin="round";(ICONS[ic]||ICONS.clipboard)(g,color);g.restore();
+  return _pic[k]=c.toDataURL("image/png")}
 async function buildPDF(e){
-  toast("Préparation du registre…");
+  toast("Préparation du registre…");await need("autotable","qr");
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",orientation:"landscape"}),W=297,H=210,E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
   const RD=hex("#7A0E0E"),RM=hex("#B71C1C"),INK=[20,33,61],OR=hex("#E87722"),GOLD=hex("#F5A623");
   const grad=(x,y,w,h,c1,c2,n=140)=>{for(let i=0;i<n;i++){const t=i/(n-1);doc.setFillColor(...c1.map((v,k)=>Math.round(v+(c2[k]-v)*t)));doc.rect(x+w*i/n,y,w/n+.3,h,"F")}};
@@ -804,21 +1040,22 @@ async function buildPDF(e){
   doc.addImage(qrData(lec),"PNG",252,170,32,32);doc.setFontSize(7);doc.setTextColor(120,128,140);doc.text("Registre en ligne",244,204,{align:"right"});
   /* ===== 2. Page de garde ===== */
   doc.addPage();let y=hdr(doc,e,"Identification de l’établissement",RD);const pg={garde:2};
-  const kv=(rows,left,right,title)=>{doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...RD);doc.text(title,left,y);
-    doc.autoTable({startY:y+3,body:rows.map(([a,b])=>[a,P(b||"–")]),theme:"plain",styles:{fontSize:9.5,cellPadding:{top:2.2,bottom:2.2,left:2,right:2},textColor:INK,lineColor:[232,226,226],lineWidth:{bottom:.25}},
-      columnStyles:{0:{cellWidth:46,textColor:[110,118,132]},1:{fontStyle:"bold"}},margin:{left,right},tableWidth:W-left-right})};
-  kv([["Raison sociale",[e.nom,e.forme].filter(Boolean).join(" – ")],["SIRET",e.siret],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["Activité",e.activite],["Effectif",e.effectif?e.effectif+" salariés":""],["Téléphone",e.tel],["Mail",e.email]],14,W/2+4,"L’établissement");
-  const y1=doc.lastAutoTable.finalY;
-  kv([["Chef d’établissement / responsable sécurité",e.contact],["Organisme vérificateur",e.verificateur],["Registre tenu par","3AIM CFA – "+ORG.adr],["Contact 3AIM CFA",ORG.tel+" · "+ORG.mail],["Registre ouvert le",fr(ouv)],["Document unique (DUERP)",e.duerp?"Relié au registre en ligne":"À relier"],["Registre en ligne",APP_URL]],W/2+4,14,"Responsabilités");
-  y=Math.max(y1,doc.lastAutoTable.finalY)+8;
-  doc.setFillColor(252,236,236);doc.rect(14,y,W-28,24,"F");doc.setFillColor(...RM);doc.rect(14,y,2.2,24,"F");
-  doc.setTextColor(...RD);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text("Objet du registre",20,y+6.5);
-  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(...INK);
-  doc.text(doc.splitTextToSize(P("Ce registre rassemble les attestations, consignes, résultats et rapports des vérifications et contrôles mis à la charge de l’employeur au titre de la santé et de la sécurité au travail (articles L.4711-1 à L.4711-5 du Code du travail). Il est tenu à la disposition des travailleurs, des membres du CSE, de l’inspection du travail, des agents de la CARSAT et des organismes vérificateurs."),W-44),20,y+12);
-  y+=32;doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...RD);doc.text("Visa du chef d’établissement",14,y);
-  doc.autoTable({startY:y+3,head:[["Date","Nom et qualité","Signature et cachet"]],body:[["","",""]],theme:"grid",styles:{minCellHeight:24,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:7},columnStyles:{0:{cellWidth:40},1:{cellWidth:110}},margin:{left:14,right:14}});
-  /* ===== 3. Sommaire (rempli à la fin) ===== */
-  doc.addPage();pg.som=3;
+  const cw3=(W-28-12)/3,kv=(rows,i,title)=>{const left=14+i*(cw3+6);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(...RD);doc.text(title,left,y);
+    doc.autoTable({startY:y+2.5,body:rows.filter(r=>r[2]!==false).map(([a,b])=>[a,P(b||"–")]),theme:"plain",styles:{fontSize:8.6,cellPadding:{top:1.7,bottom:1.7,left:1.5,right:1.5},textColor:INK,lineColor:[232,226,226],lineWidth:{bottom:.25},valign:"top"},
+      columnStyles:{0:{cellWidth:31,textColor:[110,118,132]},1:{fontStyle:"bold"}},margin:{left,right:W-left-cw3},tableWidth:cw3});return doc.lastAutoTable.finalY};
+  const cat=[e.erpType,e.erpCat?e.erpCat+"e catégorie":""].filter(Boolean).join(" – ");
+  const y1=kv([["Raison sociale",[e.nom,e.forme].filter(Boolean).join(" – ")],["SIRET",e.siret],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["Activité",e.activite],["Effectif",e.effectif?e.effectif+" salariés":""],["Téléphone",e.tel],["Mail",e.email],["Ouverture",fr(e.ouverture)]],0,"L’établissement");
+  const y2=kv([["ERP",e.erp==="oui"?(cat||"Oui"):e.erp==="non"?"Non":""],["Locaux à sommeil",e.sommeil==="oui"?"Oui":e.sommeil==="non"?"Non":"",e.erp==="oui"],["Effectif admissible",[e.effPublic?e.effPublic+" public":"",e.effPerso?e.effPerso+" personnel":""].filter(Boolean).join(" + "),e.erp==="oui"],["Code du travail",e.cdt],["Installation classée",e.icpe==="oui"?"Oui"+(e.icpeRub?" – rubrique "+e.icpeRub:""):e.icpe==="non"?"Non":""],["Construction",e.bConstr],["Composition",e.bCompo],["Étages / surface",[e.bEtages,e.bSurface?e.bSurface+" m²":""].filter(Boolean).join(" – ")],["Locaux",e.locaux]],1,"Type et bâtiment");
+  const y3=kv([["Mandataire",[e.mandataire||e.contact,e.mandTel].filter(Boolean).join(" – ")],["Suppléant",[e.suppleant,e.suppTel].filter(Boolean).join(" – ")],["Vérificateur",e.verificateur],["Visites commission",e.visitFreq],["Registre tenu par","3AIM CFA – "+ORG.tel],["Registre ouvert le",fr(ouv)],["DUERP",e.duerp?"Relié au registre":"À relier"],["En ligne",APP_URL]],2,"Responsabilités");
+  y=Math.max(y1,y2,y3)+6;
+  if(y>150){doc.addPage();y=hdr(doc,e,"Identification de l’établissement (suite)",RD)}
+  doc.setFillColor(252,236,236);doc.rect(14,y,W-28,20,"F");doc.setFillColor(...RM);doc.rect(14,y,2.2,20,"F");
+  doc.setTextColor(...RD);doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.text("Objet du registre",20,y+5.8);
+  doc.setFont("helvetica","normal");doc.setFontSize(8.4);doc.setTextColor(...INK);
+  doc.text(doc.splitTextToSize(P("Ce registre rassemble les attestations, consignes, résultats et rapports des vérifications et contrôles mis à la charge de l’employeur au titre de la santé et de la sécurité au travail (articles L.4711-1 à L.4711-5 du Code du travail). Il est tenu à la disposition des travailleurs, des membres du CSE, de l’inspection du travail, des agents de la CARSAT, de la commission de sécurité et des organismes vérificateurs."),W-44),20,y+10.5);
+  y+=27;doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(...RD);doc.text("Visa du chef d’établissement",14,y);
+  doc.autoTable({startY:y+2.5,head:[["Date","Nom et qualité","Signature et cachet"]],body:[["","",""]],theme:"grid",styles:{minCellHeight:18,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:6.5},columnStyles:{0:{cellWidth:40},1:{cellWidth:110}},margin:{left:14,right:14}});
+  doc.addPage();pg.som=doc.getNumberOfPages();
   /* ===== 4. Synthèse ===== */
   doc.addPage();pg.syn=doc.getNumberOfPages();y=hdr(doc,e,"Synthèse du registre",RD);
   const cnt=(k,st)=>E.filter(x=>x.rub===k&&statut(x)===st).length;
@@ -835,6 +1072,7 @@ async function buildPDF(e){
       theme:"grid",styles:{fontSize:9.5,cellPadding:2.6,lineColor:[227,230,235],textColor:INK},headStyles:{fillColor:RM,textColor:255},
       didParseCell:d=>{if(d.section==="body"&&d.column.index===4){const st=statut(af[d.row.index]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}},margin:{left:14,right:14,top:30}})}
   /* ===== 5. Rubriques ===== */
+  pg.contact=ficPage(doc,e,"contact",INK);pg.trav=ficPage(doc,e,"trav",INK);
   pg.rub={};
   RUBS.filter(r=>CATA[r.k]).forEach((r,ri)=>{
     const L=E.filter(x=>x.rub===r.k);doc.addPage();pg.rub[r.k]=doc.getNumberOfPages();let y=hdr(doc,e,`${ri+1}. ${r.n}`,hex(r.c),r.ref);
@@ -846,7 +1084,9 @@ async function buildPDF(e){
       didParseCell:d=>{if(d.section!=="body"||!L.length)return;const x=L[d.row.index],st=statut(x);
         if(d.column.index===7){d.cell.styles.fillColor=hex({ok:"#E5F3EB",bientot:"#FDF1DC",retard:"#FCE8E6",nc:"#FCE8E6",vide:"#EEF0F3"}[st]);d.cell.styles.textColor=hex(STC[st]);d.cell.styles.fontStyle="bold"}
         if(d.column.index===5&&!isF&&x.resultat)d.cell.styles.textColor=hex({C:"#1E7F4F",R:"#C17D00",NC:"#B42318"}[x.resultat])},margin:{left:12,right:12,top:30}});
+    if(r.k==="inc")pg.perso=ficPage(doc,e,"perso",INK);
   });
+  pg.maint=ficPage(doc,e,"maint",INK);pg.cons=ficPage(doc,e,"cons",INK);pg.dae=daePage(doc,e,INK);pg.feu=ficPage(doc,e,"feu",INK);
   /* ===== 6. Observations + visas ===== */
   doc.addPage();pg.obs=doc.getNumberOfPages();y=hdr(doc,e,"7. Observations et suites",hex(RUB.obs.c),RUB.obs.ref);
   const RR=R.slice().sort((a,b)=>(!!a.levee-!!b.levee)||String(a.date).localeCompare(b.date));
@@ -856,18 +1096,23 @@ async function buildPDF(e){
     didParseCell:d=>{if(d.section==="body"&&RR.length&&d.column.index===3){d.cell.styles.textColor=hex(RR[d.row.index].levee?"#1E7F4F":"#B42318")}},margin:{left:14,right:14,top:30}});
   y=doc.lastAutoTable.finalY+12;if(y>130){doc.addPage();y=hdr(doc,e,"Visas",RD)}else{doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...RD);doc.text("Visas (inspection du travail, CARSAT, vérificateurs)",14,y);y+=3}
   pg.vis=doc.getNumberOfPages();
-  doc.autoTable({startY:y,head:[["Date","Nom","Qualité / organisme","Observations","Signature"]],body:Array.from({length:5},()=>["","","","",""]),theme:"grid",styles:{minCellHeight:12,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:7},columnStyles:{0:{cellWidth:28},1:{cellWidth:50},2:{cellWidth:55},4:{cellWidth:50}},margin:{left:14,right:14,top:30}});
+  const VZ=fics(e.id,"trav").filter(f=>/^Visite|contrôle officiel/i.test(f.a||"")).sort((a,b)=>String(a.date).localeCompare(b.date)).map(f=>[fr(f.date),P(f.e),P(/réception/i.test(f.a)?"Commission de sécurité (réception)":/commission/i.test(f.a)?"Commission de sécurité":/inspection/i.test(f.a)?"Inspection du travail":/médecine/i.test(f.a)?"Médecine du travail":/CARSAT/.test(f.a)?"CARSAT":f.a),P([f.b,f.d?"Avis "+f.d.toLowerCase():""].filter(Boolean).join(" – ")),""]);
+  doc.autoTable({startY:y,head:[["Date","Nom","Qualité / organisme","Observations","Signature"]],body:VZ.concat(Array.from({length:Math.max(3,6-VZ.length)},()=>["","","","",""])),theme:"grid",styles:{minCellHeight:12,fontSize:9,lineColor:[200,205,214]},headStyles:{fillColor:RD,textColor:255,minCellHeight:7},columnStyles:{0:{cellWidth:28},1:{cellWidth:50},2:{cellWidth:55},4:{cellWidth:50}},margin:{left:14,right:14,top:30}});
   pageNote(doc,e,RD,INK);pg.note=pg.vis+1;
   pageTextes(doc,e,RD,INK);pg.txt=doc.getNumberOfPages();
   /* ===== Sommaire ===== */
   doc.setPage(pg.som);y=hdr(doc,e,"Sommaire",RD)+6;
-  const items=[["Identification de l’établissement","Établissement, responsabilités et visa",pg.garde,"#7A0E0E"],["Synthèse du registre","État de chaque rubrique et points prioritaires",pg.syn,"#B71C1C"]]
-    .concat(RUBS.filter(r=>CATA[r.k]).map((r,i)=>[`${i+1}. ${r.n}`,`${E.filter(x=>x.rub===r.k).length} élément(s) suivi(s)`,pg.rub[r.k],r.c]))
-    .concat([["7. Observations et suites",`${R.filter(r=>!r.levee).length} réserve(s) à lever`,pg.obs,RUB.obs.c],["Visas","Inspection du travail, CARSAT, vérificateurs",pg.vis,"#7A0E0E"],["Note : les registres obligatoires","L’essentiel à retenir, d’après l’INRS",pg.note,"#B71C1C"],["Textes de référence","Code du travail : registre, équipements de travail, EPI",pg.txt,"#5B6474"]]);
-  items.forEach(([t,d,p,c])=>{doc.setFillColor(...hex(c));doc.rect(30,y-4.6,3.2,8,"F");doc.setTextColor(...INK);doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.text(P(t),38,y);
-    const tw=doc.getTextWidth(P(t));doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(120,128,140);doc.text(P(d),38,y+4.6);
-    doc.setDrawColor(200,205,214);doc.setLineDashPattern([.6,1.4],0);doc.line(40+tw,y-.8,W-48,y-.8);doc.setLineDashPattern([],0);
-    doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(...RM);doc.text(String(p),W-34,y,{align:"right"});y+=12.5});
+  const items=[["Identification de l’établissement","Établissement, ERP, responsabilités, visa",pg.garde,"#7A0E0E","building"],["Synthèse du registre","État de chaque rubrique et points prioritaires",pg.syn,"#B71C1C","search"],["Contacts utiles",`${fics(e.id,"contact").length} contact(s)`,pg.contact,FT.contact.c,"phone"],["Travaux et contrôles officiels","Permis, travaux, commission, inspection…",pg.trav,FT.trav.c,"hammer"]];
+  const ICO={inst:"zap",lev:"crane",epi:"hardhat",inc:"extinguisher",form:"cap"};
+  RUBS.filter(r=>CATA[r.k]).forEach((r,i)=>{items.push([`${i+1}. ${r.n}`,`${E.filter(x=>x.rub===r.k).length} élément(s) suivi(s)`,pg.rub[r.k],r.c,ICO[r.k]]);if(r.k==="inc")items.push(["Personnel chargé de la sécurité incendie",`${fics(e.id,"perso").length} personne(s) désignée(s)`,pg.perso,FT.perso.c,"users"])});
+  items.push(["Maintenance des installations",`${fics(e.id,"maint").length} intervention(s)`,pg.maint,FT.maint.c,"wrench"],["Consignes de sécurité",`${fics(e.id,"cons").length} consigne(s) et plan(s)`,pg.cons,FT.cons.c,"megaphone"],["Défibrillateur (DAE)",`${fics(e.id,"dae").length} appareil(s)`,pg.dae,FT.dae.c,"heart"],["Incidents et départs de feu",`${fics(e.id,"feu").length} incident(s)`,pg.feu,FT.feu.c,"flame"],["7. Observations et suites",`${R.filter(r=>!r.levee).length} réserve(s) à lever`,pg.obs,RUB.obs.c,"eye"],["Visas","Inspection du travail, CARSAT, vérificateurs",pg.vis,"#7A0E0E","pen"],["Note : les registres obligatoires","L’essentiel à retenir, d’après l’INRS",pg.note,"#B71C1C","bulb"],["Textes de référence","Code du travail : registre, équipements, EPI",pg.txt,"#5B6474","scale"]);
+  const half=Math.ceil(items.length/2),cw2=(W-28-16)/2,y0=y+2,sp=Math.min(15.5,(H-30-y0)/half);
+  items.forEach(([t,d,p,c,ic],i)=>{const col=i<half?0:1,x0=14+col*(cw2+16),yy=y0+(i%half)*sp;
+    doc.addImage(picto(ic,c),"PNG",x0,yy-6.4,10.5,10.5);const tx=x0+14;
+    doc.setTextColor(...INK);doc.setFont("helvetica","bold");doc.setFontSize(10.5);const tt=doc.splitTextToSize(P(t),cw2-30)[0];doc.text(tt,tx,yy-.6);
+    const tw=doc.getTextWidth(tt);doc.setFont("helvetica","normal");doc.setFontSize(8.2);doc.setTextColor(120,128,140);doc.text(P(d),tx,yy+3.8);
+    doc.setDrawColor(200,205,214);doc.setLineDashPattern([.6,1.4],0);doc.line(tx+2+tw,yy-1.4,x0+cw2-12,yy-1.4);doc.setLineDashPattern([],0);
+    doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...RM);doc.text(String(p),x0+cw2,yy-.6,{align:"right"})});
   /* ===== Pieds de page ===== */
   const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setDrawColor(...RM);doc.setLineWidth(.6);doc.line(12,H-10,W-12,H-10);doc.setFontSize(8);doc.setTextColor(138,147,163);doc.setFont("helvetica","normal");doc.text(P(`${e.nom} – Registre de sécurité – édité le ${fr(today())}`),12,H-5.5);doc.text(`Page ${i} / ${n}`,W-12,H-5.5,{align:"right"})}
   return doc;
@@ -883,7 +1128,7 @@ function hdr(doc,e,title,col,sub){
 }
 
 /* ============ EXPORT EXCEL ============ */
-async function exportXLS(e){
+async function exportXLS(e){await need("exceljs");
   toast("Préparation du fichier Excel…");
   const wb=new ExcelJS.Workbook();wb.creator="3AIM CFA";const E=els(e.id),R=ress(e.id),s=score(e.id),photo=await getPhoto(e);
   const A=h=>"FF"+h.slice(1).toUpperCase(),fill=h=>({type:"pattern",pattern:"solid",fgColor:{argb:A(h)}}),thin={style:"thin",color:{argb:"FFE3E6EB"}},bd={top:thin,left:thin,bottom:thin,right:thin};
@@ -896,7 +1141,7 @@ async function exportXLS(e){
   c.mergeCells("B3:E4");c.getCell("B3").value="Registre de sécurité";c.getCell("B3").font={bold:true,size:26,color:{argb:"FFFFFFFF"},name:"Calibri"};c.getCell("B3").alignment={vertical:"middle"};
   c.getCell("B5").value="Édité le "+fr(today());c.getCell("B5").font={color:{argb:"FFC9D2E3"},size:10};
   c.mergeCells("B8:E8");c.getCell("B8").value=e.nom;c.getCell("B8").font={bold:true,size:20,color:{argb:A("#7A0E0E")}};
-  const info=[["Activité",e.activite],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["SIRET",e.siret],["Responsable",e.contact],["Mail",e.email],["Téléphone",e.tel],["Effectif",e.effectif],["Organisme vérificateur",e.verificateur],["Taux de conformité",s/100]];
+  const info=[["Activité",e.activite],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["SIRET",e.siret],["Responsable",e.contact],["Mail",e.email],["Téléphone",e.tel],["Effectif",e.effectif],["Mandataire",[e.mandataire||e.contact,e.mandTel].filter(Boolean).join(" – ")],["Organisme vérificateur",e.verificateur],["ERP",e.erp==="oui"?[e.erpType,e.erpCat?e.erpCat+"e catégorie":"",e.ouverture?"ouvert le "+fr(e.ouverture):""].filter(Boolean).join(" – "):e.erp==="non"?"Non":"À préciser"],["Taux de conformité",s/100]];
   info.forEach(([a,b],i)=>{const r=10+i;c.getCell(r,2).value=a;c.getCell(r,2).font={color:{argb:"FF6B7280"}};c.getCell(r,3).value=b||"–";c.getCell(r,3).font={bold:a==="Taux de conformité",size:a==="Taux de conformité"?16:11,color:{argb:a==="Taux de conformité"?A(scol(s)):"FF14213D"}};c.getCell(r,3).alignment={wrapText:true,vertical:"middle"};if(a==="Taux de conformité")c.getCell(r,3).numFmt="0%";[2,3].forEach(k=>c.getCell(r,k).border={bottom:thin})});
   c.mergeCells("D10:E19");c.getCell("D10").alignment={horizontal:"center",vertical:"middle",wrapText:true};
   if(photo){const id=wb.addImage({base64:await cropTo(photo,270/190),extension:"jpeg"});c.addImage(id,{tl:{col:3.15,row:9.2},ext:{width:270,height:190}})}
@@ -926,6 +1171,22 @@ async function exportXLS(e){
       if(!isF&&x.resultat)row.getCell(6).font={bold:true,color:{argb:A({C:"#1E7F4F",R:"#C17D00",NC:"#B42318"}[x.resultat])}}});
     if(!L.length){ws.getCell("A4").value="Aucun élément suivi dans cette rubrique.";ws.getCell("A4").font={italic:true,color:{argb:"FF8A93A3"}}}
     else ws.autoFilter={from:"A3",to:`I${3+L.length}`};
+  });
+  // fiches : contacts, travaux, personnel, maintenance, consignes
+  [["contact",["Nom / entreprise","Rôle","Téléphone","Mail","Remarque"],f=>[f.a,f.b,f.c,f.d,f.e]],
+   ["trav",["Date","Nature","Description","Référence","Avis","Prochaine visite"],f=>[f.date?new Date(f.date+"T12:00:00"):"",f.a,f.b,f.c,f.d,f.echeance?new Date(f.echeance+"T12:00:00"):""]],
+   ["perso",["Nom","Mission","Formation suivie","Date","Validité (mois)","Recyclage avant"],f=>[f.a,f.b,f.c,f.date?new Date(f.date+"T12:00:00"):"",f.d,f.echeance?new Date(f.echeance+"T12:00:00"):""]],
+   ["maint",["Date","Installation","Type","Travaux réalisés","Intervenant"],f=>[f.date?new Date(f.date+"T12:00:00"):"",f.a,f.c,f.d,f.b]],
+   ["dae",["Emplacement","Appareil","N° de série","Installé le","Électrodes adultes","Électrodes enfants","Batterie","Maintenance","Contrôle visuel","Géo’DAE","Signalétique"],f=>{const x=daeX(f),D=v=>v?new Date(v+"T12:00:00"):"";return[f.a,f.b,f.c,D(f.date),D(x.el),D(x.ee),D(x.bat),D(x.maint),D(x.visu),x.geo==="oui"?"Oui":"À faire",x.sign||""]}],
+   ["daej",["Date","Type","Détails","Intervenant"],f=>[f.date?new Date(f.date+"T12:00:00"):"",f.a,f.b,f.c]],
+   ["feu",["Date","Lieu","Cause présumée","Moyens utilisés","Suites données","Victimes / dégâts"],f=>[f.date?new Date(f.date+"T12:00:00"):"",f.a,f.b,f.c,f.d,f.e]],
+   ["cons",["Titre","Type","Lieu d’affichage","Mise à jour","Prochaine revue"],f=>[f.a,f.b,f.c,f.date?new Date(f.date+"T12:00:00"):"",f.echeance?new Date(f.echeance+"T12:00:00"):""]]].forEach(([t,h,rf])=>{
+    const T=FT[t]||{n:"Journal du défibrillateur",c:FT.dae.c},L=fics(e.id,t),ws=wb.addWorksheet(T.n.slice(0,31),{properties:{tabColor:{argb:A(T.c)}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
+    ws.columns=h.map(x=>({width:/Description|Travaux|Remarque|Titre|Formation/.test(x)?42:/Nom|Nature|Installation|Mission|Type|Rôle|Mail|Lieu|Intervenant/.test(x)?30:16}));
+    ws.mergeCells(1,1,1,h.length);ws.getCell("A1").value=`${T.n} – ${e.nom}`;ws.getCell("A1").font={bold:true,size:15,color:{argb:"FFFFFFFF"}};ws.getCell("A1").fill=fill(T.c);ws.getRow(1).height=28;ws.getCell("A1").alignment={vertical:"middle",indent:1};
+    const hr=ws.getRow(3);hr.values=h;hr.eachCell(x=>{x.font={bold:true};x.fill=fill("#EEF0F3");x.border={...bd,bottom:{style:"medium",color:{argb:A(T.c)}}}});
+    L.forEach((f,i)=>{const row=ws.getRow(4+i);row.values=rf(f);row.eachCell({includeEmpty:true},x=>{x.border=bd;x.alignment={vertical:"middle",wrapText:true};if(x.value instanceof Date)x.numFmt="dd/mm/yyyy"});row.getCell(1).font={bold:true}});
+    if(!L.length){ws.getCell("A4").value="Rien n’est encore renseigné.";ws.getCell("A4").font={italic:true,color:{argb:"FF8A93A3"}}}
   });
   // observations
   const ob=wb.addWorksheet("7. Observations",{properties:{tabColor:{argb:A(RUB.obs.c)}},views:[{state:"frozen",ySplit:3,showGridLines:false}]});
