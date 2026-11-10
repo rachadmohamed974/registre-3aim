@@ -319,6 +319,7 @@ function demo(a,p){
    case"listPhotos":return{photos:((DB.ph||{})[p.duId]||[]).map(x=>({...x}))};
    case"savePhotos":(p.list||[]).forEach(u=>{const x=((DB.ph||{})[p.duId]||[]).find(y=>y.id===u.id);if(x)Object.assign(x,u)});return{};
    case"delPhoto":if(DB.ph&&DB.ph[p.duId])DB.ph[p.duId]=DB.ph[p.duId].filter(x=>x.id!==p.id);return{};
+   case"analyseTournee":{const T=((DB.ph||{})[p.duId]||[]).filter(x=>p.ids.includes(x.id));return{couverture:T[0]?T[0].n:null,photos:T.slice(0,3).map((x,i)=>({n:x.n,unite:"Piste carburant",danger:"Incendie, explosion (ATEX)",legende:"Constat de démonstration "+(i+1)})),risques:[{unite:"Piste carburant",d:"Projection de carburant",s:"Distribution manuelle",dm:"Irritation",g:2,f:3,ex:"Aucune",ac:"Gants et lunettes",fo:""}]}}
    case"photoFull":{const x=((DB.ph||{})[p.duId]||[]).find(y=>y.id===p.id);return{data:x?thumbSrc(x):""}}
    case"delDuerp":DB.du=(DB.du||[]).filter(x=>x.id!==p.id);return{};
    case"delFiche":DB.fic=DB.fic.filter(x=>x.id!==p.id);return{};
@@ -862,7 +863,7 @@ async function panelTournee(e,d,pn){
   const vis=f==="keep"?keep:f==="free"?libre:L;
   pn.innerHTML=`<div class="card rubh" style="--rc:${DG}"><div><h2>La tournée</h2><p>${L.length} photo(s) déposée(s) · ${keep.length} retenue(s) comme constats · ${libre.length} à trier · rangées dans le Drive, dossier « ${esc(e.nom)} / DUERP – photos de visite »</p></div><div class="sp"></div>
     <button class="btn ghost" id="t_back">← Retour au DUERP</button></div>
-   ${ro?"":`<div class="acts" style="margin-top:0"><button class="btn pri" id="t_add">Déposer des photos</button><button class="btn" id="t_pl">Planche pour Claude</button><button class="btn" id="t_cp">Copier la demande</button><button class="btn" id="t_im">Importer l’analyse</button><input type="file" id="t_f" accept="image/*" multiple hidden></div>`}
+   ${ro?"":`<div class="acts" style="margin-top:0"><button class="btn" id="t_add">Déposer des photos</button><button class="btn pri" id="t_ai">Analyser avec Claude</button><button class="btn ghost" id="t_pl">Planche</button><button class="btn ghost" id="t_cp">Copier la demande</button><button class="btn ghost" id="t_im">Importer un code</button><input type="file" id="t_f" accept="image/*" multiple hidden></div>`}
    <div id="t_prog"></div>
    <div class="quick" style="--rc:${DG}">${[["all","Toutes",L.length],["keep","Retenues",keep.length],["free","À trier",libre.length]].map(([k,l,n])=>`<button class="chip" data-tf="${k}" style="${f===k?`border-style:solid;border-color:${DG};color:var(--ink);font-weight:600`:""}">${l} · ${n}</button>`).join("")}</div>
    <div class="ph-grid">${vis.map(p=>{const u=unitOf(o,p),r=riskOf(o,p);return `<button class="ph ${p.keep==="oui"?"kept":p.keep==="non"?"out":""}" data-ph="${p.id}"><img src="${thumbSrc(p)}" alt="${esc(p.cap||pnum(p.n))}" loading="lazy"><span class="ph-n">${pnum(p.n)}${o.cover===p.id?" · couverture":""}</span>${p.cap?`<span class="ph-c">${esc(p.cap)}${u?`<br><small>${esc(u.nom)}${r?" · "+esc(r.d):""}</small>`:""}</span>`:""}</button>`}).join("")||`<div class="card empty" style="grid-column:1/-1">${L.length?"Aucune photo dans ce filtre.":"Dépose les photos de ta visite : 20, 40 ou 50, sans trier."}</div>`}</div>`;
@@ -879,6 +880,7 @@ async function panelTournee(e,d,pn){
   $("#t_pl").onclick=()=>planche(e,d,L).catch(z=>toast(z.message));
   $("#t_cp").onclick=()=>{const t=demandeClaude(e,d,L);navigator.clipboard?.writeText(t).then(()=>toast("Demande copiée : colle-la dans la conversation avec Claude, avec la planche ou les photos"),()=>{const m=modal("Demande pour Claude",DG,`<textarea rows="14" style="width:100%">${esc(t)}</textarea>`,`<button class="btn" data-x2>Fermer</button>`);m.ov.querySelector("[data-x2]").onclick=m.close})};
   $("#t_im").onclick=()=>importAnalyse(e,d,()=>panelTournee(e,d,pn));
+  $("#t_ai").onclick=()=>analyseClaude(e,d,()=>panelTournee(e,d,pn));
 }
 function photoForm(e,d,p,after){
   const o=duObj(d),ro=S.role==="lecture";
@@ -920,20 +922,48 @@ async function planche(e,d,L){
     if(p.cap){doc.setTextColor(60,68,84);doc.setFont("helvetica","normal");doc.setFontSize(6.8);doc.text(doc.splitTextToSize(P(p.cap),cw-4).slice(0,2),x,y+ch-6.5)}});
   await saveFile(`Planche_tournee_${e.nom.replace(/\W+/g,"_")}.pdf`,doc.output("blob"));
 }
+async function applyAnalyse(d,j){
+  const o=duObj(d),L=PH[d.id]||[],N=s=>norm(s);let nr=0,np=0,nu=0;
+  const unitBy=n=>{if(!n)return null;let u=o.units.find(x=>N(x.nom)===N(n))||o.units.find(x=>N(x.nom).includes(N(n))||N(n).includes(N(x.nom)));if(!u){u={id:uid("u"),nom:n,eff:"",desc:"",risks:[]};o.units.push(u);nu++}return u};
+  (j.risques||[]).forEach(r=>{const u=unitBy(r.unite);if(!u||u.risks.some(x=>N(x.d)===N(r.d)))return;const g=Number(r.g)||2,f=Number(r.f)||2,lv=LV(g*f);
+    u.risks.push({id:uid("k"),fam:r.fam||(DR.find(x=>N(x[2])===N(r.d))||[])[1]||"Autre",d:r.d||"",s:r.s||"",dm:r.dm||"",g,f,m:lv==="eleve"?"insuffisante":"moyenne",ex:r.ex||"",ac:r.ac||"",resp:"",dec:today(),delai:lv==="eleve"?3:lv==="modere"?6:12,fait:"",fo:r.fo||""});nr++});
+  const list=[];(j.photos||[]).forEach(x=>{const p=L.find(y=>Number(y.n)===Number(x.n));if(!p)return;const u=unitBy(x.unite),r=u&&(u.risks.find(k=>N(k.d)===N(x.danger))||u.risks.find(k=>N(k.d).includes(N(x.danger))||N(x.danger).includes(N(k.d))));
+    const up={id:p.id,cap:x.legende||"",unit:u?u.id:"",risk:r?r.id:"",keep:"oui"};list.push(up);Object.assign(p,up);np++});
+  if(j.couverture){const c=L.find(y=>Number(y.n)===Number(j.couverture));if(c)o.cover=c.id}
+  if(list.length)await api("savePhotos",{duId:d.id,list});await saveDu(d);
+  return `${np} constat(s) photo, ${nr} risque(s) ajouté(s)${nu?", "+nu+" unité(s) créée(s)":""}`;
+}
+async function analyseClaude(e,d,after){
+  const L=(PH[d.id]||[]).filter(p=>p.keep!=="oui"&&p.keep!=="non");
+  if(!L.length){toast("Aucune photo à trier : toutes sont déjà classées");return}
+  const o=duObj(d),unites=o.units.map(u=>"- "+u.nom+" : "+u.risks.map(r=>r.d).join(" ; ")).join("\n");
+  const m=modal("Analyse par Claude",DG,`<p style="margin:0">Claude regarde les ${L.length} photo(s) à trier et choisit celles qui étayent le DUERP.</p><div class="calc" id="ac_p">Préparation…</div><div class="err" id="ac_x"></div>`,`<button class="btn" data-x2>Fermer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  const res={couverture:null,photos:[],risques:[]},B=12;
+  try{for(let i=0;i<L.length;i+=B){m.q("#ac_p").innerHTML=`Analyse des photos ${i+1} à ${Math.min(i+B,L.length)} sur ${L.length}… <progress max="${L.length}" value="${i}" style="width:100%"></progress>`;
+      const r=await api("analyseTournee",{entId:e.id,duId:d.id,ids:L.slice(i,i+B).map(p=>p.id),entreprise:e.nom,metier:d.metier||e.activite||"",unites:unites+(res.risques.length?"\n(déjà proposés : "+res.risques.map(x=>x.unite+" : "+x.d).join(" ; ")+")":"")});
+      res.photos.push(...(r.photos||[]));res.risques.push(...(r.risques||[]).filter(x=>!res.risques.some(y=>norm(y.d)===norm(x.d)&&norm(y.unite)===norm(x.unite))));if(!res.couverture&&r.couverture)res.couverture=r.couverture}
+  }catch(z){m.q("#ac_p").textContent="";m.q("#ac_x").textContent=z.message;return}
+  m.close();validerAnalyse(e,d,res,after);
+}
+function validerAnalyse(e,d,res,after){
+  const L=PH[d.id]||[];
+  const m=modal("Proposition de Claude – à valider",DG,`<p class="hint" style="margin:0">${res.photos.length} photo(s) retenue(s) comme constats et ${res.risques.length} nouveau(x) risque(s). Décoche ce que tu ne veux pas garder.</p>
+   ${res.photos.map((x,i)=>{const p=L.find(y=>Number(y.n)===Number(x.n));return p?`<label style="display:grid;grid-template-columns:22px 90px 1fr;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:6px 0"><input type="checkbox" data-vp="${i}" checked><img src="${thumbSrc(p)}" alt="" style="width:90px;border-radius:6px"><span><b>${pnum(p.n)}</b> – ${esc(x.legende||"")}<br><small class="hint">${esc(x.unite||"")} · ${esc(x.danger||"")}${Number(res.couverture)===Number(x.n)?" · couverture":""}</small></span></label>`:""}).join("")}
+   ${res.risques.length?`<h3 style="font-size:17px;margin:8px 0 0">Nouveaux risques repérés</h3>${res.risques.map((r,i)=>{const v=(Number(r.g)||2)*(Number(r.f)||2),c=LVL[LV(v)];return `<label style="display:grid;grid-template-columns:22px 1fr;gap:10px;border-bottom:1px solid var(--line);padding:6px 0"><input type="checkbox" data-vr="${i}" checked><span><b>${esc(r.d)}</b> <span class="pill" style="background:${c[2]};color:${c[1]}">${v} · ${c[0]}</span><br><small class="hint">${esc(r.unite)} · ${esc(r.s||"")} → ${esc(r.ac||"")}</small></span></label>`}).join("")}`:""}<div class="err" id="va_x"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="va_s">Enregistrer dans le DUERP</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.q("#va_s").onclick=async()=>{const j={couverture:res.couverture,photos:res.photos.filter((x,i)=>m.q(`[data-vp="${i}"]`)?.checked),risques:res.risques.filter((x,i)=>m.q(`[data-vr="${i}"]`)?.checked)};
+    const b=m.q("#va_s");b.disabled=true;b.textContent="Enregistrement…";
+    try{const msg=await applyAnalyse(d,j);m.close();toast(msg);after()}catch(z){b.disabled=false;b.textContent="Enregistrer dans le DUERP";m.q("#va_x").textContent=z.message}};
+}
 function importAnalyse(e,d,after){
   const m=modal("Importer l’analyse de Claude",DG,`<p class="hint" style="margin:0">Colle ici le code d’analyse que Claude t’a donné dans la conversation.</p><textarea id="ia_t" rows="12" style="width:100%;font-family:Consolas,monospace;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px" placeholder='{"couverture": 3, "photos": [...], "risques": [...]}'></textarea><div class="err" id="ia_x"></div>`,
    `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="ia_s">Importer</button>`);
   m.ov.querySelector("[data-x2]").onclick=m.close;
   m.q("#ia_s").onclick=async()=>{let j;try{const t=m.q("#ia_t").value;j=JSON.parse(t.slice(t.indexOf("{"),t.lastIndexOf("}")+1))}catch(z){m.q("#ia_x").textContent="Le code n’est pas lisible : vérifie que tu as tout copié, de la première à la dernière accolade.";return}
-    const o=duObj(d),L=PH[d.id]||[],N=s=>norm(s);let nr=0,np=0,nu=0;
-    const unitBy=n=>{let u=o.units.find(x=>N(x.nom)===N(n))||o.units.find(x=>N(x.nom).includes(N(n))||N(n).includes(N(x.nom)));if(!u&&n){u={id:uid("u"),nom:n,eff:"",desc:"",risks:[]};o.units.push(u);nu++}return u};
-    (j.risques||[]).forEach(r=>{const u=unitBy(r.unite);if(!u||u.risks.some(x=>N(x.d)===N(r.d)))return;const g=Number(r.g)||2,f=Number(r.f)||2,lv=LV(g*f);
-      u.risks.push({id:uid("k"),fam:r.fam||(DR.find(x=>N(x[2])===N(r.d))||[])[1]||"Autre",d:r.d||"",s:r.s||"",dm:r.dm||"",g,f,m:lv==="eleve"?"insuffisante":"moyenne",ex:r.ex||"",ac:r.ac||"",resp:"",dec:today(),delai:lv==="eleve"?3:lv==="modere"?6:12,fait:"",fo:r.fo||""});nr++});
-    const list=[];(j.photos||[]).forEach(x=>{const p=L.find(y=>Number(y.n)===Number(x.n));if(!p)return;const u=unitBy(x.unite),r=u&&(u.risks.find(k=>N(k.d)===N(x.danger))||u.risks.find(k=>N(k.d).includes(N(x.danger))||N(x.danger).includes(N(k.d))));
-      const up={id:p.id,cap:x.legende||"",unit:u?u.id:"",risk:r?r.id:"",keep:"oui"};list.push(up);Object.assign(p,up);np++});
-    if(j.couverture){const c=L.find(y=>Number(y.n)===Number(j.couverture));if(c)o.cover=c.id}
     const b=m.q("#ia_s");b.disabled=true;b.textContent="Import…";
-    try{if(list.length)await api("savePhotos",{duId:d.id,list});await saveDu(d);m.close();toast(`${np} constat(s) photo, ${nr} risque(s) ajouté(s)${nu?", "+nu+" unité(s) créée(s)":""}`);after()}catch(z){b.disabled=false;b.textContent="Importer";m.q("#ia_x").textContent=z.message}};
+    try{const msg=await applyAnalyse(d,j);m.close();toast(msg);after()}catch(z){b.disabled=false;b.textContent="Importer";m.q("#ia_x").textContent=z.message}};
 }
 
 /* ---------- PDF DUERP ---------- */
