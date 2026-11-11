@@ -158,6 +158,140 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);borde
 .ph-c{font-size:12.5px;padding:6px 8px;line-height:1.3}.ph-c small{color:var(--ink3)}
 .strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px}.strip .ph{min-width:150px;max-width:150px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ============ MODULE VGP (RUNIXO CONTRÔLE) ============ */
+#vg{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+#vg .vg-top{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;border-bottom:3px solid var(--orange);padding-top:env(safe-area-inset-top,0px)}
+#vg .vg-top .in{max-width:980px;margin:auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
+#vg .vg-top b{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-size:20px;font-weight:600;display:block;line-height:1.1}
+#vg .vg-top small{color:#C9D2E3;font-size:12.5px}
+#vg .vg-top .sp{flex:1}
+#vg .vg-x{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:7px;padding:6px 12px}
+#vg .vg-steps{max-width:980px;margin:auto;display:flex;gap:4px;padding:0 10px;overflow-x:auto}
+#vg .vg-steps button{background:none;border:0;color:#C9D2E3;padding:8px 10px 9px;font-weight:500;font-size:14px;border-bottom:3px solid transparent;white-space:nowrap}
+#vg .vg-steps button.on{color:#fff;border-color:var(--orange)}
+#vg .vg-steps i{font-style:normal;display:inline-grid;place-items:center;width:19px;height:19px;border-radius:50%;background:rgba(255,255,255,.18);font-size:11.5px;margin-right:6px}
+#vg .vg-main{max-width:980px;margin:auto;padding:16px 14px}
+#vg .vg-pane{display:none}#vg .vg-pane.on{display:block}
+#vg .vg-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+#vg .vg-card h2{font-size:21px;margin-bottom:10px}
+#vg .vg-lead{color:var(--ink2);margin:0 0 12px;font-size:14px}
+#vg .vg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}
+#vg label.vg-f{display:block;font-size:13px;color:var(--ink2);font-weight:500}
+#vg label.vg-f input,#vg label.vg-f select,#vg label.vg-f textarea,#vg .vg-pt textarea,#vg .vg-pt input,#vg .vg-pt select{display:block;width:100%;margin-top:3px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink)}
+#vg textarea{resize:vertical;min-height:40px}
+#vg .vg-nl{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--warn);margin-top:4px;cursor:pointer}
+#vg .vg-nl input{width:auto;margin:0}
+#vg label.vg-f.isnl input[type=text]{opacity:.45}
+#vg .vg-info{background:var(--nonebg);border-radius:8px;padding:10px 12px;font-size:14px;margin-top:10px}
+#vg .vg-ph{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+#vg .vg-slot{border:1.5px dashed var(--line);border-radius:9px;aspect-ratio:4/3;display:grid;place-items:center;text-align:center;font-size:13px;color:var(--ink3);position:relative;overflow:hidden;background:var(--bg);cursor:pointer}
+#vg .vg-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#vg .vg-slot span{position:relative;background:rgba(18,33,63,.75);color:#fff;padding:2px 8px;border-radius:5px;font-size:12px}
+#vg .vg-slot.empty span{background:none;color:var(--ink3)}
+#vg .vg-doc{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+#vg .vg-doc:first-child{border-top:0}
+#vg .vg-chips{display:flex;gap:6px;flex-wrap:wrap}
+#vg .vg-chip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;font-size:13.5px;color:var(--ink)}
+#vg .vg-chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+#vg .vg-sec{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+#vg .vg-sec h2{font-size:20px;margin:0}
+#vg .vg-cnt{font-size:13px;color:var(--ink3)}
+#vg .vg-pt{border-top:1px solid var(--line);padding:12px 0}
+#vg .vg-pt:first-of-type{border-top:0}
+#vg .vg-pt .h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+#vg .vg-pt .nm{font-weight:600;flex:1 1 220px}
+#vg .vg-seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#vg .vg-seg button{border:0;background:var(--card);padding:6px 10px;font-size:13px;font-weight:500;border-left:1px solid var(--line);color:var(--ink2)}
+#vg .vg-seg button:first-child{border-left:0}
+#vg .vg-seg button.ok.on{background:var(--okbg);color:var(--ok)}
+#vg .vg-seg button.surv.on{background:var(--warnbg);color:var(--warn)}
+#vg .vg-seg button.nc.on{background:var(--badbg);color:var(--bad)}
+#vg .vg-seg button.so.on{background:var(--nonebg);color:var(--none)}
+#vg .vg-more{display:grid;grid-template-columns:1fr 92px;gap:10px;margin-top:8px}
+#vg .vg-thumb{width:92px;height:69px;border-radius:7px;border:1.5px dashed var(--line);display:grid;place-items:center;font-size:12px;color:var(--ink3);background:var(--bg);position:relative;overflow:hidden;cursor:pointer;text-align:center}
+#vg .vg-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#vg .vg-ano{margin-top:8px;padding:10px;border-radius:8px;background:var(--warnbg);display:none}
+#vg .vg-pt.surv .vg-ano,#vg .vg-pt.nc .vg-ano{display:block}
+#vg .vg-pt.nc .vg-ano{background:var(--badbg)}
+#vg .vg-ano .t{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;cursor:pointer}
+#vg .vg-ano .t input{width:auto;margin:0}
+#vg .vg-ano .g{display:grid;grid-template-columns:1fr 1fr 170px;gap:8px;margin-top:8px}
+#vg .vg-ano.off .g{display:none}
+@media (max-width:640px){#vg .vg-ano .g{grid-template-columns:1fr}#vg .vg-more{grid-template-columns:1fr 80px}}
+#vg table.vg-reg{width:100%;border-collapse:collapse;font-size:14px}
+#vg table.vg-reg th{text-align:left;font-size:12.5px;color:var(--ink3);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+#vg table.vg-reg td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+#vg .vg-wrap{overflow-x:auto}
+#vg .vg-pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:12px}
+#vg .vg-pill.haute{background:var(--badbg);color:var(--bad)}#vg .vg-pill.moyenne{background:var(--warnbg);color:var(--warn)}#vg .vg-pill.basse{background:var(--nonebg);color:var(--none)}
+#vg .vg-verdict{border-radius:10px;padding:14px 16px;color:#fff;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-size:21px;font-weight:600;margin-bottom:14px}
+#vg .vg-verdict.C{background:#1E7F4F}#vg .vg-verdict.R{background:var(--orange)}#vg .vg-verdict.NC{background:#B42318}
+#vg .vg-bar{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+#vg .vg-bar .in{max-width:980px;margin:auto;display:flex;align-items:center;gap:10px}
+#vg .vg-prog{flex:1;font-size:13.5px;color:var(--ink2)}
+#vg .vg-prog .tr{height:6px;border-radius:4px;background:var(--line);margin-top:4px;overflow:hidden}
+#vg .vg-prog .tr div{height:100%;background:var(--ok);width:0;transition:width .3s}
+#vg .vg-pvw{overflow:hidden;background:#8A93A3;border-radius:10px;padding:10px 0}
+#vg .vg-pvw .vg-sc{transform-origin:top left}
+#vg .vg-pvw .vg-pg{margin:0 auto 10px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+#vgoff{position:fixed;left:-12000px;top:0;width:794px}
+@media (prefers-reduced-motion:reduce){#vg *{transition:none!important}}
+
+/* ===== Pages du rapport (format A4, toujours en clair) ===== */
+.vg-pg{--n:#12213F;--o:#E87722;--g:#1E7F4F;--w:#C76A00;--b:#B42318;--l:#D9DEE6;--t:#EEF1F5;width:794px;height:1123px;background:#fff;color:#1f2937;padding:28px 34px 18px;display:flex;flex-direction:column;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.4;color-scheme:light;box-sizing:border-box}
+.vg-pg *{box-sizing:border-box}
+.vg-pg .vg-bd{flex:1;overflow:hidden;min-height:0}
+.vg-pg table{width:100%;border-collapse:collapse}
+.vg-pg .hd{display:flex;align-items:stretch;margin-bottom:12px}
+.vg-pg .hd .hl{flex:1;background:var(--n);color:#fff;display:flex;gap:12px;align-items:center;padding:10px 14px}
+.vg-pg .hd .hl img{width:46px;height:46px;background:#fff;border-radius:6px;padding:3px}
+.vg-pg .hd .br{font-size:17px;font-weight:700;letter-spacing:.3px}
+.vg-pg .hd .sb{font-size:11px;color:#F5B66E;margin:1px 0 3px}
+.vg-pg .hd .ad{font-size:9px;color:#C9D2E3;line-height:1.35}
+.vg-pg .hd .hr{width:190px;background:var(--o);color:#fff;text-align:right;padding:10px 14px;display:flex;flex-direction:column;justify-content:center}
+.vg-pg .hd .hr b{font-size:16px;letter-spacing:.3px}
+.vg-pg .hd .hr span{font-size:10.5px}
+.vg-pg .ft{border-top:1px solid var(--l);padding-top:5px;display:flex;justify-content:space-between;gap:10px;font-size:8px;color:#777}
+.vg-pg .av{display:grid;grid-template-columns:1fr 300px;border:1.5px solid var(--c);margin-bottom:4px}
+.vg-pg .C{--c:var(--g);--cb:#E9F5EE}.vg-pg .R{--c:var(--o);--cb:#FEF3E8}.vg-pg .NC{--c:var(--b);--cb:#FCECEA}
+.vg-pg .av .v{background:var(--cb);padding:10px 14px;border-left:6px solid var(--c)}
+.vg-pg .av .v small{display:block;font-size:9px;color:#555;letter-spacing:.4px}
+.vg-pg .av .v b{display:block;font-size:15px;color:var(--c);margin:2px 0}
+.vg-pg .av .v span{font-size:10.5px}
+.vg-pg .av .k{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;align-items:center;padding:6px}
+.vg-pg .av .k div{font-size:8.5px;color:#555;line-height:1.2}
+.vg-pg .av .k div b{display:block;font-size:17px;color:#1f2937}
+.vg-pg .av .k .nx{grid-column:1/-1;border-top:1px solid var(--l);margin-top:5px;padding-top:4px;font-size:10px;color:#1f2937}
+.vg-pg .vg-h{background:var(--o);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.3px;padding:6px 10px;margin:14px 0 0;border-radius:3px 3px 0 0}
+.vg-pg .kv td{border-bottom:1px solid var(--l);padding:5px 8px;vertical-align:top}
+.vg-pg .kv td.k{width:34%;font-weight:700;color:var(--n);background:var(--t)}
+.vg-pg .nlv{color:var(--o);font-weight:700}
+.vg-pg .idg{display:grid;grid-template-columns:1fr 170px;gap:12px;align-items:start}
+.vg-pg .idg figure{margin:8px 0 0;font-size:9.5px;color:#555;text-align:center;font-style:italic}
+.vg-pg .idg img{width:170px;height:226px;object-fit:cover;display:block;margin-bottom:3px;border:1px solid var(--l)}
+.vg-pg .phs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.vg-pg .phs figure{margin:0;text-align:center;font-size:9.5px;color:#555;font-style:italic;border:1px solid var(--l);padding:4px}
+.vg-pg .phs img{width:100%;height:150px;object-fit:cover;display:block;margin-bottom:3px}
+.vg-pg .ck th,.vg-pg .an th{background:var(--n);color:#fff;text-align:left;font-size:9.5px;font-weight:700;padding:5px 8px;letter-spacing:.2px}
+.vg-pg .ck td,.vg-pg .an td{border-bottom:1px solid var(--l);padding:6px 8px;vertical-align:top}
+.vg-pg .ck td.r{width:96px;text-align:center}
+.vg-pg .bd{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.vg-pg .bd.ok{background:#E3F2E8;color:var(--g)}.vg-pg .bd.surv{background:#FDEBD5;color:var(--w)}.vg-pg .bd.nc{background:#FBE1DE;color:var(--b)}.vg-pg .bd.so{background:#EEF0F3;color:#6B7280}
+.vg-pg .ck td.o{font-style:italic;color:#374151}
+.vg-pg .ck td.p{width:96px}.vg-pg .ck td.p img{width:88px;height:66px;object-fit:cover;display:block;border:1px solid var(--l)}
+.vg-pg .ck td:first-child{border-left:3px solid transparent}.vg-pg .ck tr.surv td:first-child{border-left-color:var(--w)}.vg-pg .ck tr.nc td:first-child{border-left-color:var(--b)}
+.vg-pg .ck,.vg-pg .an{table-layout:fixed}.vg-pg .ck th:nth-child(1){width:33%}.vg-pg .ck th:nth-child(2){width:96px}.vg-pg .ck th:nth-child(4){width:96px}.vg-pg .an th:nth-child(1){width:30px}.vg-pg .an th:nth-child(2){width:36%}.vg-pg .an th:nth-child(4){width:130px}
+.vg-pg .an td.n{width:24px;font-weight:700;color:var(--n)}
+.vg-pg .an td.d{width:120px;font-weight:700;white-space:nowrap}
+.vg-pg .an tr.nc td.d{color:var(--b)}
+.vg-pg .leg{font-size:9px;color:#666;margin-top:5px}
+.vg-pg .cc{border-left:6px solid var(--c);background:var(--cb);padding:10px 14px;margin-top:8px}
+.vg-pg .cc b.t{color:var(--c);font-size:14px;display:block;margin-bottom:5px}
+.vg-pg .cc p{margin:0 0 5px}
+.vg-pg .sg{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
+.vg-pg .sg>div{border:1px solid var(--l);padding:10px 12px;min-height:130px;position:relative}
+.vg-pg .sg b{color:var(--n)}
+.vg-pg .sg img{width:150px;position:absolute;right:12px;bottom:10px}
 </style>
 </head>
 <body>
@@ -320,6 +454,13 @@ function demo(a,p){
    case"savePhotos":(p.list||[]).forEach(u=>{const x=((DB.ph||{})[p.duId]||[]).find(y=>y.id===u.id);if(x)Object.assign(x,u)});return{};
    case"delPhoto":if(DB.ph&&DB.ph[p.duId])DB.ph[p.duId]=DB.ph[p.duId].filter(x=>x.id!==p.id);return{};
    case"analyseTournee":{const T=((DB.ph||{})[p.duId]||[]).filter(x=>p.ids.includes(x.id));return{couverture:T[0]?T[0].n:null,photos:T.slice(0,3).map((x,i)=>({n:x.n,unite:"Piste carburant",danger:"Incendie, explosion (ATEX)",legende:"Constat de démonstration "+(i+1)})),risques:[{unite:"Piste carburant",d:"Projection de carburant",s:"Distribution manuelle",dm:"Irritation",g:2,f:3,ex:"Aucune",ac:"Gants et lunettes",fo:""}]}}
+   case"saveVGP":{const v=p.vgp;DB.vgSeq=(DB.vgSeq||199)+1;const num="VGP-"+v.date.slice(0,4)+"-"+String(DB.vgSeq).padStart(4,"0");const el=DB.els.find(x=>x.id===v.elId);
+     const n={id:el?el.id:rid("x"),entId:p.entId,rub:"lev",libelle:el?el.libelle:v.libelle,detail:v.detail||(el?el.detail:""),per:v.per,dernier:v.date,prochain:addM(v.date,v.per),organisme:"RUNIXO CONTRÔLE",resultat:v.resultat,ref:num,notes:v.notes,doc:el?el.doc:""};
+     if(el)Object.assign(el,n);else DB.els.push(n);DB.res.filter(r=>r.elId===n.id&&!r.levee).forEach(r=>{r.levee=v.date;r.preuve="Reprise par la VGP "+num});
+     const R=(v.reserves||[]).map(r=>({id:rid("r"),entId:p.entId,elId:n.id,date:v.date,texte:r.texte,gravite:r.gravite,levee:"",preuve:""}));DB.res.push(...R);
+     DB.vg=DB.vg||[];const vid=rid("v");DB.vg.push({id:vid,entId:p.entId,elId:n.id,num,date:v.date,data:v.data});log(p.entId,"VGP "+num+" réalisée : "+n.libelle);return{num,vid,el:{...n}}}
+   case"vgpPdf":{const g=(DB.vg||[]).find(v=>v.id===p.vid),el=g&&DB.els.find(x=>x.id===g.elId);if(el)el.doc="#";return{url:"#"}}
+   case"lastVGP":{const L=(DB.vg||[]).filter(v=>v.elId===p.elId);return{vgp:L[L.length-1]||null}}
    case"photoFull":{const x=((DB.ph||{})[p.duId]||[]).find(y=>y.id===p.id);return{data:x?thumbSrc(x):""}}
    case"delDuerp":DB.du=(DB.du||[]).filter(x=>x.id!==p.id);return{};
    case"delFiche":DB.fic=DB.fic.filter(x=>x.id!==p.id);return{};
@@ -422,14 +563,14 @@ function renderEnt(){
    <div><h1>${esc(e.nom)}</h1><div class="hint">${esc(e.activite||"")}</div>
    <div class="meta"><div><span>Adresse</span><br>${esc([e.adresse,[e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))||"–"}</div><div><span>SIRET</span><br>${esc(e.siret||"–")}</div><div><span>Contact</span><br>${esc(e.contact||"–")}${e.email?`<br>${esc(e.email)}`:adm?`<br><span style="color:var(--bad)">Pas de mail : pas de relance</span>`:""}</div></div></div>
    <div style="text-align:center"><div class="gauge big" style="--v:${s};--gc:${scol(s)}"><span>${s}%</span></div><div class="hint" style="margin-top:6px">Conformité</div></div></section>
-  <div class="acts">${ro?"":`<button class="btn" id="dep" title="Le document est lu automatiquement et rangé dans la bonne rubrique">Déposer un rapport</button>`}<button class="btn pri" id="vw">Voir le registre</button>${ro?"":`<button class="btn" id="ml">Envoyer par mail</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
+  <div class="acts">${ro?"":`<button class="btn" id="dep" title="Le document est lu automatiquement et rangé dans la bonne rubrique">Déposer un rapport</button>`}${adm?`<button class="btn" id="vgpN" title="Contrôle VGP sur le terrain, rapport RUNIXO CONTRÔLE classé dans ce registre">Nouvelle VGP</button>`:""}<button class="btn pri" id="vw">Voir le registre</button>${ro?"":`<button class="btn" id="ml">Envoyer par mail</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
    ${ro?"":`<button class="btn" id="ef">Modifier la fiche</button>`}${adm?`<button class="btn" id="ac">Accès client</button><button class="btn" id="qr">Étiquettes QR machines</button>`:""}<input type="file" id="phf" accept="image/*" hidden><input type="file" id="depf" hidden></div>
   <nav class="tabs" role="tablist">${tabsHtml(e,cnt,alert)}</nav>
   <div class="panel" id="pn"></div>`;
   document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{V.tab=b.dataset.t;V.dutour=false;renderEnt()});
   if($("#bk"))$("#bk").onclick=()=>{V={view:"dash"};render()};
   if(!ro){$("#ph").onclick=()=>$("#phf").click();$("#phf").onchange=ev=>uploadPhoto(e,ev.target.files[0]);$("#ef").onclick=()=>entForm(e);$("#dep").onclick=()=>$("#depf").click();$("#depf").onchange=ev=>deposer(e,ev.target.files[0])}
-  if(adm){$("#ac").onclick=()=>access(e);$("#qr").onclick=()=>etiquettes(e)}
+  if(adm){$("#vgpN").onclick=()=>openVGP(e);$("#ac").onclick=()=>access(e);$("#qr").onclick=()=>etiquettes(e)}
   $("#xp").onclick=()=>exportPDF(e);$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
   if(!S.photos[e.id]&&e.photoId){const pc=store.get("reg3aim_ph_"+e.id+"_"+e.photoId);if(pc)S.photos[e.id]=pc}
   if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;store.set("reg3aim_ph_"+e.id+"_"+e.photoId,r.data);if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
@@ -466,11 +607,11 @@ function panelRub(e,k,pn){
    <div><div class="t">${esc(x.libelle)}</div><div class="d">${esc(x.detail||"")}</div>${x.notes?`<div class="k">${esc(x.notes)}</div>`:""}</div>
    <div><div class="k">Dernière</div><div>${x.dernier?fr(x.dernier):"–"}</div><div class="k">${esc([x.organisme,x.ref].filter(Boolean).join(" · "))}${x.resultat?` · ${RES[x.resultat]}`:""}</div></div>
    <div><div class="k">Prochaine</div><div><b>${x.prochain?fr(x.prochain):"–"}</b></div><span class="pill p-${s}">${s==="bientot"?"Dans "+jours(x.prochain)+" j":s==="retard"?"Retard de "+(-jours(x.prochain))+" j":ST[s]}</span></div>
-   <div class="bt">${x.doc&&x.doc!=="#"?`<a class="btn sm" href="${esc(x.doc)}" target="_blank" rel="noopener">Rapport</a>`:""}${ro?"":`<button class="btn sm" data-v="${x.id}">${k==="form"?"Renouveler":"Nouvelle vérif."}</button><button class="btn sm ghost" data-m="${x.id}" aria-label="Modifier">Modifier</button>`}</div></div>`}).join("")||`<div class="card empty">Rien n’est encore suivi dans cette rubrique.${ro?"":" Choisis un élément ci-dessus en un clic."}</div>`}</div>`;
+   <div class="bt">${x.doc&&x.doc!=="#"?`<a class="btn sm" href="${esc(x.doc)}" target="_blank" rel="noopener">Rapport</a>`:""}${ro?"":`<button class="btn sm" data-v="${x.id}">${k==="form"?"Renouveler":k==="lev"&&S.role==="admin"?"Nouvelle VGP":"Nouvelle vérif."}</button><button class="btn sm ghost" data-m="${x.id}" aria-label="Modifier">Modifier</button>`}</div></div>`}).join("")||`<div class="card empty">Rien n’est encore suivi dans cette rubrique.${ro?"":" Choisis un élément ci-dessus en un clic."}</div>`}</div>`;
   if(ro)return;
   $("#add").onclick=()=>elForm(e,{rub:k});
   document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const [l,p]=CATA[k][b.dataset.q];elForm(e,{rub:k,libelle:l,per:p,organisme:k==="lev"||k==="epi"?(e.verificateur||""):k==="form"?"3AIM CFA":""})});
-  document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{const x=S.els.find(y=>y.id===b.dataset.v);elForm(e,{...x,dernier:today(),resultat:k==="form"?"":"C",ref:"",doc:""},true)});
+  document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{const x=S.els.find(y=>y.id===b.dataset.v);if(k==="lev"&&S.role==="admin")return openVGP(e,x.id);elForm(e,{...x,dernier:today(),resultat:k==="form"?"":"C",ref:"",doc:""},true)});
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>elForm(e,S.els.find(y=>y.id===b.dataset.m)));
 }
 function panelObs(e,pn){
@@ -1691,6 +1832,431 @@ async function exportXLS(e){await need("exceljs");
   if(u)history.replaceState(null,"",location.pathname);
   if(c){try{await login(c)}catch(x){renderLogin(x.message)}}else renderLogin();
 })();
+</script>
+<script>
+/* ============ MODULE VGP – RUNIXO CONTRÔLE ============ */
+const VG_REF = "Art. R.4323-23 à R.4323-28 du Code du travail – Arrêté du 01/03/2004 modifié";
+const VG_T = {
+  pelle: { court: "Pelle hydraulique", nom: "Pelle hydraulique / mini-pelle", desig: "Mini-Pelle Hydraulique sur Chenilles", art: "La", per: 6, ref: VG_REF,
+    fields: [["modele","Modèle / type"],["serie","N° de série"],["annee","Année de fabrication"],["masse","Masse en service"],["puis","Puissance moteur"],["ce","Marquage CE"],["heures","Heures moteur au contrôle"]],
+    sections: [
+    ["Contrôle de la structure et du châssis", ["Châssis inférieur / tourelle — soudures et déformations","Train de roulement — chenille côté contrepoids","Train de roulement — chenille côté lame","Galets, barbotins et roue de tension","Chape d'orientation et capot de protection des flexibles","Lame de boutage","Canopy ROPS / TOPS","Capots et contrepoids"]],
+    ["Contrôle de l'équipement de travail (flèche / bras / godet)", ["Pied de flèche — articulation et axe","Flèche — structure et soudures","Bras (balancier) et vérin de godet","Timonerie de godet (biellettes, axes)","Godet — usure"]],
+    ["Contrôle du circuit hydraulique", ["Niveau et qualité huile hydraulique","Flexibles pied de flèche","Flexibles dans le caisson de flèche","Flexibles du bras / circuit auxiliaire","Faisceau de flexibles sous chape d'orientation"]],
+    ["Contrôle du moteur et de l'électricité", ["Tableau de bord","Batterie — fixation, cosses et câblage","Démarrage moteur, translation et orientation","Fuites moteur"]],
+    ["Contrôle des équipements de sécurité", ["Siège opérateur","Avertisseur / alarme","Dispositif de verrouillage des commandes","Ceinture de sécurité opérateur","Extincteur","Freins de translation et d'orientation","Arrêt moteur / arrêt d'urgence","Plaque constructeur","Macaron RUNIXO Contrôle"]]
+  ]},
+  nacelleAuto: { court: "PEMP automotrice", nom: "Nacelle automotrice (PEMP télescopique / articulée)", desig: "Nacelle élévatrice automotrice — PEMP télescopique", art: "La", per: 6, ref: VG_REF,
+    fields: [["modele","Modèle"],["serie","N° de série"],["annee","Année de fabrication"],["energie","Énergie"],["tension","Tension batterie"],["pression","Pression hydraulique"],["rotation","Rotation tourelle"],["poids","Poids à vide"],["effort","Effort manuel max."],["heures","Heures compteur"]],
+    sections: [
+    ["Vérification de la structure et du châssis", ["Châssis porteur — intégrité","Tourelle — rotation et fixation","Flèche télescopique — structure","Panier / nacelle — intégrité et fixations","Points d'ancrage antichute (nacelle)","Étiquetage / plaques de sécurité","Peinture / protection anticorrosion"]],
+    ["Circuit hydraulique", ["Pompe hydraulique — étanchéité","Flexibles hydrauliques — état général","Flexibles essieu / direction","Distributeur hydraulique (bloc de commande)","Vérin de levée principal — étanchéité","Vérin de télescopage — étanchéité","Niveau huile hydraulique","Soupape de sécurité / limiteur de pression"]],
+    ["Flèche télescopique et mécanisme de levage", ["Flèche télescopique — guidage et patins","Vérin de télescope — fixation et flexibles","Articulation tête de flèche","Câblage capteurs d'angle / longueur","Limiteur de charge / moment de charge (LMI)","Test levée et télescopage à vide"]],
+    ["Moteur et système d'alimentation", ["Moteur — état général et étanchéité","Niveau carburant","Niveau huile moteur","Démarrage à froid","Régime moteur / compte-tours"]],
+    ["Circuit électrique et batterie", ["Boîtier de commande — fixation","Câblage général — état et protections","Câbles batterie / alimentation","Fusibles et protections électriques","Avertisseur sonore (klaxon)"]],
+    ["Tableau de bord et dispositifs de sécurité", ["Écran de contrôle — affichage général","Voyants et alarmes","Compteur horaire","Sélecteur nacelle / sol","Arrêt d'urgence (nacelle et sol)","Mode tortue / vitesse réduite en hauteur"]],
+    ["Pneumatiques et essieux", ["Pneus — usure et état","Fixation des roues — boulonnerie","Essieu directeur — jeu","Flexibles au niveau de l'essieu"]],
+    ["Test fonctionnel et en charge", ["Test de levée / télescopage à vide","Stabilité en position déployée","Étanchéité sous charge","Frein de service et de stationnement","Macaron RUNIXO Contrôle"]]
+  ]},
+  nacellePorteur: { court: "PEMP sur porteur", nom: "Nacelle sur porteur (camion avec stabilisateurs)", desig: "Nacelle élévatrice sur porteur avec stabilisateurs (PEMP)", art: "La", per: 6, ref: VG_REF,
+    fields: [["modele","Modèle / type"],["serie","N° de fabrication"],["annee","Année de fabrication"],["porteur","Véhicule porteur et immatriculation"],["chassis","N° de châssis"],["km","Kilométrage véhicule au contrôle"],["capacite","Capacité nacelle"],["hauteur","Hauteur max du sol"],["deport","Déport latéral"],["vent","Vitesse maxi du vent"],["pression","Pression maxi hydraulique"],["tension","Tension installation électrique"],["limiteur","Limiteur de charge nacelle"]],
+    sections: [
+    ["Vérification de la structure et du bras", ["Embase et colonne de rotation","Flèche télescopique — structure et soudures","Bras articulé — structure et soudures","Nacelle / panier — intégrité et fixation","Axes et goupilles d'articulation","Peinture / protection anticorrosion"]],
+    ["Circuit hydraulique", ["Vérins de la flèche — tiges et joints","Vérin du bras articulé — tige et joints","Flexibles hydrauliques — état et gaines de protection","Groupe de sécurité hydraulique (blocs V1/V2)","Niveau et qualité huile hydraulique","Distributeur hydraulique"]],
+    ["Stabilisateurs", ["Vérins de stabilisation — état et étanchéité","Sabots de stabilisation — état et articulation","Fixation des vérins sur châssis","Déploiement / repliage des stabilisateurs","Verrouillage en position route"]],
+    ["Mécanisme de levage et dispositifs de sécurité", ["Capteur de sécurité porte / accès panier","Alarme sonore de surcharge panier — test","Pompe manuelle de descente de secours","Repli automatique (center assist)","Test de levée à vide"]],
+    ["Moteur et système d'alimentation (véhicule porteur)", ["Moteur — état général et étanchéité","Prise de mouvement (PTO) hydraulique","Niveau AdBlue","Démarrage à froid"]],
+    ["Circuit électrique et batterie", ["Batterie — fixation et état général","Câblage général — état et protections","Câblage capteur de sécurité porte panier"]],
+    ["Éclairage et signalisation", ["Gyrophares — fonctionnement","Feux avant, arrière et clignotants","Rétroviseurs — présence et réglage"]],
+    ["Équipements de sécurité opérateur", ["Pupitre de commande panier — joysticks et arrêt d'urgence","Pupitre de commande camion (poste bas)","Points d'ancrage harnais dans le panier","Étiquetage et pictogrammes de sécurité","Notice d'instructions constructeur disponible"]],
+    ["Pneumatiques et freinage (véhicule porteur)", ["Pneumatiques — usure et état","Frein de stationnement","Frein de service"]],
+    ["Essai fonctionnel en charge", ["Levée du panier en charge (déport maxi)","Stabilité générale sur stabilisateurs","Étanchéité sous charge","Test de l'alarme de surcharge en charge réelle","Macaron RUNIXO Contrôle"]]
+  ]},
+  chariot: { court: "Chariot élévateur", nom: "Chariot élévateur à conducteur porté", desig: "Chariot élévateur à conducteur porté", art: "Le", per: 6, ref: VG_REF,
+    fields: [["modele","Modèle"],["serie","N° de série"],["annee","Année de fabrication"],["capacite","Capacité nominale"],["energie","Énergie"],["poids","Poids en ordre de marche"],["poidsSB","Poids sans batterie"],["hauteur","Hauteur de levée max"],["capH","Capacité à hauteur max"],["batterie","Batterie (min / max)"],["heures","Compteur horaire au contrôle"]],
+    sections: [
+    ["Vérification de la structure et du châssis", ["Châssis principal — intégrité","Capot moteur / batterie et carrosserie","Pneumatiques — usure et état","Contrepoids — intégrité et fixation","Peinture / protection anticorrosion"]],
+    ["Mât et système de levage", ["Mât — structure et rails","Chaînes de levée — usure, allongement","Fourches — usure, déformation","Tablier porte-fourches"]],
+    ["Circuit hydraulique", ["Vérin de levage — étanchéité","Flexibles hydrauliques — état et raccords","Distributeur hydraulique","Niveau huile hydraulique"]],
+    ["Circuit électrique et batterie", ["Batterie — fixation et état général","Chargeur et connectique","Câblage général — état et protections","Diagnostic tableau de bord (traction / hydraulique / batterie)"]],
+    ["Dispositifs de sécurité conducteur", ["Ceinture de sécurité — état et fonctionnement","Siège conducteur — réglage et fixation","Système de présence conducteur (OPS)","Frein de stationnement","Frein de service","Direction assistée"]],
+    ["Éclairage et signalisation", ["Gyrophare — fonctionnement","Feux avant et lumière de travail","Feux arrière et stops","Rétroviseurs — présence et réglage"]],
+    ["Étiquetage et plaque signalétique", ["Plaque signalétique constructeur","Diagramme de capacité / plaque de graissage","Macaron de contrôle RUNIXO"]],
+    ["Essai fonctionnel en charge", ["Test de levée à vide","Stabilité générale sur pneumatiques","Étanchéité sous charge","Frein sous charge — maintien en pente"]]
+  ]},
+  grue: { court: "Grue auxiliaire de chargement", nom: "Grue auxiliaire de chargement (sur porteur)", desig: "Grue auxiliaire de chargement avec stabilisateurs hydrauliques", art: "La", per: 6, ref: VG_REF,
+    fields: [["modele","Modèle / type"],["serie","N° de série"],["annee","Année de fabrication"],["porteur","Véhicule porteur et immatriculation"],["km","Kilométrage véhicule au contrôle"],["config","Configuration"],["capacite","Capacités"],["accessoire","Accessoire utilisé pour l'essai"]],
+    sections: [
+    ["Vérification de la structure", ["Fixation de la grue sur le châssis porteur","Colonne et embase de rotation","Bras principal — structure et soudures","Bras articulé et rallonges télescopiques","Axes, bagues et goupilles d'articulation","Peinture / protection anticorrosion"]],
+    ["Circuit hydraulique", ["Vérin de levage — tige et joints","Vérin du bras articulé — tige et joints","Vérins des rallonges télescopiques","Flexibles hydrauliques — état et gaines de protection","Distributeur et raccords","Refroidisseur d'huile / ventilateur","Niveau et qualité huile hydraulique"]],
+    ["Stabilisateurs", ["Poutres extensibles — sortie et rentrée","Vérins verticaux — tiges et étanchéité","Blocs de sécurité / clapets pilotés","Carter et bloc valve stabilisateur","Glissière / logement des poutres","Sabots et calage","Verrouillage en position route"]],
+    ["Rotation", ["Mécanisme de rotation (vérins / crémaillère)","Butées et maintien en rotation"]],
+    ["Organes de préhension", ["Crochet — état et linguet de sécurité","Rotator / émerillon","Accessoire de levage utilisé pour l'essai"]],
+    ["Dispositifs de sécurité et commandes", ["Limiteur de moment de charge","Arrêts d'urgence","Postes de commande — leviers et retour au neutre","Voyant / signalisation sur colonne","Abaque de charge et notice constructeur"]],
+    ["Véhicule porteur", ["Identification porteur","Compteur kilométrique","Prise de mouvement (PTO)","Frein de stationnement","Pneumatiques","Éclairage et feux de travail"]],
+    ["Essai fonctionnel en charge", ["Levage d'une charge d'essai — maintien et dépose","Mouvements combinés en charge (levage, télescope, rotation)","Stabilité générale sur stabilisateurs","Étanchéité sous charge","Macaron RUNIXO Contrôle"]]
+  ]},
+  bras: { court: "Bras de levage multibenne", nom: "Bras de levage multibenne (ampliroll)", desig: "Bras hydraulique de levage à crochet (multibenne / ampliroll)", art: "Le", per: 6, ref: VG_REF,
+    fields: [["modele","Modèle / type"],["serie","N° de série"],["annee","Année de fabrication"],["porteur","Véhicule porteur et immatriculation"],["km","Kilométrage véhicule au contrôle"],["config","Configuration"],["capacite","Capacités"]],
+    sections: [
+    ["Vérification de la structure", ["Fixation du bras / faux-châssis sur le châssis porteur","Cadre basculant et bras à crochet — structure et soudures","Crochet de préhension et verrou de crochet","Axes d'articulation, bagues et graissage","Peinture / protection anticorrosion"]],
+    ["Circuit hydraulique", ["Vérins de levage — tiges et joints","Fixation des vérins (colliers, chapes, axes)","Bloc de sécurité / clapet sur vérin","Flexibles et tuyauteries rigides","Distributeur et commandes hydrauliques"]],
+    ["Verrouillages et dispositifs de sécurité", ["Verrouillages de benne sur châssis","Interdiction de déplacement PTO enclenchée — signalisation","Témoin de prise de mouvement (PTO) en cabine","Commandes cabine — identification et retour au neutre","Notice d'instructions constructeur"]],
+    ["Véhicule porteur", ["Identification porteur","Compteur kilométrique","Frein de stationnement","Pneumatiques"]],
+    ["Essai fonctionnel", ["Basculement de la benne chargée","Maintien en position intermédiaire","Retour en position route et verrouillage","Étanchéité sous charge","Macaron RUNIXO Contrôle"]]
+  ]}
+};
+const VG_IDPH = [["gen","Vue générale"],["plaque","Plaque constructeur"],["tdb","Compteur / tableau de bord"],["mac","Macaron RUNIXO"],["x5","Autre détail"],["x6","Autre détail"]];
+const VG_DOCS = [
+  ["notice","Notice d'instructions constructeur",["Présente — OK","Non présentée"]],
+  ["carnet","Carnet de maintenance",["Présenté — OK","Non présenté — à présenter par la suite"]],
+  ["registre","Registre de sécurité",["Tenu en ligne — rapport classé automatiquement","À mettre à jour (report du présent rapport)"]],
+  ["macaron","Macaron de contrôle précédent",["Visible sur l'engin — RUNIXO Contrôle","Absent (premier contrôle)","Autre organisme"]]
+];
+const VG_DEL = ["Immédiat","Avant remise en service","Sous 1 mois","Prochaine maintenance"];
+const VG_RL = { ok: "OK", surv: "À SURVEILLER", nc: "NON CONFORME", so: "SANS OBJET" };
+
+
+const VG_IMG = {"logo": "data:image/jpeg;base64,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", "cachet": "data:image/jpeg;base64,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"};
+const VG_PIED = "RUNIXO CONTRÔLE – SAS au RCS 988 171 740 – 109 Lotissement Les Lilas, 97440 Saint-André – La Réunion – controle@3aim.fr – 0692 09 85 92";
+const VG_BAN = { C: "APTE À L'UTILISATION", R: "APTE À L'UTILISATION — sous réserve", NC: "NON APTE À L'UTILISATION" };
+const VG_BANS = { C: "Aucune anomalie relevée", R: "Sous réserve des actions recommandées dans les délais indiqués", NC: "Contre-visite obligatoire avant remise en service" };
+const VG_NR = ["heures","km","capacite","config","accessoire"];
+LIBS.h2c = "html2canvas/1.4.1/html2canvas.min.js";
+
+/* brouillons gardés sur l'appareil (IndexedDB, avec les photos) */
+const vgDB = (() => { let p; const open = () => p || (p = new Promise((ok, ko) => { const r = indexedDB.open("reg3aim_vgp", 1); r.onupgradeneeded = () => r.result.createObjectStore("d"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); }));
+  const tx = (m, f) => open().then(db => new Promise((ok, ko) => { const t = db.transaction("d", m), q = f(t.objectStore("d")); t.oncomplete = () => ok(q && q.result); t.onerror = () => ko(t.error); }));
+  return { get: k => tx("readonly", s => s.get(k)).catch(() => null), set: (k, v) => tx("readwrite", s => s.put(v, k)).catch(() => null), del: k => tx("readwrite", s => s.delete(k)).catch(() => null) }; })();
+
+let VG = null;            // état de la VGP en cours
+let VGE = null, vgStep = 0, vgPhotoT = null, vgSaveH = null;
+const vg$ = s => document.querySelector("#vg " + s);
+const vgT = () => VG_T[VG.type] || VG_T.pelle;
+const vgK = (si, pi) => "s" + si + "p" + pi;
+function vgP(k) { return VG.pts[k] = VG.pts[k] || { r: "", obs: "", ano: true, lib: "", act: "", delai: "Sous 1 mois" }; }
+function vgSave() { clearTimeout(vgSaveH); vgSaveH = setTimeout(() => vgDB.set("e_" + VGE.id, VG), 400); }
+function vgGet(k) { return k.split(".").reduce((o, x) => o == null ? "" : o[x], VG) ?? ""; }
+function vgSet(k, v) { const a = k.split("."), l = a.pop(); a.reduce((o, x) => o[x] = o[x] || {}, VG)[l] = v; }
+function vgTypeFrom(x) { const t = (x.libelle + " " + x.detail).toLowerCase();
+  return /chariot/.test(t) ? "chariot" : /nacelle|pemp/.test(t) ? (/porteur|immat|camion|iveco/.test(t) ? "nacellePorteur" : "nacelleAuto") : /multibenne|ampliroll|crochet/.test(t) ? "bras" : /grue|bras de levage/.test(t) ? "grue" : "pelle"; }
+function vgVide(e) {
+  return { v: 1, ent: { nom: e.nom || "", adr: [e.adresse, [e.cp, e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "), siren: "", siret: e.siret || "", dir: e.contact || "" },
+    elId: "", date: today(), verif: "MOHAMED Cassim", type: "pelle", id: { desig: VG_T.pelle.desig, equip: "" }, nl: {}, idph: {}, idlab: {},
+    docs: { notice: 0, carnet: 0, registre: 0, macaron: 0 }, pts: {}, concl: "", conclAuto: true };
+}
+
+/* ---------- ouverture ---------- */
+async function openVGP(e, elId) {
+  VGE = e;
+  const d = await vgDB.get("e_" + e.id);
+  if (d && (!elId || d.elId === elId) && (Object.keys(d.pts || {}).length || d.id.marque)) {
+    const m = modal("VGP en cours", "#E87722", `<p style="margin:0">Une VGP commencée pour <b>${esc(e.nom)}</b> est gardée sur cet appareil${d.id.marque ? " (" + esc(d.id.marque + " " + (d.id.modele || "")) + ")" : ""}. Tu la reprends ?</p>`,
+      `<button class="btn" id="vgn">Nouvelle VGP</button><button class="btn pri" id="vgr">Reprendre</button>`);
+    m.q("#vgr").onclick = () => { m.close(); VG = d; vgOpen(); };
+    m.q("#vgn").onclick = () => { m.close(); vgNew(e, elId); };
+    return;
+  }
+  vgNew(e, elId);
+}
+async function vgNew(e, elId) {
+  VG = vgVide(e);
+  if (elId) await vgPickEl(elId, true); else vgOpen();
+}
+async function vgPickEl(elId, open) {
+  VG.elId = elId || "";
+  const x = S.els.find(y => y.id === elId);
+  if (x) {
+    VG.type = vgTypeFrom(x); VG.id.desig = vgT().desig; VG.nl = {}; VG.pts = {};
+    try { const r = await api("lastVGP", { entId: VGE.id, elId }); const o = r.vgp && r.vgp.data ? JSON.parse(r.vgp.data) : null;
+      if (o) { VG.type = o.type; VG.id = Object.assign({}, o.id); VG.nl = Object.assign({}, o.nl); VG.idlab = o.idlab || {}; VG.ent = Object.assign(VG.ent, { siren: o.ent.siren || VG.ent.siren, dir: o.ent.dir || VG.ent.dir });
+        toast("Fiche de l’engin reprise de la " + r.vgp.num); }
+    } catch (z) {}
+  }
+  if (open) vgOpen(); else { vgSave(); vgBoot(); }
+}
+
+/* ---------- écran ---------- */
+const VG_STEPS = [["eng","Engin"],["doc","Documents"],["ctl","Contrôle"],["ano","Anomalies"],["rap","Rapport"]];
+function vgOpen() {
+  document.getElementById("vg")?.remove();
+  const o = document.createElement("div"); o.id = "vg"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", "Nouvelle VGP");
+  const lev = els(VGE.id).filter(x => x.rub === "lev");
+  o.innerHTML = `<header class="vg-top"><div class="in"><div><b>Nouvelle VGP – ${esc(VGE.nom)}</b><small>RUNIXO CONTRÔLE · brouillon gardé sur cet appareil</small></div><div class="sp"></div><button class="vg-x" id="vgclose">Fermer</button></div><nav class="vg-steps" id="vgsteps"></nav></header>
+  <div class="vg-main">
+   <section class="vg-pane" data-p="eng">
+    <div class="vg-card"><h2>Engin contrôlé</h2>
+      <div class="vg-grid">
+        <label class="vg-f">Engin du registre<select id="vgel"><option value="">+ Nouvel engin (ajouté au registre)</option>${lev.map(x => `<option value="${x.id}">${esc(x.libelle)}${x.detail ? " – " + esc(x.detail) : ""}</option>`).join("")}</select></label>
+        <label class="vg-f">Type d’engin<select id="vgtype">${Object.entries(VG_T).map(([k, t]) => `<option value="${k}">${esc(t.nom)}</option>`).join("")}</select></label>
+        <label class="vg-f">Date de vérification<input type="date" data-k="date"></label>
+        <label class="vg-f">Vérificateur<input type="text" data-k="verif"></label>
+      </div>
+      <div class="vg-info" id="vgelinfo"></div>
+    </div>
+    <div class="vg-card"><h2>Client</h2><div class="vg-grid">
+      <label class="vg-f">Raison sociale<input type="text" data-k="ent.nom"></label>
+      <label class="vg-f">Adresse<input type="text" data-k="ent.adr"></label>
+      <label class="vg-f">SIRET<input type="text" data-k="ent.siret" inputmode="numeric"></label>
+      <label class="vg-f">Dirigeant / contact exploitant<input type="text" data-k="ent.dir"></label></div></div>
+    <div class="vg-card"><h2>Identification</h2>
+      <div class="vg-grid" style="margin-bottom:12px">
+        <label class="vg-f">Désignation<input type="text" data-k="id.desig"></label>
+        <label class="vg-f">Marque / constructeur<input type="text" data-k="id.marque"></label>
+        <label class="vg-f">Équipement monté<input type="text" data-k="id.equip"></label>
+      </div>
+      <p class="vg-lead">Coche « Non lisible / non relevé » si l’info ne peut pas être relevée : elle sortira en orange dans le rapport.</p>
+      <div class="vg-grid" id="vgnl"></div></div>
+    <div class="vg-card"><h2>Photos d’identification</h2><div class="vg-ph" id="vgidph"></div></div>
+   </section>
+   <section class="vg-pane" data-p="doc"><div class="vg-card"><h2>Documents vérifiés</h2><div id="vgdocs"></div></div></section>
+   <section class="vg-pane" data-p="ctl"><div id="vgctl"></div></section>
+   <section class="vg-pane" data-p="ano">
+    <div class="vg-verdict" id="vgverdict"></div>
+    <div class="vg-card"><h2>Anomalies et actions recommandées</h2><p class="vg-lead">Construite avec les points « À surveiller » et « Non conforme » reportés, et les documents manquants.</p><div class="vg-wrap"><table class="vg-reg" id="vganoT"></table></div></div>
+    <div class="vg-card"><h2>Conclusion</h2><label class="vg-f">Texte de l’avis (modifiable)<textarea data-k="concl" id="vgconcl" rows="6"></textarea></label>
+      <div style="margin-top:8px"><button class="btn" id="vgreconcl">Remettre le texte automatique</button></div></div>
+    <div class="vg-card"><h2>Ce qui sera classé dans le registre</h2><div id="vgregprev"></div></div>
+   </section>
+   <section class="vg-pane" data-p="rap">
+    <div class="vg-card"><h2>Rapport</h2><p class="vg-lead" style="margin:0">Aperçu du PDF. Le numéro VGP est attribué à la validation. En validant, le PDF est créé, rangé dans le Drive du client et classé dans son registre avec les réserves.</p></div>
+    <div class="vg-pvw" id="vgpvw"><div class="vg-sc" id="vgsc"></div></div>
+   </section>
+  </div>
+  <div class="vg-bar"><div class="in"><div class="vg-prog"><span id="vgprogT"></span><div class="tr"><div id="vgprogB"></div></div></div>
+   <button class="btn" id="vgprev">Précédent</button><button class="btn pri" id="vgnext">Suivant</button></div></div>
+  <input type="file" accept="image/*" capture="environment" id="vgfile" hidden>`;
+  document.body.appendChild(o); document.body.style.overflow = "hidden";
+  vg$("#vgclose").onclick = vgClose;
+  vg$("#vgsteps").onclick = ev => { const b = ev.target.closest("button"); if (b) vgGo(+b.dataset.s); };
+  vg$("#vgprev").onclick = () => vgGo(vgStep - 1);
+  vg$("#vgnext").onclick = () => vgStep === VG_STEPS.length - 1 ? vgValider() : vgGo(vgStep + 1);
+  vg$("#vgel").onchange = ev => { VG.elId = ev.target.value; if (VG.elId) vgPickEl(VG.elId, false); else { vgSave(); vgBoot(); } };
+  vg$("#vgtype").onchange = ev => { VG.type = ev.target.value; VG.pts = {}; VG.nl = {}; VG.id.desig = vgT().desig; VG.concl = ""; VG.conclAuto = true; vgSave(); vgBoot(); };
+  vg$("#vgreconcl").onclick = () => { VG.conclAuto = true; VG.concl = vgConclAuto(); vg$("#vgconcl").value = VG.concl; vgSave(); };
+  vg$("#vgdocs").onclick = ev => { const b = ev.target.closest("[data-d]"); if (!b) return; VG.docs[b.dataset.d] = +b.dataset.i; vgSave(); vgDocs(); };
+  vg$("#vgctl").onclick = vgCtlClick; vg$("#vgctl").oninput = vgCtlInput;
+  o.addEventListener("click", ev => { const t = ev.target.closest("[data-ph]"); if (t) { vgPhotoT = t.dataset.ph; vg$("#vgfile").click(); } });
+  vg$("#vgfile").onchange = vgPhoto;
+  vgBoot(); vgGo(0);
+}
+function vgClose() { vgDB.set("e_" + VGE.id, VG); document.getElementById("vg")?.remove(); document.body.style.overflow = ""; renderEnt(); }
+function vgGo(i) {
+  vgStep = Math.max(0, Math.min(VG_STEPS.length - 1, i));
+  document.querySelectorAll("#vg .vg-pane").forEach(p => p.classList.toggle("on", p.dataset.p === VG_STEPS[vgStep][0]));
+  vg$("#vgsteps").innerHTML = VG_STEPS.map((s, j) => `<button class="${j === vgStep ? "on" : ""}" data-s="${j}"><i>${j + 1}</i>${s[1]}</button>`).join("");
+  vg$("#vgprev").style.visibility = vgStep ? "visible" : "hidden";
+  vg$("#vgnext").textContent = vgStep === 4 ? "Valider et classer" : vgStep === 3 ? "Voir le rapport" : "Suivant";
+  if (vgStep === 3) vgAno();
+  if (vgStep === 4) vgPreview();
+  document.getElementById("vg").scrollTop = 0;
+}
+function vgBoot() {
+  vg$("#vgel").value = VG.elId || ""; vg$("#vgtype").value = VG.type;
+  const x = S.els.find(y => y.id === VG.elId);
+  vg$("#vgelinfo").innerHTML = x ? `Mise à jour de l’engin <b>${esc(x.libelle)}</b>${x.detail ? " – " + esc(x.detail) : ""}${x.ref ? " · dernière VGP " + esc(x.ref) + " du " + fr(x.dernier) : ""}. Les réserves encore ouvertes sur cet engin seront levées par cette VGP, et les nouvelles anomalies deviendront des réserves.`
+    : "Un nouvel engin sera ajouté à la rubrique « Levage et manutention » du registre.";
+  vg$("#vgnl").innerHTML = vgT().fields.map(([k, l]) => `<label class="vg-f ${VG.nl[k] ? "isnl" : ""}">${l}<input type="text" data-k="id.${k}" ${VG.nl[k] ? "disabled" : ""}><span class="vg-nl"><input type="checkbox" data-nl="${k}" ${VG.nl[k] ? "checked" : ""}> Non lisible / non relevé</span></label>`).join("");
+  vg$("#vgnl").querySelectorAll("[data-nl]").forEach(c => c.onchange = () => { VG.nl[c.dataset.nl] = c.checked; vgSave(); vgBoot(); });
+  vgIdph(); vgDocs(); vgCtl();
+  document.querySelectorAll("#vg [data-k]").forEach(el => { el.value = vgGet(el.dataset.k);
+    el.oninput = () => { vgSet(el.dataset.k, el.value); if (el.dataset.k === "concl") VG.conclAuto = false; vgSave(); }; });
+  vgProg();
+}
+function vgIdph() { vg$("#vgidph").innerHTML = VG_IDPH.map(([k, l]) => `<div class="vg-slot ${VG.idph[k] ? "" : "empty"}" data-ph="id:${k}" role="button" tabindex="0">${VG.idph[k] ? `<img src="${VG.idph[k]}" alt="">` : ""}<span>${VG.idph[k] ? esc(VG.idlab[k] || l) : "+ " + l}</span></div>`).join(""); }
+function vgDocs() { vg$("#vgdocs").innerHTML = VG_DOCS.map(([k, l, o]) => `<div class="vg-doc"><b>${l}</b><div class="vg-chips">${o.map((t, i) => `<button class="vg-chip ${VG.docs[k] === i ? "on" : ""}" data-d="${k}" data-i="${i}">${esc(t)}</button>`).join("")}</div></div>`).join(""); }
+function vgCtl() {
+  vg$("#vgctl").innerHTML = vgT().sections.map(([titre, pts], si) => `<div class="vg-card"><div class="vg-sec"><h2>${si + 3}. ${esc(titre)}</h2>
+    <span><span class="vg-cnt" data-cnt="${si}"></span> <button class="btn sm" data-allok="${si}">Le reste est OK</button></span></div>${pts.map((n, pi) => vgPtH(si, pi, n)).join("")}</div>`).join("");
+  vgCount();
+}
+function vgPtH(si, pi, n) {
+  const k = vgK(si, pi), p = vgP(k);
+  return `<div class="vg-pt ${p.r}" data-pt="${k}"><div class="h"><div class="nm">${esc(n)}</div>
+    <div class="vg-seg">${["ok","surv","nc","so"].map(r => `<button class="${r} ${p.r === r ? "on" : ""}" data-r="${r}">${{ ok: "OK", surv: "À surveiller", nc: "Non conforme", so: "S.O." }[r]}</button>`).join("")}</div></div>
+    <div class="vg-more"><textarea rows="2" data-f="obs" placeholder="Observation">${esc(p.obs)}</textarea><div class="vg-thumb" data-ph="pt:${k}" role="button" tabindex="0">${p.ph ? `<img src="${p.ph}" alt="">` : "+ Photo"}</div></div>
+    <div class="vg-ano ${p.ano ? "" : "off"}"><label class="t"><input type="checkbox" data-f="ano" ${p.ano ? "checked" : ""}> Reporter en anomalie (et en réserve dans le registre)</label>
+      <div class="g"><input data-f="lib" placeholder="Anomalie" value="${esc(p.lib)}"><input data-f="act" placeholder="Action recommandée" value="${esc(p.act)}">
+      <select data-f="delai">${VG_DEL.map(d => `<option ${p.delai === d ? "selected" : ""}>${d}</option>`).join("")}</select></div></div></div>`;
+}
+function vgCtlClick(ev) {
+  const a = ev.target.closest("[data-allok]");
+  if (a) { const si = +a.dataset.allok; vgT().sections[si][1].forEach((n, pi) => { const p = vgP(vgK(si, pi)); if (!p.r) p.r = "ok"; }); vgSave(); vgCtl(); vgProg(); return; }
+  const b = ev.target.closest("[data-r]"); if (!b) return;
+  const box = b.closest("[data-pt]"), k = box.dataset.pt, p = vgP(k);
+  p.r = p.r === b.dataset.r ? "" : b.dataset.r;
+  if (p.r === "nc" && p.delai === "Prochaine maintenance") p.delai = "Avant remise en service";
+  vgSave();
+  const si = +k.slice(1, k.indexOf("p")), pi = +k.slice(k.indexOf("p") + 1);
+  box.outerHTML = vgPtH(si, pi, vgT().sections[si][1][pi]); vgCount(); vgProg();
+}
+function vgCtlInput(ev) {
+  const f = ev.target.dataset.f; if (!f) return;
+  const box = ev.target.closest("[data-pt]"), p = vgP(box.dataset.pt);
+  p[f] = ev.target.type === "checkbox" ? ev.target.checked : ev.target.value;
+  if (f === "ano") box.querySelector(".vg-ano").classList.toggle("off", !p.ano);
+  vgSave();
+}
+function vgCount() { vgT().sections.forEach(([t, pts], si) => { const el = document.querySelector(`#vg [data-cnt="${si}"]`); if (el) el.textContent = pts.filter((n, pi) => vgP(vgK(si, pi)).r).length + " / " + pts.length; }); }
+function vgAll() { return vgT().sections.flatMap(([t, pts], si) => pts.map((n, pi) => vgP(vgK(si, pi)))); }
+function vgProg() { const A = vgAll(), d = A.filter(p => p.r).length, s = A.filter(p => p.r === "surv").length, n = A.filter(p => p.r === "nc").length;
+  vg$("#vgprogT").textContent = `${d} / ${A.length} points contrôlés` + (s ? ` · ${s} à surveiller` : "") + (n ? ` · ${n} non conforme(s)` : "");
+  vg$("#vgprogB").style.width = (A.length ? 100 * d / A.length : 0) + "%"; }
+function vgPhoto(ev) {
+  const f = ev.target.files[0]; ev.target.value = ""; if (!f || !vgPhotoT) return;
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => { const m = 1200, r = Math.min(1, m / Math.max(img.width, img.height)), c = document.createElement("canvas");
+    c.width = Math.round(img.width * r); c.height = Math.round(img.height * r); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const d = c.toDataURL("image/jpeg", .74), [kind, k] = vgPhotoT.split(":");
+    if (kind === "id") { VG.idph[k] = d; vgIdph(); } else { vgP(k).ph = d; vgCtl(); }
+    URL.revokeObjectURL(url); vgSave(); };
+  img.src = url;
+}
+
+/* ---------- anomalies, avis ---------- */
+function vgAnomalies() {
+  const L = [];
+  vgT().sections.forEach(([t, pts], si) => pts.forEach((n, pi) => { const p = vgP(vgK(si, pi));
+    if ((p.r === "surv" || p.r === "nc") && p.ano) L.push({ lib: p.lib || n, act: p.act || "À remettre en état", delai: p.delai, nc: p.r === "nc" }); }));
+  if (VG.docs.notice === 1) L.push({ lib: "Notice d'instructions non présentée", act: "Présenter la notice constructeur", delai: "Sous 1 mois" });
+  if (VG.docs.carnet === 1) L.push({ lib: "Carnet de maintenance non présenté", act: "Présenter le carnet de maintenance", delai: "Sous 1 mois" });
+  const rk = d => ({ "Immédiat": 0, "Avant remise en service": 1, "Sous 1 mois": 2, "Prochaine maintenance": 3 }[d] ?? 4);
+  L.sort((a, b) => (b.nc - a.nc) || rk(a.delai) - rk(b.delai));
+  L.push(VG.docs.registre === 0 ? { lib: "Registre de sécurité", act: "Rapport classé automatiquement dans le registre en ligne", delai: "Fait le " + fr(VG.date), auto: true }
+    : { lib: "Registre de sécurité", act: "Reporter le présent rapport au registre", delai: "Immédiat", auto: true });
+  return L;
+}
+function vgAvis() { const A = vgAll(); if (A.some(p => p.r === "nc")) return "NC"; return vgAnomalies().some(a => !a.auto) || A.some(p => p.r === "surv") ? "R" : "C"; }
+const vgNext = () => VG.date ? addM(VG.date, vgT().per) : "";
+const vgGrav = a => a.nc ? "haute" : /Immédiat|1 mois|remise/.test(a.delai) ? "moyenne" : "basse";
+function vgDetail() { const i = VG.id, n = VG.nl; return [i.marque, n.modele ? "" : i.modele, !n.serie && i.serie ? "n° " + i.serie : "", !n.porteur && i.porteur ? i.porteur : ""].filter(Boolean).join(" – "); }
+function vgConclAuto() {
+  const a = vgAvis(), t = vgT(), eng = (VG.id.desig || t.desig).split(" — ")[0].split(" (")[0].toLowerCase();
+  const ident = [(VG.id.marque || "").toUpperCase(), VG.nl.modele ? "" : VG.id.modele].filter(Boolean).join(" ");
+  const serie = !VG.nl.serie && VG.id.serie ? ` (n° ${VG.id.serie})` : "";
+  const port = VG.id.porteur && !VG.nl.porteur ? `, ${t.art === "La" ? "montée" : "monté"} sur porteur ${VG.id.porteur}` : "";
+  const dom = t.sections.map(x => x[0].replace(/^(Contrôle|Vérification) d(e la |e l'|u |es )/i, "").toLowerCase()).join(", ");
+  let s = `${t.art} ${eng} ${ident}${serie}${port} de la société ${VG.ent.nom || "…"} a fait l'objet d'une vérification générale périodique conformément aux articles R.4323-23 à R.4323-28 du Code du travail et à l'arrêté du 01/03/2004 modifié.\n`;
+  if (a === "C") s += `L'ensemble des points inspectés (${dom}) ne révèle aucune anomalie susceptible de compromettre la sécurité des opérateurs ou des tiers. L'engin est déclaré APTE à l'utilisation.`;
+  else if (a === "R") s += `Les points relevés n'empêchent pas l'utilisation de l'engin mais nécessitent les actions recommandées au tableau des anomalies, dans les délais indiqués. L'engin est déclaré APTE à l'utilisation sous cette réserve.`;
+  else s += `Une ou plusieurs non-conformités compromettent la sécurité des opérateurs ou des tiers. L'engin est déclaré NON APTE : il ne doit pas être utilisé avant la remise en conformité et une contre-visite.`;
+  return s.replace(/ +/g, " ") + `\nEn cas de modification, de réparation importante ou d'incident notable, une nouvelle vérification devra être réalisée avant la remise en service.`;
+}
+function vgAno() {
+  const a = vgAvis(), L = vgAnomalies(), R = L.filter(x => !x.auto);
+  vg$("#vgverdict").className = "vg-verdict " + a; vg$("#vgverdict").textContent = "Engin " + VG_BAN[a].toLowerCase() + " – " + VG_BANS[a];
+  vg$("#vganoT").innerHTML = `<tr><th>N°</th><th>Anomalie</th><th>Action recommandée</th><th>Délai</th></tr>` + L.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.lib)}</td><td>${esc(x.act)}</td><td><b>${esc(x.delai)}</b></td></tr>`).join("");
+  if (VG.conclAuto || !VG.concl) { VG.concl = vgConclAuto(); VG.conclAuto = true; }
+  vg$("#vgconcl").value = VG.concl;
+  const x = S.els.find(y => y.id === VG.elId);
+  vg$("#vgregprev").innerHTML = `<div class="vg-wrap"><table class="vg-reg"><tr><th>Engin</th><th>VGP</th><th>Prochaine</th><th>Résultat</th></tr>
+    <tr><td><b>${esc(x ? x.libelle : vgT().court + " – VGP")}</b><br><span style="color:var(--ink3)">${esc(x && x.detail ? x.detail : vgDetail())}</span></td><td>${fr(VG.date)}</td><td>${fr(vgNext())}</td><td>${{ C: "Conforme", R: "Apte avec réserves", NC: "Non conforme" }[a]}</td></tr></table></div>
+    <p class="vg-lead" style="margin:12px 0 6px">${R.length} réserve(s) ouverte(s), suivies et relancées automatiquement${x && ress(VGE.id).some(r => r.elId === x.id && !r.levee) ? " ; les réserves précédentes de cet engin seront levées" : ""} :</p>
+    ${R.length ? `<div class="vg-wrap"><table class="vg-reg"><tr><th>Réserve</th><th>Délai</th><th>Gravité</th></tr>${R.map(r => `<tr><td>${esc(r.lib)}</td><td>${esc(r.delai)}</td><td><span class="vg-pill ${vgGrav(r)}">${vgGrav(r)}</span></td></tr>`).join("")}</table></div>` : ""}`;
+  vgSave();
+}
+
+/* ---------- rapport paginé (aperçu = PDF) ---------- */
+function vgAtoms(num) {
+  if (VG.conclAuto || !VG.concl) VG.concl = vgConclAuto();
+  const a = vgAvis(), t = vgT(), e = VG.ent, A = vgAll(), cnt = r => A.filter(p => p.r === r).length, L = vgAnomalies(), at = [];
+  const v = k => VG.nl[k] ? `<span class="nlv">${VG_NR.includes(k) ? "Non relevé — à compléter" : "Non lisible — à compléter"}</span>` : esc(VG.id[k] || "—");
+  const lab = (k, l) => esc(VG.idlab[k] || l), blk = h => at.push({ k: "b", h }), hd = h => at.push({ k: "h", h: `<div class="vg-h">${h}</div>` });
+  blk(`<div class="av ${a}"><div class="v"><small>AVIS DU CONTRÔLEUR</small><b>${VG_BAN[a]}</b><span>${VG_BANS[a]}</span></div><div class="k"><div><b>${A.length}</b>points contrôlés</div><div><b style="color:#1E7F4F">${cnt("ok")}</b>conformes</div><div><b style="color:#C76A00">${cnt("surv")}</b>à surveiller</div><div><b style="color:#B42318">${cnt("nc")}</b>non conformes</div><div class="nx">Prochaine VGP avant le <b>${fr(vgNext())}</b></div></div></div>`);
+  const rows = [["Client / exploitant", `<b>${esc(e.nom)}</b>${e.adr ? "<br>" + esc(e.adr) : ""}${e.siret ? "<br>SIRET " + esc(e.siret) : ""}`], ["Dirigeant / contact", esc(e.dir)], ["Type d'équipement", esc(VG.id.desig || t.desig)], ["Marque / constructeur", esc(VG.id.marque)]]
+    .concat(t.fields.map(([k, l]) => [l, v(k)])).concat(VG.id.equip ? [["Équipement monté", esc(VG.id.equip)]] : [])
+    .concat([["Date du contrôle", fr(VG.date)], ["Prochain contrôle", `<b>${fr(vgNext())}</b> (${t.per === 6 ? "semestriel" : "annuel"})`], ["Contrôleur", esc(VG.verif) + " — RUNIXO CONTRÔLE"], ["Référence réglementaire", `<i>${esc(t.ref)}</i>`]]);
+  hd("1. IDENTIFICATION DE L'ENGIN");
+  blk(`<div class="idg"><table class="kv">${rows.map(r => `<tr><td class="k">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>${VG.idph.gen ? `<figure><img src="${VG.idph.gen}" alt="">${lab("gen", "Vue générale")}</figure>` : "<div></div>"}</div>`);
+  const ph = VG_IDPH.filter(([k]) => VG.idph[k] && k !== "gen");
+  for (let i = 0; i < ph.length; i += 3) blk(`<div class="phs">${ph.slice(i, i + 3).map(([k, l]) => `<figure><img src="${VG.idph[k]}" alt="">${lab(k, l)}</figure>`).join("")}</div>`);
+  hd("2. DOCUMENTS VÉRIFIÉS");
+  blk(`<table class="kv">${VG_DOCS.map(([k, l, o]) => { const bad = (k === "notice" || k === "carnet") && VG.docs[k] === 1; return `<tr><td class="k">${l}</td><td>${bad ? `<span class="nlv">${esc(o[VG.docs[k]])}</span>` : esc(o[VG.docs[k]] || "")}</td></tr>`; }).join("")}</table>`);
+  let n = 2;
+  const ckH = `<thead><tr><th>POINT DE CONTRÔLE</th><th style="text-align:center">RÉSULTAT</th><th>OBSERVATIONS</th><th>PHOTO</th></tr></thead>`;
+  t.sections.forEach(([titre, pts], si) => { hd(`${++n}. ${esc(titre).toUpperCase()}`);
+    pts.forEach((nm, pi) => { const p = vgP(vgK(si, pi)); at.push({ k: "r", g: "s" + si, cls: "ck", th: ckH, h: `<tr class="${p.r}"><td>${esc(nm)}</td><td class="r">${p.r ? `<span class="bd ${p.r}">${VG_RL[p.r]}</span>` : "—"}</td><td class="o">${esc(p.obs)}</td><td class="p">${p.ph ? `<img src="${p.ph}" alt="">` : ""}</td></tr>` }); }); });
+  hd(`${n + 1}. ANOMALIES RELEVÉES ET ACTIONS RECOMMANDÉES`);
+  const anH = `<thead><tr><th>N°</th><th>ANOMALIE</th><th>ACTION RECOMMANDÉE</th><th>DÉLAI</th></tr></thead>`;
+  L.forEach((x, i) => at.push({ k: "r", g: "an", cls: "an", th: anH, h: `<tr class="${x.nc ? "nc" : ""}"><td class="n">${i + 1}</td><td>${esc(x.lib)}</td><td>${esc(x.act)}</td><td class="d">${esc(x.delai)}</td></tr>` }));
+  blk(`<div class="leg">Légende : <b style="color:#1E7F4F">OK</b> conforme – <b style="color:#C76A00">À SURVEILLER</b> action recommandée, non bloquante – <b style="color:#B42318">NON CONFORME</b> action corrective obligatoire avant le délai prescrit – <b style="color:#6B7280">SANS OBJET</b> point non applicable à cet engin</div>`);
+  const reste = L.filter(x => !x.auto);
+  hd(`${n + 2}. CONCLUSION ET AVIS DU CONTRÔLEUR`);
+  blk(`<div class="cc ${a}"><b class="t">ENGIN ${VG_BAN[a]}</b>${esc(VG.concl).split(/\n+/).map(x => `<p>${x}</p>`).join("")}${a !== "NC" ? `<p><b>${reste.length ? "Aucune réserve bloquante. " + reste.length + " action(s) recommandée(s) au tableau des anomalies." : "Aucune réserve émise."}</b></p>` : ""}<p><b>Prochain contrôle VGP (${t.per === 6 ? "semestriel" : "annuel"}) à effectuer avant le : ${fr(vgNext())}</b></p></div>`);
+  blk(`<div class="sg"><div><b>Pour ${esc(e.nom || "le client")}</b><br>${esc(e.dir)}<br><br><span style="color:#666">Signature précédée de « Lu et approuvé »</span><br><br>Date : ____ / ____ / ________</div><div><b>Pour RUNIXO CONTRÔLE — le contrôleur</b><br>${esc(VG.verif)}<br><br>${fr(VG.date)}<img src="${VG_IMG.cachet}" alt=""></div></div>`);
+  const head = `<div class="hd"><div class="hl"><img src="${VG_IMG.logo}" alt=""><div><div class="br">RUNIXO CONTRÔLE</div><div class="sb">Vérification générale périodique – ${esc(t.court)}</div><div class="ad">109 Lotissement Les Lilas – 97440 Saint-André – La Réunion<br>RCS 988 171 740 – Tél. 0692 09 85 92 – controle@3aim.fr</div></div></div><div class="hr"><b>RAPPORT VGP</b><span>N° ${esc(num)}</span><span>Date : ${fr(VG.date)}</span></div></div>`;
+  const foot = `<div class="ft"><span>${VG_PIED}</span><span class="vg-pn" style="white-space:nowrap"></span></div>`;
+  return { at, head, foot, num };
+}
+function vgPaginate(host, R) {
+  host.innerHTML = ""; let bd, curT = null, curG = null;
+  const np = () => { const pg = document.createElement("div"); pg.className = "vg-pg"; pg.innerHTML = R.head + `<div class="vg-bd"></div>` + R.foot; host.appendChild(pg); bd = pg.querySelector(".vg-bd"); curT = null; curG = null; };
+  const over = () => bd.scrollHeight > bd.clientHeight + 1;
+  const tailH = () => { const m = []; while (bd.lastElementChild && bd.lastElementChild.classList.contains("vg-h")) { m.unshift(bd.lastElementChild); bd.lastElementChild.remove(); } return m; };
+  const tbl = a => { const t = document.createElement("table"); t.className = a.cls; t.innerHTML = a.th + "<tbody></tbody>"; bd.appendChild(t); curT = t; curG = a.g; };
+  np();
+  for (const a of R.at) {
+    if (a.k === "r") {
+      if (curG !== a.g) tbl(a);
+      curT.tBodies[0].insertAdjacentHTML("beforeend", a.h);
+      if (over()) { curT.tBodies[0].lastElementChild.remove(); if (!curT.tBodies[0].children.length) curT.remove();
+        const m = tailH(); np(); m.forEach(x => bd.appendChild(x)); tbl(a); curT.tBodies[0].insertAdjacentHTML("beforeend", a.h); }
+    } else {
+      curG = null; const w = document.createElement("div"); w.innerHTML = a.h; const el = w.firstElementChild; bd.appendChild(el);
+      if (over() && bd.children.length > 1) { el.remove(); const m = a.k === "h" ? [] : tailH(); np(); m.forEach(x => bd.appendChild(x)); bd.appendChild(el); }
+    }
+  }
+  const P = host.querySelectorAll(".vg-pg"); P.forEach((p, i) => p.querySelector(".vg-pn").textContent = `${R.num} — page ${i + 1}/${P.length}`);
+  return P.length;
+}
+function vgPreview() {
+  const sc = vg$("#vgsc"), n = vgPaginate(sc, vgAtoms(VG.num || "attribué à la validation"));
+  const fit = () => { const w = vg$("#vgpvw").clientWidth - 20, k = Math.min(1, w / 794); sc.style.transform = `scale(${k})`; sc.style.width = "794px"; sc.style.marginLeft = Math.max(10, (vg$("#vgpvw").clientWidth - 794 * k) / 2) + "px"; vg$("#vgpvw").style.height = (n * 1133 * k + 10) + "px"; };
+  fit(); window.onresize = () => document.getElementById("vg") && vgStep === 4 && fit();
+}
+async function vgPDF(num) {
+  await need("jspdf", "h2c");
+  let off = document.getElementById("vgoff"); if (!off) { off = document.createElement("div"); off.id = "vgoff"; document.body.appendChild(off); }
+  vgPaginate(off, vgAtoms(num));
+  const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: "mm", format: "a4", compress: true }), P = off.querySelectorAll(".vg-pg");
+  for (let i = 0; i < P.length; i++) { const c = await html2canvas(P[i], { scale: 1.7, backgroundColor: "#ffffff", logging: false });
+    if (i) doc.addPage(); doc.addImage(c.toDataURL("image/jpeg", .82), "JPEG", 0, 0, 210, 297); }
+  off.innerHTML = "";
+  return doc;
+}
+
+/* ---------- validation : numéro, registre, PDF ---------- */
+async function vgValider() {
+  const manque = vgAll().filter(p => !p.r).length;
+  if (!VG.date) { vgGo(0); return toast("Indique la date de vérification"); }
+  if (manque) { vgGo(2); return toast(manque + " point(s) de contrôle sans résultat"); }
+  const a = vgAvis(), R = vgAnomalies().filter(x => !x.auto), x = S.els.find(y => y.id === VG.elId);
+  const libelle = x ? x.libelle : vgT().court + " – VGP", detail = x && x.detail ? x.detail : vgDetail();
+  const m = modal("Validation de la VGP", "#E87722", `<p style="margin:0" id="vgst">Enregistrement dans le registre…</p><div class="err" id="vgerr"></div>`, `<button class="btn" data-x2>Fermer</button>`);
+  m.ov.querySelector("[data-x2]").onclick = m.close;
+  const st = t => m.q("#vgst").textContent = t;
+  try {
+    if (!VG.saved) {
+      const data = JSON.parse(JSON.stringify(VG)); data.idph = {}; Object.values(data.pts).forEach(p => delete p.ph); delete data.saved;
+      const r = await api("saveVGP", { entId: VGE.id, vgp: { elId: VG.elId, date: VG.date, type: VG.type, libelle, detail, per: vgT().per, resultat: a,
+        notes: VG_BAN[a].toLowerCase() + " (" + vgAll().filter(p => p.r === "surv").length + " à surveiller, " + vgAll().filter(p => p.r === "nc").length + " non conforme)",
+        reserves: R.map(z => ({ texte: `${libelle}${detail ? " (" + detail + ")" : ""} : ${z.lib} – ${z.act} (délai : ${z.delai})`, gravite: vgGrav(z) })), data: JSON.stringify(data) } });
+      VG.saved = { num: r.num, vid: r.vid, elId: r.el.id }; VG.num = r.num; VG.elId = r.el.id; vgDB.set("e_" + VGE.id, VG);
+    }
+    st("Création du PDF " + VG.num + "…");
+    const doc = await vgPDF(VG.num), blob = doc.output("blob"), name = `${VG.num}_${vgT().court.replace(/\W+/g, "_")}_${(VG.id.marque || "").replace(/\W+/g, "_")}_${VGE.nom.replace(/\W+/g, "_")}.pdf`;
+    st("Classement du PDF dans le Drive du client…");
+    const b64 = doc.output("datauristring").split(",")[1];
+    const r2 = await api("vgpPdf", { entId: VGE.id, vid: VG.saved.vid, name, data: b64 });
+    await reload();
+    await vgDB.del("e_" + VGE.id);
+    const url = URL.createObjectURL(blob);
+    m.q(".bd").innerHTML = `<p style="margin:0"><b>${esc(VG.num)}</b> enregistrée : l’engin est à jour dans le registre de ${esc(VGE.nom)}${R.length ? ", avec " + R.length + " réserve(s) à suivre" : ""}.</p>`;
+    m.ov.querySelector("footer").innerHTML = `${r2.url && r2.url !== "#" ? `<a class="btn" href="${esc(r2.url)}" target="_blank" rel="noopener">Ouvrir dans le Drive</a>` : ""}<a class="btn" href="${url}" download="${esc(name)}">Télécharger le PDF</a><button class="btn pri" id="vgok">Terminer</button>`;
+    m.q("#vgok").onclick = () => { m.close(); document.getElementById("vg")?.remove(); document.body.style.overflow = ""; VG = null; renderEnt(); };
+  } catch (z) { st(""); m.q("#vgerr").textContent = z.message + (VG.saved ? " – la VGP " + VG.num + " est déjà enregistrée : clique de nouveau sur « Valider et classer » pour relancer le PDF." : ""); }
+}
+
 </script>
 </body>
 </html>
