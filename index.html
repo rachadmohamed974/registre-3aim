@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Registre de sécurité – 3AIM CFA</title>
@@ -2258,5 +2260,39 @@ async function vgValider() {
 }
 
 </script>
+<script>
+/* ============ LIEN LAKAZ → REGISTRE (préparer le DUERP depuis la fiche société de Lakaz) ============
+   Lakaz ouvre registre.3aim.fr/?lakaz=… avec les infos de l'entreprise et le métier proposé (code NAF).
+   Le registre retrouve l'entreprise (SIRET ou nom) ou la crée, montre la fiche pré-remplie à valider,
+   puis ouvre l'onglet DUERP avec le métier déjà choisi. Rien n'est enregistré sans « Enregistrer ». */
+(function(){
+  const raw=new URLSearchParams(location.search).get("lakaz");
+  if(raw){try{sessionStorage.setItem("lakaz_imp",raw)}catch(e){}
+    try{const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}catch(e){}}
+  const dig=x=>String(x||"").replace(/\D/g,""),nrm=x=>String(x||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z0-9]/g,"");
+  let LK=null,tries=0;
+  function decode(r){const b=atob(String(r).replace(/-/g,"+").replace(/_/g,"/"));return JSON.parse(decodeURIComponent(escape(b)))}
+  function run(){const r=(()=>{try{return sessionStorage.getItem("lakaz_imp")}catch(e){return null}})();if(!r)return true;
+    if(!S.role)return false;
+    try{sessionStorage.removeItem("lakaz_imp")}catch(e){}
+    if(S.role!=="admin"){toast("Pour préparer un DUERP depuis Lakaz, connecte-toi avec le code administrateur.");return true}
+    let d;try{d=decode(r)}catch(e){toast("Lien Lakaz illisible : réessaie depuis Lakaz.");return true}
+    const ex=(dig(d.siret).length>=9&&S.ents.find(e=>dig(e.siret).slice(0,9)===dig(d.siret).slice(0,9)))||S.ents.find(e=>nrm(e.nom)&&nrm(e.nom)===nrm(d.nom));
+    const base=ex?{...ex}:{relances:"oui",verificateur:"RUNIXO CONTRÔLE"};
+    ["nom","forme","siret","adresse","cp","ville","activite","effectif","contact","email","tel"].forEach(k=>{if(d[k]&&!String(base[k]||"").trim())base[k]=d[k]});
+    LK={metier:d.metier||"",ent:ex?ex.id:null};
+    entForm(base);
+    toast(ex?"Entreprise déjà dans le registre : vérifie la fiche puis « Enregistrer »":"Fiche pré-remplie depuis Lakaz : vérifie puis « Enregistrer »");
+    return true}
+  const _api=api;
+  api=async function(action,p){const res=await _api(action,p);
+    if(action==="saveEnt"&&LK){const id=res&&res.ent&&res.ent.id;const m=LK.metier;LK=null;
+      if(id)setTimeout(()=>{V={view:"ent",ent:id,tab:"duerp"};render();
+        setTimeout(()=>{const sel=document.getElementById("du_m");if(sel&&m){const i=DM.findIndex(x=>x[0]===m);if(i>=0){sel.value=String(i);sel.dispatchEvent(new Event("change"));toast("Métier proposé d'après le code NAF : "+m+" (modifiable)")}}},150)},150)}
+    return res};
+  const t=setInterval(()=>{tries++;if(run()||tries>80)clearInterval(t)},400);
+})();
+</script>
+
 </body>
 </html>
