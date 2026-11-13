@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-h";
+const APP_VER="2026-11-13-i";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2405,9 +2405,12 @@ const NAF_SRC={appris:"retenu lors d’un choix précédent pour ce code NAF",la
 const nafNorm=x=>{const m=String(x||"").toUpperCase().replace(/\s/g,"").match(/(\d{2})\.?(\d{2})([A-Z])/);return m?m[1]+"."+m[2]+m[3]:""};
 const nafOf=t=>nafNorm((String(t||"").match(/\b\d{2}\.?\d{2}\s?[A-Z]\b/)||[""])[0]);
 const dmOk=m=>DM.some(x=>x[0]===m);
-const NAFS={map:{},ent:{},srv:false};
-try{NAFS.map=JSON.parse(store.get("reg3aim_naf")||"{}")||{};NAFS.ent=JSON.parse(store.get("reg3aim_nafent")||"{}")||{}}catch(e){}
-function nafSaveLocal(){store.set("reg3aim_naf",JSON.stringify(NAFS.map));store.set("reg3aim_nafent",JSON.stringify(NAFS.ent))}
+const NAFS={map:{},ent:{},meta:{},srv:false};
+try{NAFS.map=JSON.parse(store.get("reg3aim_naf")||"{}")||{};NAFS.ent=JSON.parse(store.get("reg3aim_nafent")||"{}")||{};NAFS.meta=JSON.parse(store.get("reg3aim_meta")||"{}")||{}}catch(e){}
+function nafSaveLocal(){store.set("reg3aim_naf",JSON.stringify(NAFS.map));store.set("reg3aim_nafent",JSON.stringify(NAFS.ent));store.set("reg3aim_meta",JSON.stringify(NAFS.meta))}
+const metaGet=id=>NAFS.meta[id]||{};
+function metaSet(id,m){if(!id)return;const o=Object.assign({},metaGet(id),m);Object.keys(o).forEach(k=>{if(o[k]===""||o[k]==null)delete o[k]});if(Object.keys(o).length)NAFS.meta[id]=o;else delete NAFS.meta[id];nafSaveLocal();if(!DEMO)api("entMeta",{entId:id,meta:o}).catch(()=>toast("Abonnement gardé sur cet ordinateur seulement : mets à jour NAF.gs dans le moteur"))}
+const estAbo=id=>metaGet(id).ab==="1";
 function nafLearn(naf,m){naf=nafNorm(naf);if(!naf||!dmOk(m))return;NAFS.map[naf]=m;nafSaveLocal();if(!DEMO)api("nafLearn",{naf,metier:m}).catch(()=>{})}
 function nafSetEnt(id,naf){naf=nafNorm(naf);if(!id||!naf||NAFS.ent[id]===naf)return;NAFS.ent[id]=naf;nafSaveLocal();if(!DEMO)api("nafEnt",{entId:id,naf}).catch(()=>{})}
 const nafEnt=e=>e?(NAFS.ent[e.id]||nafOf(e.activite)):"";
@@ -2443,6 +2446,7 @@ async function duAuto(e,det,eff){const i=DM.findIndex(x=>x[0]===det.m),ok=i>=0;
     return true}
   const _api=api;
   api=async function(action,p){const isNew=action==="saveEnt"&&!!(p&&p.ent&&!p.ent.id);const res=await _api(action,p);
+    if(action==="saveEnt"&&res&&res.ent&&res.ent.id&&ABO_FORM.pending){const a=ABO_FORM.pending;ABO_FORM.pending=null;metaSet(res.ent.id,a)}
     if(action==="saveEnt"&&res&&res.ent&&res.ent.id&&NAF_FORM.pending!==null){const n=NAF_FORM.pending;NAF_FORM.pending=null;if(n)nafSetEnt(res.ent.id,n);else if(NAFS.ent[res.ent.id]){delete NAFS.ent[res.ent.id];nafSaveLocal()}if(LK&&n)LK.naf=n}
     let L0=null;
     if(action==="saveEnt"&&res&&res.ent&&res.ent.id){if(LK){L0=LK;LK=null}else if(isNew&&S.role==="admin")L0={metier:"",naf:NAFS.ent[res.ent.id]||"",activite:res.ent.activite||"",effectif:res.ent.effectif||""}}
@@ -2458,11 +2462,11 @@ async function duAuto(e,det,eff){const i=DM.findIndex(x=>x[0]===det.m),ok=i>=0;
     return res};
   const t=setInterval(()=>{tries++;if(run()||tries>80)clearInterval(t)},400);
   const t2=setInterval(()=>{if(S.role!=="admin"||DEMO){if(DEMO)clearInterval(t2);return}clearInterval(t2);
-    api("nafMaps").then(r=>{if(r&&r.map){NAFS.map=Object.assign({},r.map,NAFS.map);NAFS.ent=Object.assign({},r.ent||{},NAFS.ent);NAFS.srv=true;nafSaveLocal()}}).catch(()=>{})},1500);
+    api("nafMaps").then(r=>{if(r&&r.map){NAFS.map=Object.assign({},r.map,NAFS.map);NAFS.ent=Object.assign({},r.ent||{},NAFS.ent);if(r.meta)NAFS.meta=Object.assign({},NAFS.meta,r.meta);NAFS.srv=true;nafSaveLocal();if(V.view==="dash")render()}}).catch(()=>{})},1500);
 })();
 
 /* ---------- code NAF dans la fiche entreprise ---------- */
-const NAF_FORM={pending:null};
+const NAF_FORM={pending:null},ABO_FORM={pending:null};
 const _entForm=entForm;
 entForm=function(e){_entForm.apply(this,arguments);try{
   const act=document.getElementById("n_activite"),lab=act&&act.closest("label");if(!lab)return;
@@ -2471,6 +2475,10 @@ entForm=function(e){_entForm.apply(this,arguments);try{
   const inp=document.getElementById("n_naf"),h=document.getElementById("n_nafh");
   const show=()=>{const raw=inp.value.trim(),n=nafNorm(raw);if(!raw){h.textContent="Sert à proposer le bon type de DUERP.";return}if(!n){h.innerHTML='<span style="color:var(--bad)">Format attendu : 41.20A</span>';return}const d=nafDetect(n,"",act.value);h.textContent=d.m?"Type de DUERP : "+d.m:"Type non reconnu : tu le choisiras dans le DUERP."};
   inp.oninput=show;act.addEventListener("input",show);show();
+  if(S.role==="admin"){const ma=e&&e.id?metaGet(e.id):{};const row=inp.closest(".two");
+    row.insertAdjacentHTML("afterend",`<div class="two" style="align-items:end"><label style="display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#EEF7EF;cursor:pointer"><input type="checkbox" id="n_abo" ${ma.ab==="1"?"checked":""} style="width:18px;height:18px"> Abonné prévention (99 € HT/mois)</label><label class="f">Début de l’abonnement<input type="date" id="n_abod" value="${esc(ma.deb||"")}"></label></div>`);
+    const cb=document.getElementById("n_abo"),dd=document.getElementById("n_abod");cb.onchange=()=>{if(cb.checked&&!dd.value)dd.value=today()};
+    const bs=document.getElementById("n_s");if(bs)bs.addEventListener("click",()=>{ABO_FORM.pending={ab:cb.checked?"1":"",deb:cb.checked?(dd.value||today()):""}},true)}
   const btn=document.getElementById("n_s");if(btn)btn.addEventListener("click",()=>{const raw=inp.value.trim();NAF_FORM.pending=raw?nafNorm(raw):""},true);
   /* contrôle des doublons : même SIRET = bloqué ; même SIREN (autre établissement) ou même nom = confirmation */
   if(btn){let ok2=false;btn.addEventListener("click",ev=>{if(ok2){ok2=false;return}
@@ -2514,6 +2522,7 @@ async function sirFill(nafInp,show){const h=document.getElementById("n_sirh"),b=
   finally{b.disabled=false;b.textContent="🔎 Remplir depuis le SIRET"}}
 const _renderEnt=renderEnt;
 renderEnt=function(){_renderEnt.apply(this,arguments);try{const vb=document.getElementById("vgpN");if(vb&&S.role==="admin"&&!document.getElementById("epiN")&&typeof openEPI==="function"){vb.insertAdjacentHTML("afterend",'<button class="btn" id="epiN" title="Contrôle des EPI antichute (harnais, longes, connecteurs…) – rapport RUNIXO CONTRÔLE classé dans ce registre">Contrôle EPI</button>');const ee=S.ents.find(x=>x.id===V.ent);document.getElementById("epiN").onclick=()=>openEPI(ee)}}catch(z){}try{const e=S.ents.find(x=>x.id===V.ent),meta=document.querySelector(".hero .meta");if(!e||!meta||meta.querySelector("[data-naf]"))return;
+  if(estAbo(e.id)){const h=document.querySelector(".hero h1");if(h&&!h.querySelector("[data-abo]"))h.insertAdjacentHTML("beforeend",` <span data-abo class="pill" style="background:#E5F3EB;color:#1B5E20;font-size:13px;vertical-align:middle">★ Abonné prévention${metaGet(e.id).deb?" depuis le "+fr(metaGet(e.id).deb):""}</span>`)}
   const n=nafEnt(e);meta.insertAdjacentHTML("beforeend",`<div data-naf><span>Code NAF</span><br>${n?esc(n):S.role==="admin"?'<span style="color:var(--warn)">À renseigner (Modifier la fiche)</span>':"–"}</div>`)}catch(z){}};
 
 /* ---------- bandeaux du DUERP ---------- */
@@ -2553,6 +2562,18 @@ function duPill(id){const L=duList(id),P=(c,b,t)=>`<span class="pill" style="bac
   const d=L[0],v=L.find(x=>x.statut==="validé");
   if(d.statut==="validé")return d.date&&jours(addM(d.date,12))<0?P("#B42318","#FCE8E6","DUERP à mettre à jour"):P("#1B5E20","#E5F3EB","DUERP validé le "+fr(d.date));
   return P("#1F5FA8","#E8F0FB","DUERP brouillon v"+d.version+(v?" (v"+v.version+" validée)":""))}
+
+/* ---------- abonnés prévention sur le tableau de bord ---------- */
+let ABF="tous";
+const _duPill=duPill;duPill=function(id){return(estAbo(id)?`<span class="pill" style="background:#1B5E20;color:#fff">★ Abonné</span>`:"")+_duPill(id)};
+function aboFiltre(){const L=document.querySelectorAll("#el [data-e]");L.forEach(b=>{const a=estAbo(b.dataset.e);b.style.display=ABF==="abo"&&!a||ABF==="non"&&a?"none":""})}
+const _renderDash=renderDash;
+renderDash=function(){_renderDash.apply(this,arguments);try{const q=document.getElementById("q");if(!q||document.getElementById("abof"))return;
+  const n=S.ents.filter(e=>estAbo(e.id)).length,ca=n*99;
+  q.closest(".sec-h").insertAdjacentHTML("afterend",`<div id="abof" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><div class="quick" style="margin:0" role="group" aria-label="Filtrer les entreprises">${[["tous","Toutes"],["abo","★ Abonnés ("+n+")"],["non","Non abonnés"]].map(([k,l])=>`<button class="chip" data-abf="${k}" style="${ABF===k?"border-style:solid;border-color:#1B5E20;color:var(--ink);font-weight:600":""}">${l}</button>`).join("")}</div>
+    <span class="hint" style="margin-left:auto">${n} abonné${n>1?"s":""} · ${n} × 99 € = <b style="color:#1B5E20">${ca.toLocaleString("fr-FR")} € HT / mois</b> (${(ca*12).toLocaleString("fr-FR")} € HT / an)</span></div>`);
+  document.querySelectorAll("[data-abf]").forEach(b=>b.onclick=()=>{ABF=b.dataset.abf;document.getElementById("abof").remove();renderDash()});
+  q.addEventListener("input",()=>setTimeout(aboFiltre,0));aboFiltre()}catch(z){console.warn(z)}};
 
 /* ---------- compteur de temps (gardé sur cet ordinateur) ---------- */
 const TPS={k:"reg3aim_temps",d:null,last:Date.now(),tick:Date.now(),dirty:0};
