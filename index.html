@@ -1586,14 +1586,24 @@ async function pdfFlow(e,titre,make){
   clearInterval(clk);window.PFSTEP=null;
   if(!document.body.contains(m.ov))return;
   const url=URL.createObjectURL(r.blob),mo=Math.round(r.blob.size/1024);
-  m.q("#pf_b").outerHTML=`<div id="pf_b" style="width:100%"><iframe src="${url}#view=FitH" title="Aperçu du PDF" style="width:100%;height:68vh;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe><div class="hint" style="margin-top:6px">${esc(r.name)} · ${mo>1024?(mo/1024).toFixed(1)+" Mo":mo+" Ko"} · si l’aperçu reste blanc (téléphone), utilise « Ouvrir en grand ».</div><div class="err" id="pf_x"></div></div>`;
-  m.ov.querySelector("footer").innerHTML=`<button class="btn" data-x2>Fermer</button>${S.role==="lecture"?"":`<button class="btn" id="pf_d">Classer dans le Drive du client</button>`}<a class="btn" href="${url}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir en grand</a><button class="btn pri" id="pf_t">Télécharger</button>`;
+  m.q("#pf_b").outerHTML=`<div id="pf_b" style="width:100%"><div id="pf_v" role="region" aria-label="Aperçu du PDF" style="height:68vh;overflow:auto;background:#8A93A3;border-radius:8px;padding:10px;display:grid;gap:10px;justify-items:center;align-content:start"><div style="color:#fff;padding:20px">Affichage de l’aperçu…</div></div><div class="hint" style="margin-top:6px">${esc(r.name)} · ${mo>1024?(mo/1024).toFixed(1)+" Mo":mo+" Ko"}</div><div class="err" id="pf_x"></div></div>`;
+  m.ov.querySelector("footer").innerHTML=`<button class="btn" data-x2>Fermer</button>${S.role==="lecture"?"":`<button class="btn" id="pf_d">Classer dans le Drive du client</button>`}<button class="btn" id="pf_g">Ouvrir en grand</button><button class="btn pri" id="pf_t">Télécharger</button>`;
   m.ov.querySelector("[data-x2]").onclick=()=>{m.close();setTimeout(()=>URL.revokeObjectURL(url),60000)};
+  pfApercu(r.blob,m.q("#pf_v"));
+  m.q("#pf_g").onclick=ev=>{const g=md.dataset.g!=="1";md.dataset.g=g?"1":"";md.style.width=g?"100%":"min(1100px,100%)";md.style.maxHeight=g?"100vh":"";m.ov.style.padding=g?"0":"";m.q("#pf_v").style.height=g?"calc(100vh - 190px)":"68vh";ev.currentTarget.textContent=g?"Réduire":"Ouvrir en grand";pfApercu(r.blob,m.q("#pf_v"))};
   m.q("#pf_t").onclick=()=>{const a=document.createElement("a");a.href=url;a.download=r.name;document.body.appendChild(a);a.click();a.remove();toast("Téléchargé : "+r.name)};
   if(m.q("#pf_d"))m.q("#pf_d").onclick=async ev=>{const b=ev.currentTarget;if(b.disabled)return;b.disabled=true;b.textContent="Classement…";
     try{const x=await uploadFile(e,new File([r.blob],r.name,{type:"application/pdf"}),"doc");b.outerHTML=x&&x.url&&x.url!=="#"?`<a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener">✓ Classé – voir dans le Drive</a>`:`<span class="btn" style="cursor:default">✓ Classé dans le Drive</span>`;toast("PDF classé dans le Drive de "+e.nom)}
     catch(z){b.disabled=false;b.textContent="Classer dans le Drive du client";m.q("#pf_x").textContent="Classement impossible : "+z.message}};
 }
+LIBS.pdfjs="pdf.js/3.11.174/pdf.min.js";
+async function pfApercu(blob,box){ // aperçu dessiné page par page (ne dépend pas de la visionneuse PDF de Chrome)
+  try{await withTO(loadJS("pdfjs"),30000,"Chargement de l’aperçu");const L=window.pdfjsLib;L.GlobalWorkerOptions.workerSrc=CDN+"pdf.js/3.11.174/pdf.worker.min.js";
+    const pdf=await L.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;box.innerHTML="";
+    for(let i=1;i<=pdf.numPages;i++){if(!document.body.contains(box))return;const pg=await pdf.getPage(i),v1=pg.getViewport({scale:1}),w=Math.max(300,box.clientWidth-20),k=w/v1.width,dpr=Math.min(2,window.devicePixelRatio||1),vp=pg.getViewport({scale:k*dpr});
+      const c=document.createElement("canvas");c.width=Math.round(vp.width);c.height=Math.round(vp.height);c.style.width=w+"px";c.style.height=Math.round(v1.height*k)+"px";c.style.background="#fff";c.style.boxShadow="0 2px 8px rgba(0,0,0,.25)";c.setAttribute("aria-label","Page "+i);box.appendChild(c);
+      await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise}
+  }catch(z){console.warn(z);box.innerHTML=`<div style="color:#fff;padding:20px;text-align:center">L’aperçu ne peut pas s’afficher ici.<br>Utilise « Ouvrir en grand » ou « Télécharger » : le PDF est prêt.</div>`}}
 async function exportPDF(e){const doc=await buildPDF(e);await saveFile(pdfName(e),doc.output("blob"))}
 const pdfName=e=>`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`;
 function ficPage(doc,e,type,INK){
