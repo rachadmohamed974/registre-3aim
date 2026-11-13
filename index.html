@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-i";
+const APP_VER="2026-11-13-j";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -551,6 +551,9 @@ function demo(a,p){
    case"saveEPI":{DB.epSeq=DB.epSeq||43;const out=(p.kits||[]).map(k=>{DB.epSeq++;const lib="Kit EPI antichute – "+k.salarie;let el=DB.els.find(x=>x.entId===p.entId&&x.rub==="epi"&&x.libelle===lib);if(!el){el={id:rid("x"),entId:p.entId,rub:"epi",libelle:lib,per:12,doc:""};DB.els.push(el)}Object.assign(el,{detail:k.nb+" équipement(s)",dernier:p.date,prochain:addM(p.date,12),organisme:"RUNIXO CONTRÔLE",resultat:k.resultat,ref:"Rapport EPI N° "+DB.epSeq,notes:k.notes});(k.reserves||[]).forEach(r=>DB.res.push({id:rid("r"),entId:p.entId,elId:el.id,date:p.date,texte:r.texte,gravite:r.gravite,levee:"",preuve:""}));DB.ep=DB.ep||[];const pid=rid("p");DB.ep.push({id:pid,entId:p.entId,elId:el.id,num:String(DB.epSeq),date:p.date,salarie:k.salarie,data:k.data});log(p.entId,"Contrôle EPI N° "+DB.epSeq+" : "+k.salarie);return{salarie:k.salarie,num:String(DB.epSeq),pid,elId:el.id}});return{kits:out}}
    case"epiPdf":return{url:"#"};
    case"lastEPI":return{kits:(DB.ep||[]).filter(x=>x.entId===p.entId).reverse().map(x=>({salarie:x.salarie,num:x.num,date:x.date,data:x.data}))};
+   case"demandeSignature":{const d=(DB.du||[]).find(x=>x.id===p.duId);d.statut="à signer";log(d.entId,"DUERP envoyé au client pour signature");return{du:{...d},envoye:true}}
+   case"signerDuerp":{const d=(DB.du||[]).find(x=>x.id===p.duId);const o=JSON.parse(d.data||"{}");o.sign={v:String(d.version),nom:p.nom,fonction:p.fonction,date:today(),heure:"14:05",fid:"demo",par:who.role};DB.sigs=DB.sigs||{};DB.sigs[d.id]=p.sig;d.data=JSON.stringify(o);d.statut="validé";d.date=today();log(d.entId,"DUERP signé par "+p.nom);return{du:{...d}}}
+   case"sigImg":return{data:(DB.sigs||{})[p.duId]||""};
    case"seed":return{};
   }
 }
@@ -1286,7 +1289,10 @@ async function exportDUERP(e,d){
   doc.addPage();pg.fin=doc.getNumberOfPages();curT="";y=hdrD(doc,e,"Conclusion et engagement de l'employeur");
   y=T(y,"Le présent document unique a permis d'identifier, d'analyser et de hiérarchiser les risques professionnels auxquels sont exposés les salariés, en tenant compte des conditions réelles de travail, des mesures de prévention existantes et des exigences réglementaires. Il débouche sur un plan d'action priorisé destiné à réduire les risques à la source. C'est un document vivant, appelé à évoluer avec l'organisation, les techniques et les équipes.",10,W-28,14,5)+4;
   y=T(y,"Conformément aux articles L.4121-1 et suivants du Code du travail, l'employeur s'engage à mettre en œuvre les actions de prévention définies, à mobiliser les moyens nécessaires, à assurer la formation et l'information des salariés, à suivre la réalisation des actions et à mettre à jour le document unique au moins une fois par an ainsi qu'à chaque modification importante des conditions de travail.",10,W-28,14,5)+8;
-  doc.autoTable({...tbl,startY:y,head:[["","Nom","Date","Signature"]],body:[["Employeur",P(e.mandataire||e.contact||""),fr(d.date)||"",""],["IPRP / rédacteur",P(d.redacteur||""),fr(d.date)||"",""]],styles:{...tbl.styles,minCellHeight:26,fontSize:10},headStyles:{...tbl.headStyles,minCellHeight:7},columnStyles:{0:{cellWidth:40,fontStyle:"bold"},1:{cellWidth:80},2:{cellWidth:35}}});
+  const SG=o.sign&&String(o.sign.v)===String(d.version)?o.sign:null,SIGI=SG&&typeof SIGIMG!=="undefined"?SIGIMG[d.id]||"":"";
+  doc.autoTable({...tbl,startY:y,head:[["","Nom","Date","Signature"]],body:[["Employeur",P(SG?SG.nom+(SG.fonction?" – "+SG.fonction:""):(e.mandataire||e.contact||"")),SG?fr(SG.date):(fr(d.date)||""),""],["IPRP / rédacteur",P(d.redacteur||""),fr(d.date)||"",""]],styles:{...tbl.styles,minCellHeight:26,fontSize:10},headStyles:{...tbl.headStyles,minCellHeight:7},columnStyles:{0:{cellWidth:40,fontStyle:"bold"},1:{cellWidth:80},2:{cellWidth:35}},
+    didDrawCell:x=>{if(SG&&SIGI&&x.section==="body"&&x.row.index===0&&x.column.index===3){try{const pr=doc.getImageProperties(SIGI),hh=x.cell.height-4,ww=Math.min(x.cell.width-4,hh*pr.width/pr.height);doc.addImage(SIGI,"PNG",x.cell.x+2,x.cell.y+2,ww,ww*pr.height/pr.width)}catch(z){}}}});
+  if(SG){doc.setFont("helvetica","italic");doc.setFontSize(8.5);doc.setTextColor(110,118,132);doc.text(P(`Document validé et signé électroniquement par ${SG.nom}${SG.fonction?" ("+SG.fonction+")":""} le ${fr(SG.date)}${SG.heure?" à "+SG.heure:""} depuis son espace registre.3aim.fr, après lecture du document unique et de son plan d'action.`),14,doc.lastAutoTable.finalY+6,{maxWidth:W-28})}
   // sommaire
   doc.setPage(pg.som);y=hdrD(doc,e,"Sommaire")+6;
   const items=[["Informations générales",pg.inf],["Réglementation",pg.reg],["Méthodologie et cotation",pg.met],["Les unités de travail",pg.ut]].concat(o.units.map((u,i)=>[`Unité ${i+1} – ${u.nom} et plan d'action`,pg.u[i]])).concat([["Plan d'action global",pg.pg]]).concat(pg.idx?[["Index photographique",pg.idx]]:[]).concat([["Conclusion et signatures",pg.fin]]);
@@ -2530,6 +2536,7 @@ const _panelDuerp=panelDuerp;
 panelDuerp=function(e,pn){_panelDuerp(e,pn);if(V.dutour||S.role==="lecture")return;try{duBandeau(e,pn)}catch(z){console.warn(z)}};
 const BAN=(c,bg,h)=>`<div class="card" id="du_ban" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;margin-bottom:12px;border:1px solid ${c};border-left:6px solid ${c};background:${bg};border-radius:0 10px 10px 0">${h}</div>`;
 function duBandeau(e,pn){const L=duList(e.id);
+  if(!L.length&&S.role==="client")return;
   if(!L.length){/* formulaire de création : on propose le type */
     const naf=nafEnt(e),det=nafDetect(naf,"",e.activite),sel=pn.querySelector("#du_m");
     pn.insertAdjacentHTML("afterbegin",BAN(det.m?"#2E7D32":"#C2410C",det.m?"#EEF7EF":"#FFF4E5",`<div style="flex:1;min-width:220px">${det.m?`<b style="color:#1B5E20">Type proposé : ${esc(det.m)}${naf?` (NAF ${esc(naf)})`:""}</b><div class="hint">${esc(NAF_SRC[det.src]||"")}</div>`:`<b style="color:#9A3412">Type non reconnu${naf?` pour le code NAF ${esc(naf)}`:""}</b><div class="hint">Choisis le métier ci-dessous : il sera retenu pour ce code NAF.</div>`}</div>
@@ -2537,7 +2544,10 @@ function duBandeau(e,pn){const L=duList(e.id);
     if(sel&&det.m){const i=DM.findIndex(x=>x[0]===det.m);if(i>=0&&sel.value===""){sel.value=String(i);sel.dispatchEvent(new Event("change"))}}
     const c=pn.querySelector("#du_c");if(c)c.addEventListener("click",()=>{const v=sel&&sel.value,n=nafNorm(pn.querySelector("#du_naf").value);if(n){nafSetEnt(e.id,n);if(v!==""&&Number(v)>=0&&DM[v][0]!==det.m)nafLearn(n,DM[v][0])}},true);
     return}
-  const d=L.find(x=>x.id===V.duv)||L[0];if(d.statut==="validé")return;
+  const d=L.find(x=>x.id===V.duv)||L[0];
+  if(S.role==="client"){sigBandeauClient(e,d,pn);return}
+  if(d.statut==="validé"){const o0=duObj(d),sg=o0.sign&&String(o0.sign.v)===String(d.version)?o0.sign:null;if(sg)pn.insertAdjacentHTML("afterbegin",BAN("#2E7D32","#EEF7EF",`<div style="flex:1"><b style="color:#1B5E20">✍️ Validé et signé par ${esc(sg.nom)}${sg.fonction?" ("+esc(sg.fonction)+")":""} le ${fr(sg.date)}${sg.heure?" à "+esc(sg.heure):""}</b><div class="hint">${sg.par==="client"?"Signature faite par le client depuis son espace":"Signature recueillie par 3AIM CFA"}</div></div>`));return}
+  sigBandeauAdmin(e,d,pn);
   const o=duObj(d),naf=(o.det&&o.det.naf)||nafEnt(e),ok=o.det?o.det.ok:dmOk(d.metier),m=(o.det&&o.det.m)||d.metier,src=o.det?o.det.src:"";
   pn.insertAdjacentHTML("afterbegin",ok?BAN("#2E7D32","#EEF7EF",`<div style="flex:1;min-width:220px"><b style="color:#1B5E20">✅ Type détecté : ${esc(m)}${naf?` (NAF ${esc(naf)})`:""}</b><div class="hint">${esc(NAF_SRC[src]||"Version "+d.version+" en brouillon")}</div></div><button class="btn sm" id="du_chg">Changer</button>`)
     :BAN("#C2410C","#FFF4E5",`<div style="flex:1;min-width:220px"><b style="color:#9A3412">⚠️ Type non reconnu${naf?` pour le code NAF ${esc(naf)}`:""}</b><div class="hint">Un socle général a été créé (bureaux, stockage, nettoyage). Choisis le bon type : il sera retenu pour la prochaine fois.</div></div><button class="btn pri sm" id="du_chg" style="background:#C2410C;border-color:#C2410C">Choisir un type</button>`));
@@ -2556,11 +2566,53 @@ async function duChanger(e,d,naf,cur){const o=duObj(d);let n=0;try{n=(await load
     mm.q("#t_s").disabled=true;mm.q("#t_s").textContent="Enregistrement…";
     try{await saveDu(d);mm.close();V.duu=0;toast("Type enregistré"+(nf?" et retenu pour le NAF "+nf:""));renderEnt()}catch(z){mm.q("#t_x").textContent=z.message;mm.q("#t_s").disabled=false;mm.q("#t_s").textContent="Enregistrer"}}}
 
+/* ---------- validation et signature du DUERP par le client ---------- */
+const SIGIMG={};
+const _exportDUERP=exportDUERP;
+exportDUERP=async function(e,d){const o=duObj(d);if(o.sign&&String(o.sign.v)===String(d.version)&&o.sign.fid&&!SIGIMG[d.id]){try{SIGIMG[d.id]=(await api("sigImg",{duId:d.id})).data||""}catch(z){}}return _exportDUERP(e,d)};
+function sigMaj(r){if(!r||!r.du)return;const i=S.du.findIndex(x=>x.id===r.du.id);const n={...r.du};delete n._o;if(i>=0)S.du[i]=n;else S.du.push(n)}
+function sigBandeauAdmin(e,d,pn){const att=d.statut==="à signer";
+  pn.insertAdjacentHTML("afterbegin",BAN(att?"#6B21A8":"#1F5FA8",att?"#F3E8FF":"#E8F0FB",`<div style="flex:1;min-width:220px">${att?`<b style="color:#6B21A8">✍️ En attente de la signature du client</b><div class="hint">Le client a reçu le lien par mail${e.email?" ("+esc(e.email)+")":""}. Il valide et signe depuis son espace registre.</div>`:`<b style="color:#1F5FA8">DUERP terminé ? Fais-le valider et signer par le client</b><div class="hint">Il reçoit un mail avec le lien vers son registre, relit le document et signe avec le doigt ou la souris.</div>`}</div>
+    <button class="btn sm ${att?"":"pri"}" id="sig_env" ${att?"":'style="background:#1F5FA8;border-color:#1F5FA8"'}>${att?"Renvoyer le mail":"Envoyer au client pour validation"}</button><button class="btn sm ghost" id="sig_ici">Faire signer sur cet appareil</button>`));
+  pn.querySelector("#sig_env").onclick=async ev=>{const b=ev.currentTarget;if(!e.email&&!confirm("Pas d’adresse mail sur la fiche : le DUERP passera « à signer » sans mail. Le client devra ouvrir son registre avec son code. Continuer ?"))return;b.disabled=true;b.textContent="Envoi…";
+    try{const r=await api("demandeSignature",{duId:d.id});sigMaj(r);toast(r.envoye?"DUERP envoyé au client pour signature ("+e.email+")":"DUERP passé « à signer »");renderEnt()}catch(z){toast(z.message);b.disabled=false;b.textContent="Envoyer au client pour validation"}};
+  pn.querySelector("#sig_ici").onclick=()=>sigModal(e,d)}
+function sigBandeauClient(e,d,pn){const o=duObj(d),sg=o.sign&&String(o.sign.v)===String(d.version)?o.sign:null;
+  if(d.statut==="à signer")pn.insertAdjacentHTML("afterbegin",BAN("#6B21A8","#F3E8FF",`<div style="flex:1;min-width:220px"><b style="color:#6B21A8;font-size:17px">✍️ Votre document unique est prêt</b><div class="hint">Relisez-le, puis validez-le et signez-le en ligne : deux minutes suffisent.</div></div><button class="btn pri" id="sig_go" style="background:#6B21A8;border-color:#6B21A8">Relire et signer</button>`));
+  else if(sg)pn.insertAdjacentHTML("afterbegin",BAN("#2E7D32","#EEF7EF",`<div style="flex:1"><b style="color:#1B5E20">✍️ Document unique validé et signé par ${esc(sg.nom)} le ${fr(sg.date)}</b><div class="hint">Prochaine mise à jour avant le ${fr(addM(sg.date,12))}.</div></div>`));
+  const g=pn.querySelector("#sig_go");if(g)g.onclick=()=>sigModal(e,d)}
+function sigModal(e,d){const m=modal("Valider et signer le document unique","#6B21A8",`
+   <p style="margin:0">Document unique d’évaluation des risques professionnels de <b>${esc(e.nom)}</b> – version ${esc(d.version)}.</p>
+   <button class="btn" id="sg_lire" style="justify-self:start">📄 Relire le DUERP (aperçu)</button>
+   <label style="display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer"><input type="checkbox" id="sg_ok" style="width:18px;height:18px;margin-top:2px"> J’ai pris connaissance du document unique et de son plan d’action, et je m’engage à mettre en œuvre les actions de prévention prévues.</label>
+   <div class="two"><label class="f">Nom et prénom<input id="sg_nom" value="${esc(e.mandataire||e.contact||"")}"></label><label class="f">Fonction<input id="sg_fn" placeholder="Gérant, président…"></label></div>
+   <div><div class="hint" style="margin-bottom:4px">Signature (avec le doigt ou la souris)</div><canvas id="sg_c" style="width:100%;height:170px;border:2px dashed var(--line);border-radius:8px;background:#fff;touch-action:none;display:block" aria-label="Zone de signature"></canvas><button class="btn sm ghost" id="sg_eff" style="margin-top:4px">Effacer la signature</button></div>
+   <div class="err" id="sg_x"></div>`,`<button class="btn" data-x2>Annuler</button><button class="btn pri" id="sg_val" style="background:#6B21A8;border-color:#6B21A8">Valider et signer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.q("#sg_lire").onclick=()=>pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d));
+  const c=m.q("#sg_c");let drawn=false,down=false,last=null;
+  const fit=()=>{const r=c.getBoundingClientRect(),k=window.devicePixelRatio||1;c.width=Math.round(r.width*k);c.height=Math.round(r.height*k);const x=c.getContext("2d");x.scale(k,k);x.lineWidth=2.4;x.lineCap="round";x.lineJoin="round";x.strokeStyle="#14213D";drawn=false};setTimeout(fit,30);
+  const pt=ev=>{const r=c.getBoundingClientRect();return[ev.clientX-r.left,ev.clientY-r.top]};
+  c.onpointerdown=ev=>{down=true;last=pt(ev);c.setPointerCapture(ev.pointerId)};
+  c.onpointermove=ev=>{if(!down)return;const p=pt(ev),x=c.getContext("2d");x.beginPath();x.moveTo(last[0],last[1]);x.lineTo(p[0],p[1]);x.stroke();last=p;drawn=true};
+  c.onpointerup=c.onpointercancel=()=>{down=false};
+  m.q("#sg_eff").onclick=fit;
+  m.q("#sg_val").onclick=async ev=>{const b=ev.currentTarget,x=m.q("#sg_x");x.textContent="";
+    if(!m.q("#sg_ok").checked)return x.textContent="Coche la case « J’ai pris connaissance… ».";
+    const nom=m.q("#sg_nom").value.trim();if(!nom)return x.textContent="Indique le nom du signataire.";if(!drawn)return x.textContent="Signe dans le cadre.";
+    const k=Math.min(1,700/c.width),t=document.createElement("canvas");t.width=Math.round(c.width*k);t.height=Math.round(c.height*k);t.getContext("2d").drawImage(c,0,0,t.width,t.height);const sig=t.toDataURL("image/png");
+    b.disabled=true;b.textContent="Enregistrement…";
+    try{const r=await api("signerDuerp",{duId:d.id,nom,fonction:m.q("#sg_fn").value.trim(),sig});sigMaj(r);SIGIMG[d.id]=sig;m.close();toast("Document unique validé et signé");renderEnt();
+      const d2=S.du.find(z=>z.id===d.id);
+      pdfFlow(e,"Document unique signé – version "+d.version,async()=>{const res=await exportDUERP(e,d2);try{await uploadFile(e,new File([res.blob],res.name.replace(/\.pdf$/,"_signe.pdf"),{type:"application/pdf"}),"doc")}catch(z){}return res})}
+    catch(z){x.textContent=z.message;b.disabled=false;b.textContent="Valider et signer"}}}
+
 /* ---------- état du DUERP sur le tableau de bord ---------- */
 function duPill(id){const L=duList(id),P=(c,b,t)=>`<span class="pill" style="background:${b};color:${c}">📋 ${t}</span>`;
   if(!L.length)return P("#9A3412","#FFF4E5","DUERP à créer");
   const d=L[0],v=L.find(x=>x.statut==="validé");
   if(d.statut==="validé")return d.date&&jours(addM(d.date,12))<0?P("#B42318","#FCE8E6","DUERP à mettre à jour"):P("#1B5E20","#E5F3EB","DUERP validé le "+fr(d.date));
+  if(d.statut==="à signer")return P("#6B21A8","#F3E8FF","DUERP v"+d.version+" à signer par le client");
   return P("#1F5FA8","#E8F0FB","DUERP brouillon v"+d.version+(v?" (v"+v.version+" validée)":""))}
 
 /* ---------- abonnés prévention sur le tableau de bord ---------- */
