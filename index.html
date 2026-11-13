@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-w";
+const APP_VER="2026-11-13-x";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2925,7 +2925,7 @@ function epBuild(host,nums,opt){opt=opt||{};host.innerHTML="";const K=EP.kits.fi
 const EPLIST={};
 async function epListe(e,pn){const box=document.createElement("div");box.id="eplist";box.style.marginTop="22px";pn.appendChild(box);
   if(!EPLIST[e.id]){box.innerHTML=`<div class="card" style="padding:14px"><span class="hint">Chargement des rapports de contrôle…</span></div>`;
-    try{EPLIST[e.id]=(await api("listEPI",{entId:e.id})).rows||[]}catch(z){box.innerHTML="";return}}
+    try{EPLIST[e.id]=(await api("listEPI",{entId:e.id})).rows||[]}catch(z){box.innerHTML=S.role==="admin"?`<div class="card" style="padding:14px;border-left:5px solid #B42318"><b>Les rapports de contrôle EPI ne peuvent pas s’afficher</b><div class="hint">Le moteur n’a pas encore la mise à jour (fichier EPI.gs + nouvelle version du déploiement). Message du moteur : ${esc(z.message)}</div></div>`:"";return}}
   if(!document.body.contains(box))return;const L=EPLIST[e.id];if(!L.length){box.innerHTML="";return}
   const par={};L.forEach(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}x._o=o;(par[x.date]=par[x.date]||[]).push(x)});
   const D=Object.keys(par).sort().reverse(),et={ok:"OK",surv:"À surveiller",rebut:"Rebut"},col={ok:"var(--ok)",surv:"var(--warn)",rebut:"var(--bad)"};
@@ -3167,7 +3167,7 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
   function liste(){const L=document.getElementById("sbl");if(!L)return;const f=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(),ok=t=>!f||String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(f);
     if(onglet==="cli"){
       const tous=docs(),dossiers=e=>{const D=tous.filter(x=>x.ent===e.id),epiL=EPLIST[e.id];
-        const epi=epiL?epiL.flatMap(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}return(x.pdf?[{d:String(x.date).slice(0,10),titre:"N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,url:x.pdf,sal:1,rid:x.id}]:[]).concat(o.recap?[{d:String(x.date).slice(0,10),titre:"Récapitulatif du contrôle",url:o.recap,rec:1}]:[])}).filter((x,i,a)=>a.findIndex(y=>y.url===x.url)===i):D.filter(x=>x.t==="epi");
+        const epi=epiL&&epiL.length?epiL.flatMap(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}return(x.pdf?[{d:String(x.date).slice(0,10),titre:"N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,url:x.pdf,sal:1,rid:x.id}]:[]).concat(o.recap?[{d:String(x.date).slice(0,10),titre:"Récapitulatif du contrôle",url:o.recap,rec:1}]:[])}).filter((x,i,a)=>a.findIndex(y=>y.url===x.url)===i):D.filter(x=>x.t==="epi");
         const duV=duList(e.id).map(d=>({d:String(d.date||"").slice(0,10),titre:"Version "+d.version+" – "+(d.statut==="validé"?"validée":d.statut==="à signer"?"à signer":"brouillon"),du:d.id,ent:e.id}));
         return[["duerp","📋","Document unique",duV],["vgp","🏗️","VGP – levage",D.filter(x=>x.t==="vgp")],["epi","🦺","EPI antichute",epi],["reg","📒","Registre",D.filter(x=>x.t!=="vgp"&&x.t!=="epi"&&x.t!=="duerp")]]};
       const docH=(x,eid)=>`<div style="display:flex;align-items:center"><button class="sb-doc" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${eid}"><span aria-hidden="true">📄</span><span style="flex:1;min-width:0">${esc(x.titre)}<small>${x.d?fr(x.d):""}</small></span></button>${x.rid?`<button class="btn sm" data-sbrev="${x.rid}" data-sbre="${eid}" title="Compléter ce rapport (ajouter une pièce)" style="margin-right:10px;white-space:nowrap">✏️ Compléter</button>`:""}</div>`;
@@ -3176,7 +3176,7 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
         (o?`<button class="sb-f" data-sbfiche="${e.id}" style="color:#1F5FA8">↗ Ouvrir la fiche</button>`+dossiers(e).map(([k,i2,n,L])=>{const key=e.id+"|"+k,oo=OUVF.has(key);
           let inner="";if(oo){if(k==="epi"){const par={};L.forEach(x=>(par[x.d]=par[x.d]||[]).push(x));inner=Object.keys(par).sort().reverse().map(d=>`<div class="sb-sub">📅 Contrôle du ${d?fr(d):"?"}</div>`+par[d].sort((a,b)=>(b.rec||0)-(a.rec||0)).map(x=>docH(x,e.id)).join("")).join("")}
             else inner=L.slice().sort((a,b)=>String(b.d).localeCompare(String(a.d))).map(x=>docH(x,e.id)).join("");if(!L.length)inner=`<div class="sb-sub" style="color:var(--ink3);font-weight:400">Aucun document</div>`}
-          return `<button class="sb-f ${L.length?"":"vide"}" data-sbf="${key}" aria-expanded="${oo}"><span aria-hidden="true">${oo?"▾":"▸"} ${i2}</span>${n}<span class="n">${k==="epi"&&!EPLIST[e.id]?"…":L.length}</span></button>`+inner}).join(""):"")}).join("");
+          return `<button class="sb-f ${L.length?"":"vide"}" data-sbf="${key}" aria-expanded="${oo}"><span aria-hidden="true">${oo?"▾":"▸"} ${i2}</span>${n}<span class="n">${k==="epi"&&!EPLIST[e.id]&&!L.length?"…":L.length}</span></button>`+inner}).join(""):"")}).join("");
       if(f){const nomE=id=>(S.ents.find(z=>z.id===id)||{}).nom||"",epiT=[];
         Object.keys(EPLIST).forEach(id=>(EPLIST[id]||[]).forEach(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}if(!x.pdf)return;
           const cle=(o.items||[]).map(it=>[(EP_T[it.type]||{}).n,it.marque,it.modele,it.serie].join(" ")).join(" ");
@@ -3187,7 +3187,7 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
       L.querySelectorAll("[data-sbt]").forEach(x=>x.onclick=()=>{const id=x.dataset.sbt;OUV.has(id)?OUV.delete(id):OUV.add(id);liste()});
       L.querySelectorAll("[data-sbfiche]").forEach(x=>x.onclick=()=>{V={view:"ent",ent:x.dataset.sbfiche,tab:"id"};render();scrollTo(0,0);if(innerWidth<=1100){ouvert=false;dessine()}});
       L.querySelectorAll("[data-sbf]").forEach(x=>x.onclick=async()=>{const k=x.dataset.sbf;OUVF.has(k)?OUVF.delete(k):OUVF.add(k);const [eid,t]=k.split("|");
-        if(t==="epi"&&!EPLIST[eid]&&OUVF.has(k)){liste();try{EPLIST[eid]=(await api("listEPI",{entId:eid})).rows||[]}catch(z){EPLIST[eid]=[]}}liste()});
+        if(t==="epi"&&!EPLIST[eid]&&OUVF.has(k)){liste();try{EPLIST[eid]=(await api("listEPI",{entId:eid})).rows||[]}catch(z){EPLIST[eid]=[];toast("Le moteur ne connaît pas encore la liste des rapports EPI : installe le nouveau EPI.gs et une nouvelle version du déploiement.")}}liste()});
       L.querySelectorAll("[data-sbent]").forEach(x=>x.onclick=()=>{if(x.dataset.sbu){window.open(x.dataset.sbu,"_blank","noopener");return}const d=S.du.find(z=>z.id===x.dataset.sbdu),e=S.ents.find(z=>z.id===x.dataset.sbent);if(d&&e)pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d))})}
     else{const D=docs().filter(x=>ok(x.titre+" "+x.nom)).slice(0,80);let jour="";
       L.innerHTML=D.map(x=>{const h=x.d!==jour?`<div class="sb-d">📅 ${x.d?fr(x.d):"Sans date"}</div>`:"";jour=x.d;return h+`<button class="sb-i" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${x.ent}"><span aria-hidden="true">${ic[x.t]||"📄"}</span><div style="flex:1;min-width:0"><div class="t">${esc(x.titre)}</div><div class="k">${esc(x.nom)}</div></div></button>`}).join("")||`<p class="hint" style="padding:12px 14px">Aucun document pour l’instant.</p>`;
