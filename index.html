@@ -573,7 +573,7 @@ function renderEnt(){
   if($("#bk"))$("#bk").onclick=()=>{V={view:"dash"};render()};
   if(!ro){$("#ph").onclick=()=>$("#phf").click();$("#phf").onchange=ev=>uploadPhoto(e,ev.target.files[0]);$("#ef").onclick=()=>entForm(e);$("#dep").onclick=()=>$("#depf").click();$("#depf").onchange=ev=>deposer(e,ev.target.files[0])}
   if(adm){$("#vgpN").onclick=()=>openVGP(e);$("#ac").onclick=()=>access(e);$("#qr").onclick=()=>etiquettes(e)}
-  $("#duB").onclick=()=>{V.tab="duerp";V.dutour=false;renderEnt();document.querySelector(".tabs")?.scrollIntoView({behavior:"smooth",block:"start"})};$("#xp").onclick=()=>exportPDF(e);$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
+  $("#duB").onclick=()=>{V.tab="duerp";V.dutour=false;renderEnt();document.querySelector(".tabs")?.scrollIntoView({behavior:"smooth",block:"start"})};$("#xp").onclick=()=>pdfFlow(e,"Registre de sécurité",async()=>{const doc=await buildPDF(e);return{name:pdfName(e),blob:doc.output("blob")}});$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
   if(!S.photos[e.id]&&e.photoId){const pc=store.get("reg3aim_ph_"+e.id+"_"+e.photoId);if(pc)S.photos[e.id]=pc}
   if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;store.set("reg3aim_ph_"+e.id+"_"+e.photoId,r.data);if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
   const pn=$("#pn");
@@ -929,7 +929,7 @@ function panelDuerp(e,pn){
     <div class="bt">${ro?"":`${r.fait?"":`<button class="btn sm" data-ok="${r.id}">Réalisé</button>`}${REG_FAM[r.fam]?`<button class="btn sm ghost" data-rg="${r.id}" title="Suivre dans le registre">→ Registre</button>`:""}<button class="btn sm ghost" data-rk="${r.id}">Modifier</button>`}</div></div>`}).join("")||`<div class="card empty">Aucun risque dans cette unité.</div>`}</div>`:`<div class="card empty">Ajoute une première unité de travail.</div>`}`;
   if($("#du_v"))$("#du_v").onchange=ev=>{V.duv=ev.target.value;V.duu=0;renderEnt()};
   pn.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{V.duu=Number(b.dataset.u);renderEnt()});
-  $("#du_pdf").onclick=()=>exportDUERP(e,d);$("#du_tr").onclick=()=>{V.dutour=true;renderEnt()};
+  $("#du_pdf").onclick=()=>pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d));$("#du_tr").onclick=()=>{V.dutour=true;renderEnt()};
   if(u){const st=$("#du_ph"),show=()=>{const K=(PH[d.id]||[]).filter(p=>p.keep==="oui"&&p.unit===u.id);st.innerHTML=K.length?`<div class="hint" style="margin:2px 0 4px">Constats photographiques de l’unité</div><div class="strip">${K.map(p=>`<button class="ph kept" data-ph="${p.id}"><img src="${thumbSrc(p)}" alt=""><span class="ph-n">${pnum(p.n)}</span><span class="ph-c">${esc(p.cap)}</span></button>`).join("")}</div>`:"";st.querySelectorAll("[data-ph]").forEach(b=>b.onclick=()=>photoForm(e,d,PH[d.id].find(p=>p.id===b.dataset.ph),()=>renderEnt()))};if(PH[d.id])show();else loadPhotos(d).then(show).catch(()=>{})}
   if(ro)return;
   const persist=async msg=>{try{await saveDu(d);if(msg)toast(msg);renderEnt()}catch(z){toast(z.message)}};
@@ -1116,7 +1116,7 @@ function hdrD(doc,e,title,sub){const W=doc.internal.pageSize.getWidth(),a=hex("#
   doc.setFillColor(...hex(DG));doc.rect(12,18,4,sub?14:10,"F");doc.setTextColor(...hex(DGD));doc.setFont("helvetica","bold");doc.setFontSize(17);doc.text(P(title),19,25);
   if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(110,118,132);doc.text(P(sub),19,30.5)}return sub?38:34}
 async function exportDUERP(e,d){
-  toast("Préparation du DUERP…");await need("autotable");
+  await need("autotable");
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",orientation:"landscape"}),W=297,H=210,o=duObj(d),INK=[20,33,61],G1=hex(DGD),G2=hex(DG);
   let PHS=[];try{PHS=await loadPhotos(d)}catch(x){}
   const KEEP=PHS.filter(p=>p.keep==="oui").sort((a,b)=>Number(a.n)-Number(b.n));
@@ -1133,7 +1133,7 @@ async function exportDUERP(e,d){
   [e.activite,[e.adresse,e.cp,e.ville].filter(Boolean).join(" "),d.effectif?d.effectif+" salariés":"","Version "+d.version+(d.date?" – validée le "+fr(d.date):" – document de travail")].filter(Boolean).forEach(l=>{const t=doc.splitTextToSize(P(l),96);doc.text(t,14,cy);cy+=t.length*5+1});
   doc.setFontSize(8.5);doc.text(P("Réalisé par "+(d.redacteur||"3AIM CFA")),14,192);doc.text(P(ORG.adr+" · "+ORG.tel),14,197);
   const px=128,py=16,pw=156,ph=178;doc.setFillColor(243,246,243);doc.rect(px,py,pw,ph,"F");
-  if(photo)doc.addImage(await cropTo(photo,pw/ph),"JPEG",px,py,pw,ph);else{doc.setTextColor(150,158,172);doc.setFontSize(11);doc.text("Photo de l'entreprise",px+pw/2,py+ph/2,{align:"center"})}
+  let phOK=false;if(photo){try{doc.addImage(await cropTo(photo,pw/ph),"JPEG",px,py,pw,ph);phOK=true}catch(z){console.warn("Photo de couverture ignorée :",z);toast("La photo de l’entreprise n’a pas pu être lue : le PDF est fait sans elle.")}}if(!phOK){doc.setTextColor(150,158,172);doc.setFontSize(11);doc.text("Photo de l'entreprise",px+pw/2,py+ph/2,{align:"center"})}
   // informations générales
   doc.addPage();let y=hdrD(doc,e,"Informations générales");const pg={inf:2};
   doc.autoTable({...tbl,startY:y,theme:"plain",body:[["Entreprise",e.nom],["Adresse",[e.adresse,e.cp,e.ville].filter(Boolean).join(" ")],["SIRET",e.siret],["Activité",e.activite],["Métier de référence",d.metier||"–"],["Effectif",d.effectif?d.effectif+" salariés":"–"],["Responsable",e.mandataire||e.contact],["Rédacteur (IPRP)",d.redacteur],["Version",String(d.version)],["Date de validation",fr(d.date)||"Document de travail"],["Prochaine mise à jour",d.date?"Au plus tard le "+fr(addM(d.date,12))+", et à chaque changement important":"Après validation"]].map(([a,b])=>[a,P(b||"–")]),styles:{fontSize:10,cellPadding:2.6,textColor:INK,lineColor:[225,230,225],lineWidth:{bottom:.25}},columnStyles:{0:{cellWidth:62,textColor:[110,118,132]},1:{fontStyle:"bold"}},margin:{left:14,right:120}});
@@ -1207,7 +1207,7 @@ async function exportDUERP(e,d){
   items.forEach(([t,p],i)=>{const x0=14+(i<half?0:1)*(cw2+16),yy=y+(i%half)*sp;doc.setFillColor(...G2);doc.circle(x0+3,yy-1.5,2.2,"F");doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...INK);const tt=doc.splitTextToSize(P(t),cw2-24)[0];doc.text(tt,x0+8,yy);
     const tw=doc.getTextWidth(tt);doc.setDrawColor(200,205,214);doc.setLineDashPattern([.6,1.4],0);doc.line(x0+10+tw,yy-.8,x0+cw2-10,yy-.8);doc.setLineDashPattern([],0);doc.setTextColor(...G1);doc.text(String(p),x0+cw2,yy,{align:"right"})});
   const n=doc.getNumberOfPages();for(let i=2;i<=n;i++){doc.setPage(i);doc.setDrawColor(...G2);doc.setLineWidth(.6);doc.line(12,H-10,W-12,H-10);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(138,147,163);doc.text(P(`${e.nom} – DUERP version ${d.version}${d.date?" du "+fr(d.date):""}`),12,H-5.5);doc.text(`Page ${i} / ${n}`,W-12,H-5.5,{align:"right"})}
-  await saveFile(`DUERP_${e.nom.replace(/\W+/g,"_")}_v${d.version}.pdf`,doc.output("blob"));
+  return{name:`DUERP_${e.nom.replace(/\W+/g,"_")}_v${d.version}.pdf`,blob:doc.output("blob")};
 }
 
 /* ============ MODALES ============ */
@@ -1565,10 +1565,28 @@ function pageTextes(doc,e,RD,INK){
   });
 }
 async function cropTo(url,ratio){ // recadrage centré au format du cadre
-  const im=await new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=url});
+  url=String(url||"");if(url&&!/^(data:|blob:|https?:)/.test(url))url="data:image/jpeg;base64,"+url;
+  const im=await new Promise((ok,ko)=>{const i=new Image(),t=setTimeout(()=>ko(new Error("photo illisible")),10000);i.onload=()=>{clearTimeout(t);ok(i)};i.onerror=()=>{clearTimeout(t);ko(new Error("photo illisible"))};i.src=url});
+  if(!im.width||!im.height)throw new Error("photo illisible");
   let sw=im.width,sh=im.height;if(sw/sh>ratio)sw=sh*ratio;else sh=sw/ratio;
   const c=document.createElement("canvas"),k=Math.min(1,1600/sw);c.width=Math.round(sw*k);c.height=Math.round(sh*k);
   c.getContext("2d").drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,0,0,c.width,c.height);return c.toDataURL("image/jpeg",.9);
+}
+/* ---------- PDF : préparation puis aperçu, ouvrir, télécharger, classer dans le Drive ---------- */
+async function pdfFlow(e,titre,make){
+  const m=modal("PDF – "+esc(titre),"#2E7D32",`<div id="pf_b" style="min-height:120px;display:grid;place-items:center;text-align:center"><div><div style="font-size:20px;font-weight:600">Préparation du PDF…</div><div class="hint">Quelques secondes, ne ferme pas cette fenêtre.</div></div></div>`,`<button class="btn" data-x2>Fermer</button>`);
+  const md=m.ov.querySelector(".modal");md.style.width="min(1100px,100%)";
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  let r;try{r=await make()}catch(z){console.error(z);m.q("#pf_b").innerHTML=`<div style="text-align:left;width:100%"><p style="margin:0 0 8px;color:var(--bad);font-weight:600">Le PDF n’a pas pu être fait.</p><div class="calc" style="word-break:break-word"><b>${esc(z&&z.message||String(z))}</b></div><p class="hint">Fais une capture de ce message et envoie-la à Claude.</p></div>`;return}
+  if(!document.body.contains(m.ov))return;
+  const url=URL.createObjectURL(r.blob),mo=Math.round(r.blob.size/1024);
+  m.q("#pf_b").outerHTML=`<div id="pf_b" style="width:100%"><iframe src="${url}#view=FitH" title="Aperçu du PDF" style="width:100%;height:68vh;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe><div class="hint" style="margin-top:6px">${esc(r.name)} · ${mo>1024?(mo/1024).toFixed(1)+" Mo":mo+" Ko"} · si l’aperçu reste blanc (téléphone), utilise « Ouvrir en grand ».</div><div class="err" id="pf_x"></div></div>`;
+  m.ov.querySelector("footer").innerHTML=`<button class="btn" data-x2>Fermer</button>${S.role==="lecture"?"":`<button class="btn" id="pf_d">Classer dans le Drive du client</button>`}<a class="btn" href="${url}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir en grand</a><button class="btn pri" id="pf_t">Télécharger</button>`;
+  m.ov.querySelector("[data-x2]").onclick=()=>{m.close();setTimeout(()=>URL.revokeObjectURL(url),60000)};
+  m.q("#pf_t").onclick=()=>{const a=document.createElement("a");a.href=url;a.download=r.name;document.body.appendChild(a);a.click();a.remove();toast("Téléchargé : "+r.name)};
+  if(m.q("#pf_d"))m.q("#pf_d").onclick=async ev=>{const b=ev.currentTarget;if(b.disabled)return;b.disabled=true;b.textContent="Classement…";
+    try{const x=await uploadFile(e,new File([r.blob],r.name,{type:"application/pdf"}),"doc");b.outerHTML=x&&x.url&&x.url!=="#"?`<a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener">✓ Classé – voir dans le Drive</a>`:`<span class="btn" style="cursor:default">✓ Classé dans le Drive</span>`;toast("PDF classé dans le Drive de "+e.nom)}
+    catch(z){b.disabled=false;b.textContent="Classer dans le Drive du client";m.q("#pf_x").textContent="Classement impossible : "+z.message}};
 }
 async function exportPDF(e){const doc=await buildPDF(e);await saveFile(pdfName(e),doc.output("blob"))}
 const pdfName=e=>`Registre_securite_${e.nom.replace(/\W+/g,"_")}_${today()}.pdf`;
