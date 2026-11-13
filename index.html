@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-v";
+const APP_VER="2026-11-13-w";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -3195,6 +3195,8 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
   function garde(){try{localStorage.setItem("reg3aim_sb",ouvert?"1":"0")}catch(e){}}
   const _r=render;render=function(){_r.apply(this,arguments);try{dessine()}catch(z){console.warn(z)}};
   window.sbRafraichir=dessine;
+  /* afficher la barre tout de suite, même pendant le chargement */
+  const t0=setInterval(()=>{if(S.role){clearInterval(t0);if(!document.getElementById("sbar")&&!document.getElementById("sbtog"))try{dessine()}catch(z){}}},150);setTimeout(()=>clearInterval(t0),20000);
 })();
 </script>
 </body>
