@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-14-b";
+const APP_VER="2026-11-14-c";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2786,7 +2786,7 @@ function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rappo
   EP.kits.map((k,i)=>`<div class="ep-card" data-k="${k.id}"><div class="ep-kh"><input data-nom placeholder="NOM Prénom du salarié" value="${esc(k.nom)}" aria-label="Nom du salarié ${i+1}"><button class="btn sm danger ghost" data-kdel>Retirer</button></div>
    <div class="ep-strip">${k.photos.map((p,j)=>`<div class="ep-th" title="Photo ${j+1}"><img src="${p.d}" alt="Photo ${j+1}"><span>${j+1}</span><button class="del" data-pdel="${p.id}" aria-label="Supprimer la photo ${j+1}">✕</button></div>`).join("")||`<span class="hint">Aucune photo pour l’instant.</span>`}</div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-add1>+ Ajouter des photos</button><button class="btn" data-add2>📷 Prendre une photo</button>
-   <button class="btn pri" data-an ${k.photos.length&&k.nom.trim()&&!epBusy[k.id]?"":"disabled"}>Analyser avec Claude (${k.photos.length} photo${k.photos.length>1?"s":""})</button><span class="ep-busy" data-st>${epBusy[k.id]?`<b style="color:var(--orange)">${esc(epBusy[k.id])}</b>`:k.an?esc(k.an):""}</span></div>
+   <button class="btn pri" data-an ${k.photos.length&&!epBusy[k.id]?"":"disabled"}>Analyser avec Claude (${k.photos.length} photo${k.photos.length>1?"s":""})</button><span class="ep-busy" data-st>${epBusy[k.id]?`<b style="color:var(--orange)">${esc(epBusy[k.id])}</b>`:k.an?esc(k.an):""}</span></div>
    ${k.items.length?`<p class="hint" style="margin:8px 0 0">${k.items.length} équipement(s) dans le pré-rapport.</p>`:""}${epTrashH(k)}</div>`).join("")+
   (EP.rev?`<p class="hint">Révision du rapport N° ${esc(EP.rev.num)} : ajoute ou corrige les pièces de ce salarié.</p>`:`<button class="btn" id="ep_ak">+ Ajouter un salarié</button>`);
   if(M.querySelector("#ep_ak"))M.querySelector("#ep_ak").onclick=()=>{EP.kits.push(epKit(""));epSave();epRender();setTimeout(()=>{const l=[...M.querySelectorAll("[data-nom]")].pop();l&&l.focus()},50)};
@@ -2836,7 +2836,8 @@ function epCombien(k){return new Promise(res=>{const prev=k.attendu||{nb:"",det:
   m.ov.querySelector("[data-x2]").onclick=()=>{m.close();res(null)};
   m.q("#epc_ok").onclick=()=>{const nb=Number(n.value);if(!nb||nb<1){m.q("#epc_e").textContent="Indique le nombre d’équipements.";return}if(som()&&som()!==nb){m.q("#epc_e").textContent=`Le détail fait ${som()} pièce(s) et le total ${nb} : corrige l’un ou l’autre.`;return}
     k.attendu={nb,det};epSave();m.close();res(k.attendu)}})}
-async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySelector("[data-an]");if(k.items.some(x=>x.ia)&&!confirm("Relancer l’analyse ? Le pré-rapport de "+k.nom+" proposé par Claude sera remplacé (les équipements ajoutés à la main sont gardés)."))return;
+async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySelector("[data-an]");
+  if(!k.nom.trim()){const i=c.querySelector("[data-nom]");st.innerHTML=`<span style="color:var(--bad);font-weight:600">✍️ Écris d’abord le NOM Prénom du salarié dans la case en haut, puis relance l’analyse.</span>`;if(i){i.focus();i.style.outline="3px solid #B42318";setTimeout(()=>i.style.outline="",3000)}return}if(k.items.some(x=>x.ia)&&!confirm("Relancer l’analyse ? Le pré-rapport de "+k.nom+" proposé par Claude sera remplacé (les équipements ajoutés à la main sont gardés)."))return;
   const att=await epCombien(k);if(!att)return;
   /* sablier bien visible sur le bouton et dans la carte, avec le temps écoulé */
   const lab0=b.innerHTML,t0=Date.now();if(!document.getElementById("epprg_css"))epPrg("Préparation de l’analyse",0,1,1);
