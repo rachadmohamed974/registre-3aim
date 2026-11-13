@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-14-c";
+const APP_VER="2026-11-14-e";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -25,13 +25,13 @@ const APP_VER="2026-11-14-c";
 })();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Registre de sécurité & Document unique – 3AIM CFA</title>
+<title>RUNIXO CONTRÔLE – Registre de sécurité</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#12213F;--orange:#E87722;--gold:#F5A623;--red:#C62828;--red-d:#7A0E0E;--grad:linear-gradient(100deg,#5E0A0A 0%,#9B1515 45%,#D32F2F 100%);
+  --navy:#12213F;--orange:#E87722;--gold:#F5A623;--red:#C62828;--red-d:#7A0E0E;--grad:linear-gradient(100deg,#0B1630 0%,#12213F 55%,#1A3A6B 100%);
   --bg:#F3F4F6;--card:#FFFFFF;--ink:#14213D;--ink2:#4B5563;--ink3:#8A93A3;--line:#E3E6EB;
   --ok:#1E7F4F;--okbg:#E5F3EB;--warn:#A86400;--warnbg:#FDF1DC;--bad:#B42318;--badbg:#FCE8E6;--none:#6B7280;--nonebg:#EEF0F3;
   --r-inst:#1F5FA8;--r-lev:#D99A00;--r-epi:#E87722;--r-inc:#C62828;--r-form:#1E7F4F;--r-obs:#5B6474;--r-id:#12213F;
@@ -47,10 +47,11 @@ h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-wei
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--grad);color:#fff;border-bottom:3px solid var(--gold)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--grad);color:#fff;border-bottom:3px solid #E87722}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:11;background:#5E0A0A}
 .top .in{max-width:1180px;margin:auto;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.mark.rx{background:transparent;width:36px;height:40px}
 .mark{width:36px;height:36px;border-radius:7px;background:var(--orange);display:grid;place-items:center;font-family:"Barlow Condensed";font-weight:700;font-size:17px;color:#fff}
 .brand b{font-family:"Barlow Condensed";font-size:20px;font-weight:600;display:block;line-height:1}
 .brand small{color:#C9D2E3;font-size:12.5px}
@@ -58,8 +59,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .top .who{font-size:13px;color:#C9D2E3}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:8px 13px;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:14px;transition:background .15s}
 .btn:hover{background:var(--bg)}
-.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
-.btn.pri:hover{background:#A31515}
+.btn.pri{background:#E87722;border-color:#E87722;color:#fff}
+.btn.pri:hover{background:#C9621A}
 .btn.dk{background:transparent;border-color:rgba(255,255,255,.45);color:#fff}
 .btn.dk:hover{background:rgba(255,255,255,.14)}
 .btn.sm{padding:5px 10px;font-size:13px}
@@ -590,11 +591,11 @@ async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,e
 function logout(){store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};render()}
 
 function renderLogin(msg){
-  $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark">3A</div><div><b style="color:var(--ink)">3AIM CFA</b><small style="color:var(--ink2)">Registre de sécurité &amp; Document unique</small></div></div>
+  $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark rx"><svg viewBox="0 0 40 46" width="30" height="34" aria-hidden="true"><path d="M20 2 37 8v13c0 11-7.3 19.3-17 23C10.3 40.3 3 32 3 21V8z" fill="#12213F" stroke="#fff" stroke-width="2.4"/><path d="m11.5 22.5 6 6 11.5-12.5" fill="none" stroke="#E87722" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b style="color:var(--ink)">RUNIXO CONTRÔLE</b><small style="color:var(--ink2)">Registre de sécurité · VGP · EPI antichute · DUERP</small></div></div>
   <h1 style="margin-top:18px">Votre registre de sécurité, toujours à jour</h1></div>
   <form class="bd" id="lf"><label class="f">Code d’accès<input id="lc" autocomplete="off" placeholder="ENT-XXXXXX" required></label>
   <div class="err" id="le">${esc(msg||"")}</div><button class="btn pri" style="justify-content:center">Ouvrir le registre</button>
-  ${DEMO?`<p class="hint" style="margin:0">Mode démonstration : entre le code <span class="mono">DEMO</span> pour l’espace 3AIM CFA. Les codes entreprise s’affichent dans « Accès client » de chaque fiche.</p>`:`<p class="hint" style="margin:0">Le code vous a été transmis par 3AIM CFA. Besoin d’aide : ${ORG.tel}</p>`}
+  ${DEMO?`<p class="hint" style="margin:0">Mode démonstration : entre le code <span class="mono">DEMO</span> pour l’espace 3AIM CFA. Les codes entreprise s’affichent dans « Accès client » de chaque fiche.</p>`:`<p class="hint" style="margin:0">Le code vous a été transmis par RUNIXO CONTRÔLE. Besoin d’aide : 0692 09 85 92 · <a href="mailto:controle@3aim.fr">controle@3aim.fr</a></p>`}
   </form></div></div>`;
   $("#lf").onsubmit=async e=>{e.preventDefault();const c=$("#lc").value;if(!c.trim()){$("#le").textContent="Entre ton code d’accès.";return}
     $("#le").textContent="Connexion…";try{await login(c)}catch(x){$("#le").textContent=x.message}};
@@ -605,9 +606,9 @@ function renderLogin(msg){
 function render(){
   if(!S.role)return renderLogin();
   const ent=S.ents.find(e=>e.id===S.entId);
-  const who=S.role==="admin"?"Espace 3AIM CFA":S.role==="client"?"Espace entreprise – "+(ent?.nom||""):"Consultation – "+(ent?.nom||"");
+  const who=S.role==="admin"?"Espace RUNIXO CONTRÔLE":S.role==="client"?"Espace entreprise – "+(ent?.nom||""):"Consultation – "+(ent?.nom||"");
   $("#app").innerHTML=`${DEMO?`<div class="demo">Mode démonstration : les données ne sont pas enregistrées. Colle l’URL de ton Apps Script dans le fichier pour passer en réel.</div>`:""}
-  <header class="top"><div class="in"><div class="brand" id="home"><div class="mark">3A</div><div><b>Registre de sécurité &amp; Document unique</b><small>3AIM CFA</small></div></div><div class="sp"></div>
+  <header class="top"><div class="in"><div class="brand" id="home"><div class="mark rx"><svg viewBox="0 0 40 46" width="30" height="34" aria-hidden="true"><path d="M20 2 37 8v13c0 11-7.3 19.3-17 23C10.3 40.3 3 32 3 21V8z" fill="#12213F" stroke="#fff" stroke-width="2.4"/><path d="m11.5 22.5 6 6 11.5-12.5" fill="none" stroke="#E87722" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>RUNIXO CONTRÔLE</b><small>Registre de sécurité · VGP · EPI antichute · DUERP</small></div></div><div class="sp"></div>
   <span class="who">${esc(who)}</span><button class="btn dk sm" id="out">Se déconnecter</button></div></header><main class="wrap" id="main"></main>`;
   $("#out").onclick=logout;$("#home").onclick=()=>{if(S.role==="admin"){V={view:"dash"};render()}};
   if(V.view==="machine")return renderMachine();
@@ -2996,7 +2997,7 @@ async function panelDocs(e,pn){const ty={vgp:"VGP – levage",epi:"EPI antichute
     if(x.pdf){epDocs.add(x.pdf);D.push({d,t:"epi",rev:x.id,titre:`Rapport EPI N° ${x.num}${o.rev?" – rév. "+o.rev:""} – ${x.salarie}`,sous:`${(o.items||[]).length} équipement(s) · prochain contrôle avant le ${fr(addM(d,12))}`,url:x.pdf})}
     if(o.recap&&!D.some(z=>z.url===o.recap)){epDocs.add(o.recap);D.push({d,t:"epi",titre:"Récapitulatif du contrôle EPI",sous:"Tous les salariés contrôlés ce jour-là",url:o.recap,top:1})}});
   els(e.id).forEach(x=>{if(!x.doc||x.doc==="#"||epDocs.has(x.doc))return;D.push({d:String(x.dernier||x.majLe||"").slice(0,10),t:x.rub==="lev"?"vgp":x.rub==="form"?"form":x.rub==="epi"?"epi":"verif",titre:x.libelle+(x.ref?" – "+x.ref:""),sous:[x.detail,x.organisme].filter(Boolean).join(" · "),url:x.doc})});
-  S.fic.filter(f=>f.entId===e.id&&f.doc&&f.doc!=="#").forEach(f=>D.push({d:String(f.date||"").slice(0,10),t:f.type==="perso"?"form":"autre",titre:f.a||"Document",sous:(FT[f.type]||{}).n||"",url:f.doc}));
+  S.fic.filter(f=>f.entId===e.id&&f.doc&&f.doc!=="#"&&f.type!=="plan").forEach(f=>D.push({d:String(f.date||"").slice(0,10),t:f.type==="hist"?({lev:"vgp",epi:"epi",form:"form"}[f.b]||"verif"):f.type==="perso"?"form":"autre",titre:f.a||"Document",sous:f.type==="hist"?"Rapport archivé"+(f.d?" · "+f.d:""):(FT[f.type]||{}).n||"",url:f.doc}));
   duList(e.id).filter(d=>d.statut==="validé").forEach(d=>D.push({d:String(d.date).slice(0,10),t:"duerp",titre:`Document unique – version ${d.version}`,sous:"Validé"+(d.date?" le "+fr(d.date):""),du:d.id}));
   const types=[...new Set(D.map(x=>x.t))],V2=D.filter(x=>DOCF==="tous"||x.t===DOCF).sort((a,b)=>String(b.d).localeCompare(String(a.d))||(b.top||0)-(a.top||0));
   const par={};V2.forEach(x=>(par[x.d||"sans date"]=par[x.d||"sans date"]||[]).push(x));
@@ -3188,7 +3189,7 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
     if(E.some(x=>(x.rub==="lev"||x.rub==="epi")&&/RUNIXO/i.test(x.organisme||"")))return["🔧 Contrôles seuls","#1F5FA8","#E8F0FB"];return["Registre","#6B7280","#EEF0F3"]}
   function docs(){const D=[],nom=id=>(S.ents.find(e=>e.id===id)||{}).nom||"";
     S.els.forEach(x=>{if(!x.doc||x.doc==="#")return;D.push({d:String(x.dernier||"").slice(0,10),t:x.rub==="lev"?"vgp":x.rub==="epi"?"epi":x.rub==="form"?"form":"verif",titre:x.libelle+(x.ref?" – "+x.ref:""),ent:x.entId,nom:nom(x.entId),url:x.doc})});
-    S.fic.forEach(f=>{if(f.doc&&f.doc!=="#")D.push({d:String(f.date||"").slice(0,10),t:f.type==="perso"?"form":"autre",titre:f.a||"Document",ent:f.entId,nom:nom(f.entId),url:f.doc})});
+    S.fic.forEach(f=>{if(f.doc&&f.doc!=="#")D.push({d:String(f.date||"").slice(0,10),t:f.type==="hist"?({lev:"vgp",epi:"epi",form:"form"}[f.b]||"verif"):f.type==="perso"?"form":"autre",titre:f.a||"Document",ent:f.entId,nom:nom(f.entId),url:f.doc})});
     S.du.filter(d=>d.statut==="validé").forEach(d=>D.push({d:String(d.date||"").slice(0,10),t:"duerp",titre:"Document unique – v"+d.version,ent:d.entId,nom:nom(d.entId),du:d.id}));
     return D.filter(x=>x.nom).sort((a,b)=>String(b.d).localeCompare(String(a.d)))}
   function dessine(){document.getElementById("sbar")?.remove();document.getElementById("sbtog")?.remove();document.body.classList.toggle("sb-on",ouvert&&S.role==="admin");
@@ -3241,6 +3242,93 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
   /* afficher la barre tout de suite, même pendant le chargement */
   const t0=setInterval(()=>{if(S.role){clearInterval(t0);if(!document.getElementById("sbar")&&!document.getElementById("sbtog"))try{dessine()}catch(z){}}},150);setTimeout(()=>clearInterval(t0),20000);
 })();
+</script>
+<script>
+/* ============ RUNIXO CONTRÔLE : contrôles à venir, planning, historique ============ */
+const PL_ST={prevu:"Prévu",fait:"Fait",annule:"Annulé"};
+const plans=()=>S.fic.filter(f=>f.type==="plan");
+const plNom=id=>(S.ents.find(e=>e.id===id)||{}).nom||"";
+function aVenir(){const L=[];S.els.forEach(x=>{if(x.rub!=="lev"&&x.rub!=="epi")return;const st=statut(x);if(!S.ents.some(e=>e.id===x.entId))return;
+  const j=x.prochain?jours(x.prochain):null;if(st==="nc"||st==="retard"||(j!==null&&j<=60))L.push({x,st,j:st==="nc"?-9999:j})});
+  return L.sort((a,b)=>a.j-b.j)}
+function planDe(elId){return plans().find(p=>p.d!=="annule"&&p.d!=="fait"&&String(p.b||"").split(",").includes(elId))}
+let PLV="liste",PLM=null;
+function blocRunixo(){const host=document.querySelector("#main .grid.kpis");if(!host||document.getElementById("rxbloc"))return;
+  const L=aVenir(),P=plans().filter(p=>p.d==="prevu");
+  host.insertAdjacentHTML("afterend",`<div class="card" id="rxbloc" style="padding:16px 18px;margin:16px 0;border-top:4px solid #E87722">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="margin:0;flex:1;font-size:22px">🗓️ Mes contrôles à venir <span class="hint" style="font-weight:400;font-size:14px">· RUNIXO CONTRÔLE</span></h2>
+    <div class="quick" style="margin:0"><button class="chip" data-plv="liste" style="${PLV==="liste"?"border-style:solid;border-color:#E87722;font-weight:700":""}">À faire (${L.length})</button><button class="chip" data-plv="cal" style="${PLV==="cal"?"border-style:solid;border-color:#E87722;font-weight:700":""}">📅 Planning (${P.length})</button></div></div>
+    <div id="rxin" style="margin-top:12px"></div></div>`);
+  document.querySelectorAll("[data-plv]").forEach(b=>b.onclick=()=>{PLV=b.dataset.plv;document.getElementById("rxbloc").remove();blocRunixo()});
+  (PLV==="liste"?rxListe:rxCal)(document.getElementById("rxin"),L)}
+function rxListe(box,L){if(!L.length){box.innerHTML=`<p class="hint" style="margin:0">Aucun contrôle VGP ou EPI à prévoir dans les 60 jours. 👍</p>`;return}
+  const grp=[["En retard ou non conforme",z=>z.j<0],["Dans les 30 jours",z=>z.j>=0&&z.j<=30],["Dans 31 à 60 jours",z=>z.j>30]];
+  box.innerHTML=grp.map(([t,f])=>{const G=L.filter(f);if(!G.length)return"";return `<div style="font-weight:700;color:${t.startsWith("En retard")?"var(--bad)":"#1F5FA8"};margin:10px 0 6px">${t} (${G.length})</div>`+G.map(({x,st,j})=>{const p=planDe(x.id),e=S.ents.find(z=>z.id===x.entId);
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)"><span style="font-size:20px" aria-hidden="true">${x.rub==="lev"?"🏗️":"🦺"}</span>
+      <div style="flex:1;min-width:220px"><b>${esc(e.nom)}</b> · ${esc(x.libelle)}<div class="hint">${esc(x.detail||"")}${x.prochain?" · échéance "+fr(x.prochain):""}</div></div>
+      <span class="pill p-${st==="nc"?"nc":st}">${st==="nc"?"Contre-visite":j<0?"Retard de "+(-j)+" j":"Dans "+j+" j"}</span>
+      ${p?`<span class="pill" style="background:#E8F0FB;color:#1F5FA8">📅 ${fr(p.date)}${p.c?" "+esc(p.c):""}</span>`:`<button class="btn sm" data-pln="${x.id}">📅 Planifier</button>`}
+      <button class="btn sm pri" data-prep="${x.id}">Préparer le contrôle</button><button class="btn sm ghost" data-fi="${e.id}">Fiche</button></div>`}).join("")}).join("");
+  box.querySelectorAll("[data-pln]").forEach(b=>b.onclick=()=>{const x=S.els.find(z=>z.id===b.dataset.pln);planForm({entId:x.entId,els:[x.id]})});
+  box.querySelectorAll("[data-prep]").forEach(b=>b.onclick=()=>{const x=S.els.find(z=>z.id===b.dataset.prep),e=S.ents.find(z=>z.id===x.entId);V={view:"ent",ent:e.id,tab:x.rub};render();if(x.rub==="lev")openVGP(e,x.id);else openEPI(e)});
+  box.querySelectorAll("[data-fi]").forEach(b=>b.onclick=()=>{V={view:"ent",ent:b.dataset.fi,tab:"id"};render();scrollTo(0,0)})}
+function rxCal(box){const now=new Date();if(!PLM)PLM=new Date(now.getFullYear(),now.getMonth(),1);const y=PLM.getFullYear(),m=PLM.getMonth();
+  const first=new Date(y,m,1),dec=(first.getDay()+6)%7,nb=new Date(y,m+1,0).getDate(),P=plans().filter(p=>p.d!=="annule");
+  const iso=d=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`,auj=today();
+  let cells="";for(let i=0;i<dec;i++)cells+=`<div></div>`;
+  for(let d=1;d<=nb;d++){const k=iso(d),J=P.filter(p=>String(p.date).slice(0,10)===k);
+    cells+=`<div data-day="${k}" role="button" tabindex="0" aria-label="${fr(k)}" style="min-height:84px;border:1px solid var(--line);border-radius:8px;padding:4px 5px;cursor:pointer;background:${k===auj?"#FFF4E5":"var(--card)"}"><div style="font-size:12px;font-weight:700;color:${k===auj?"#E87722":"var(--ink3)"}">${d}</div>${J.map(p=>`<div data-plid="${p.id}" style="font-size:11.5px;line-height:1.25;margin-top:3px;padding:2px 4px;border-radius:4px;background:${p.d==="fait"?"#E5F3EB":"#E8F0FB"};color:${p.d==="fait"?"#1B5E20":"#12213F"}">${p.c?esc(p.c)+" ":""}<b>${esc(plNom(p.entId).slice(0,16))}</b></div>`).join("")}</div>`}
+  box.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><button class="btn sm" id="plp" aria-label="Mois précédent">‹</button><b style="flex:1;text-align:center;text-transform:capitalize;font-size:17px">${first.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b><button class="btn sm" id="pln" aria-label="Mois suivant">›</button><button class="btn sm pri" id="pladd">+ Planifier</button></div>
+    <div style="overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(7,minmax(92px,1fr));gap:4px;min-width:660px">${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(j=>`<div style="font-size:12px;font-weight:700;color:var(--ink3);text-align:center">${j}</div>`).join("")}${cells}</div></div>`;
+  box.querySelector("#plp").onclick=()=>{PLM=new Date(y,m-1,1);rxCal(box)};box.querySelector("#pln").onclick=()=>{PLM=new Date(y,m+1,1);rxCal(box)};
+  box.querySelector("#pladd").onclick=()=>planForm({date:today()});
+  box.querySelectorAll("[data-day]").forEach(c=>c.onclick=ev=>{const pl=ev.target.closest("[data-plid]");if(pl){planForm(S.fic.find(f=>f.id===pl.dataset.plid));return}planForm({date:c.dataset.day})})}
+function planForm(o){const ex=o&&o.id?o:null,f=ex||{type:"plan",date:o.date||today(),entId:o.entId||"",b:(o.els||[]).join(","),c:"08:00",d:"prevu",e:""};
+  const optsEnt=S.ents.slice().sort((a,b)=>a.nom.localeCompare(b.nom,"fr")).map(e=>`<option value="${e.id}" ${e.id===f.entId?"selected":""}>${esc(e.nom)}</option>`).join("");
+  const m=modal(ex?"Contrôle planifié":"Planifier un contrôle","#12213F",`<label class="f">Entreprise<select id="pl_e"><option value="">Choisir…</option>${optsEnt}</select></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:1;min-width:150px">Date<input type="date" id="pl_d" value="${esc(String(f.date).slice(0,10))}"></label><label class="f" style="width:130px">Heure<input type="time" id="pl_h" value="${esc(f.c||"")}"></label>${ex?`<label class="f" style="width:150px">État<select id="pl_s">${Object.entries(PL_ST).map(([k,v])=>`<option value="${k}" ${f.d===k?"selected":""}>${v}</option>`).join("")}</select></label>`:""}</div>
+    <div class="f"><span>Équipements à contrôler</span><div id="pl_l" style="display:grid;gap:4px;margin-top:4px"></div></div>
+    <label class="f">Remarque (accès, contact sur place…)<input id="pl_n" value="${esc(f.e||"")}"></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pl_m" ${ex?"":"checked"}> Envoyer au client un mail de confirmation de passage</label><div class="hint" id="pl_mh"></div><div class="err" id="pl_x"></div>`,
+    `${ex?`<button class="btn danger ghost" id="pl_del" style="margin-right:auto">Supprimer</button>`:""}<button class="btn" data-x2>Annuler</button><button class="btn pri" id="pl_ok">${ex?"Enregistrer":"Planifier"}</button>`);
+  const sel=new Set(String(f.b||"").split(",").filter(Boolean));
+  const liste=()=>{const id=m.q("#pl_e").value,E=S.els.filter(x=>x.entId===id&&(x.rub==="lev"||x.rub==="epi")),e=S.ents.find(z=>z.id===id);
+    m.q("#pl_l").innerHTML=E.length?E.map(x=>`<label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" data-pe="${x.id}" ${sel.has(x.id)?"checked":""}> ${x.rub==="lev"?"🏗️":"🦺"} ${esc(x.libelle)} <span class="hint">${esc(x.detail||"")}${x.prochain?" · échéance "+fr(x.prochain):""}</span></label>`).join(""):`<span class="hint">Aucun équipement suivi pour l’instant : indique-le dans la remarque.</span>`;
+    m.q("#pl_l").querySelectorAll("[data-pe]").forEach(c=>c.onchange=()=>{c.checked?sel.add(c.dataset.pe):sel.delete(c.dataset.pe)});
+    m.q("#pl_mh").innerHTML=!e?"":e.email&&e.email!=="contact@3aim.fr"?`Le mail partira à <b>${esc(e.email)}</b> (réponse vers controle@3aim.fr).`:`<span style="color:var(--bad)">Pas d’adresse mail client sur la fiche : le mail ne pourra pas partir.</span>`};
+  m.q("#pl_e").onchange=()=>{sel.clear();liste()};liste();m.ov.querySelector("[data-x2]").onclick=m.close;
+  if(ex)m.q("#pl_del").onclick=async()=>{if(!confirm("Supprimer ce contrôle du planning ?"))return;await api("delFiche",{id:ex.id});S.fic=S.fic.filter(x=>x.id!==ex.id);m.close();render()};
+  m.q("#pl_ok").onclick=async()=>{const id=m.q("#pl_e").value,d=m.q("#pl_d").value;if(!id||!d){m.q("#pl_x").textContent="Choisis l’entreprise et la date.";return}
+    const fic={...f,id:ex?ex.id:undefined,type:"plan",entId:id,date:d,a:"Contrôle RUNIXO",b:[...sel].join(","),c:m.q("#pl_h").value,d:ex?m.q("#pl_s").value:"prevu",e:m.q("#pl_n").value.trim()};
+    const b=m.q("#pl_ok");b.disabled=true;b.textContent="Enregistrement…";
+    try{const r=await api("saveFiche",{fic});const i=S.fic.findIndex(x=>x.id===r.fic.id);i>=0?S.fic[i]=r.fic:S.fic.push(r.fic);
+      let msg="Contrôle planifié le "+fr(d);
+      if(m.q("#pl_m").checked){const objets=[...sel].map(i=>{const x=S.els.find(z=>z.id===i);return x?x.libelle+(x.detail?" ("+x.detail+")":""):""}).filter(Boolean);
+        try{await api("mailPassage",{entId:id,date:d,heure:fic.c,objets,note:fic.e});msg+=" · mail de confirmation envoyé"}catch(z){msg+=" · mail non envoyé : "+z.message}}
+      m.close();toast(msg);render()}catch(z){m.q("#pl_x").textContent=z.message;b.disabled=false;b.textContent="Planifier"}}}
+const _renderDashRx=renderDash;renderDash=function(){_renderDashRx.apply(this,arguments);try{blocRunixo()}catch(z){console.warn(z)}};
+
+/* ---------- import de l'historique (anciens rapports VGP / EPI…) ---------- */
+function histImport(e){const m=modal("📥 Importer l’historique – "+e.nom,"#12213F",`<p style="margin:0">Choisis d’un coup tous les anciens rapports de ce client (PDF ou photos) : VGP, EPI, vérifications… Chaque rapport est lu automatiquement, rangé à sa date dans « 📁 Documents », et les équipements sont créés ou mis à jour s’il est plus récent.</p>
+  <input type="file" id="hi_f" multiple accept="application/pdf,image/*"><div id="hi_l" style="display:grid;gap:4px;max-height:300px;overflow:auto"></div>`,`<button class="btn" data-x2>Fermer</button><button class="btn pri" id="hi_go" disabled>Importer</button>`);
+  let F=[];m.ov.querySelector("[data-x2]").onclick=()=>{m.close();render()};
+  m.q("#hi_f").onchange=ev=>{F=[...ev.target.files];m.q("#hi_l").innerHTML=F.map((f,i)=>`<div data-hi="${i}" style="font-size:13.5px">⏸ ${esc(f.name)}</div>`).join("");m.q("#hi_go").disabled=!F.length};
+  m.q("#hi_go").onclick=async()=>{const b=m.q("#hi_go");b.disabled=true;let ok=0,eq=0;
+    for(let i=0;i<F.length;i++){const f=F[i],row=m.q(`[data-hi="${i}"]`),set=t=>row.innerHTML=t+" "+esc(f.name);
+      try{set(`<span class="ep-sab">⏳</span> envoi…`);const u=await uploadFile(e,f,"doc");set(`<span class="ep-sab">⏳</span> lecture par Claude…`);
+        let items=[];try{if(f.size<=9e6)items=(await api("lireDoc",{entId:e.id,name:f.name,mime:f.type||"application/pdf",data:await toB64(f)})).items||[]}catch(z){}
+        const it0=items[0]||{},d=String(it0.dernier||"").slice(0,10);
+        const r=await api("saveFiche",{fic:{type:"hist",entId:e.id,date:d,a:(it0.libelle||f.name.replace(/\.[^.]+$/,""))+(it0.ref?" – "+it0.ref:""),b:it0.rub||"",c:it0.ref||"",d:it0.organisme||"",doc:u.url}});S.fic.push(r.fic);
+        for(const it of items){if(!it.rub||!it.libelle)continue;const n=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+          const x=S.els.find(z=>z.entId===e.id&&z.rub===it.rub&&((n(it.serie).length>=4&&n(z.detail+z.libelle).includes(n(it.serie)))||n(z.libelle)===n(it.libelle)&&n(z.detail)===n(it.detail)));
+          if(x&&String(x.dernier||"")>=String(it.dernier||""))continue;
+          const el={...(x||{}),entId:e.id,rub:it.rub,libelle:x?x.libelle:it.libelle,detail:x?x.detail||it.detail||"":it.detail||"",per:Number(it.per)||(x&&x.per)||12,dernier:String(it.dernier||"").slice(0,10),organisme:it.organisme||"",resultat:it.resultat||"",ref:it.ref||"",notes:it.notes||"",doc:u.url};
+          const r2=await api("saveEl",{el});const k=S.els.findIndex(z=>z.id===r2.el.id);k>=0?S.els[k]=r2.el:S.els.push(r2.el);eq++}
+        ok++;set(`✅ ${d?fr(d)+" · ":""}${esc(it0.libelle||"rapport archivé")} –`)}
+      catch(z){set(`<span style="color:var(--bad)">⚠️ ${esc(z.message)}</span> –`)}}
+    b.textContent=`Terminé : ${ok} rapport(s), ${eq} équipement(s) mis à jour`;toast(`${ok} rapport(s) importé(s)`)}}
+const _renderEntHist=renderEnt;renderEnt=function(){_renderEntHist.apply(this,arguments);try{if(S.role!=="admin"||document.getElementById("histB"))return;const e=S.ents.find(x=>x.id===V.ent),q=document.getElementById("entDel")||document.getElementById("qr");if(!e||!q)return;
+  q.insertAdjacentHTML("beforebegin",`<button class="btn" id="histB" title="Importer d’un coup les anciens rapports de ce client">📥 Importer l’historique</button>`);document.getElementById("histB").onclick=()=>histImport(e)}catch(z){}};
 </script>
 </body>
 </html>
