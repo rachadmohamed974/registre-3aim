@@ -3,6 +3,26 @@
 <head>
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
+<script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
+const APP_VER="2026-11-13-a";
+(function(){
+  try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
+  const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
+  async function check(first){
+    if(!/^https?:/.test(location.protocol))return;
+    try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
+      const m=(await r.text()).match(/const APP_VER="([^"]+)"/);if(!m||m[1]===APP_VER)return;
+      const k="reg3aim_maj_"+m[1];let n=0;try{n=Number(sessionStorage.getItem(k)||0)}catch(e){}
+      if(n>=2)return; /* le site n'est pas encore à jour partout : on réessaiera plus tard */
+      try{sessionStorage.setItem(k,String(n+1))}catch(e){}
+      if(!busy()){location.replace(location.pathname+"?v="+encodeURIComponent(m[1])+"&_="+Date.now()+location.hash);return}
+      if(!document.getElementById("majb")){const b=document.createElement("div");b.id="majb";b.setAttribute("role","status");b.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:200;background:#1B5E20;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;font-size:14px";
+        b.innerHTML='Une nouvelle version du registre est disponible.<button style="background:#fff;color:#1B5E20;border:0;border-radius:7px;padding:6px 10px;font-weight:600;cursor:pointer">Mettre à jour</button>';
+        b.querySelector("button").onclick=()=>location.replace(location.pathname+"?v="+encodeURIComponent(m[1])+"&_="+Date.now()+location.hash);document.body.appendChild(b)}
+    }catch(e){}}
+  check(true);setInterval(()=>check(false),10*60e3);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)check(false)});
+})();</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Registre de sécurité & Document unique – 3AIM CFA</title>
