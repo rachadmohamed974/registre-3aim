@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-14-a";
+const APP_VER="2026-11-14-b";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2837,25 +2837,30 @@ function epCombien(k){return new Promise(res=>{const prev=k.attendu||{nb:"",det:
   m.q("#epc_ok").onclick=()=>{const nb=Number(n.value);if(!nb||nb<1){m.q("#epc_e").textContent="Indique le nombre d’équipements.";return}if(som()&&som()!==nb){m.q("#epc_e").textContent=`Le détail fait ${som()} pièce(s) et le total ${nb} : corrige l’un ou l’autre.`;return}
     k.attendu={nb,det};epSave();m.close();res(k.attendu)}})}
 async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySelector("[data-an]");if(k.items.some(x=>x.ia)&&!confirm("Relancer l’analyse ? Le pré-rapport de "+k.nom+" proposé par Claude sera remplacé (les équipements ajoutés à la main sont gardés)."))return;
-  const att=await epCombien(k);if(!att)return;const detTxt=Object.entries(att.det||{}).map(([t,n])=>EP_T[t].n+" ×"+n).join(", "),attTxt=att.nb+" équipement(s)"+(detTxt?" ("+detTxt+")":"");
+  const att=await epCombien(k);if(!att)return;
+  /* sablier bien visible sur le bouton et dans la carte, avec le temps écoulé */
+  const lab0=b.innerHTML,t0=Date.now();if(!document.getElementById("epprg_css"))epPrg("Préparation de l’analyse",0,1,1);
+  const sab=()=>{const sec=Math.round((Date.now()-t0)/1000);b.innerHTML=`<span class="ep-sab" aria-hidden="true">⏳</span> Claude analyse… ${sec} s`;};
+  sab();const tSab=setInterval(sab,1000);b.style.opacity="1";b.setAttribute("aria-busy","true");
+  const finSab=()=>{clearInterval(tSab);b.innerHTML=lab0;b.removeAttribute("aria-busy")};const detTxt=Object.entries(att.det||{}).map(([t,n])=>EP_T[t].n+" ×"+n).join(", "),attTxt=att.nb+" équipement(s)"+(detTxt?" ("+detTxt+")":"");
   b.disabled=true;const types=Object.entries(EP_T).map(([c,t])=>c+" = "+t.n).join(" ; "),N=k.photos.length,res=[];
   const TA="Analyse par Claude – "+k.nom;epPrg(TA,0,N);
   try{/* paquets de 4 photos envoyés en parallèle (4 à la fois) : 3 à 4 fois plus rapide qu'un paquet après l'autre */
     const TAILLE=4,PAR=4,lots=[];for(let i=0;i<N;i+=TAILLE)lots.push(i);const out=new Array(lots.length);let faits=0,suiv=0;
-    st.textContent=`Analyse de ${N} photo(s) en cours…`;epPrg(TA+` · analyse en parallèle`,0,N);
+    st.innerHTML=`<span class="ep-sab" aria-hidden="true" style="font-size:16px">⏳</span> Claude analyse ${N} photo(s)…`;epPrg(TA+` · analyse en parallèle`,0,N);
     const ouvrier=async()=>{while(suiv<lots.length){const li=suiv++,i=lots[li],P=[];
         for(let j=i;j<Math.min(N,i+TAILLE);j++)P.push({n:j+1,data:await epShrink(k.photos[j].d,1150,.8)});
         let r,essai=0;while(true){try{r=await api("analyseEPI",{entId:EPE.id,salarie:k.nom,entreprise:EPE.nom,date:fr(EP.date),types,photos:P,attendu:attTxt});break}catch(z){if(++essai>=2)throw z;await new Promise(o=>setTimeout(o,1500))}}
-        out[li]=r.items||[];faits+=P.length;st.textContent=`Analyse : ${faits} photo(s) sur ${N}…`;epPrg(TA+` · ${faits} photo(s) analysée(s)`,faits,N)}};
+        out[li]=r.items||[];faits+=P.length;st.innerHTML=`<span class="ep-sab" aria-hidden="true" style="font-size:16px">⏳</span> Analyse : ${faits} photo(s) sur ${N}…`;epPrg(TA+` · ${faits} photo(s) analysée(s)`,faits,N)}};
     await Promise.all(Array.from({length:Math.min(PAR,lots.length)},ouvrier));out.forEach(L=>res.push(...L));
     let L=[];
-    if(lots.length>1||res.length!==att.nb){st.textContent="Mise en commun des photos par Claude…";epPrg(TA+" · mise en commun : "+att.nb+" pièce(s) attendue(s)",N,N,1);
+    if(lots.length>1||res.length!==att.nb){st.innerHTML=`<span class="ep-sab" aria-hidden="true" style="font-size:16px">⏳</span> Claude met les photos en commun…`;epPrg(TA+" · mise en commun : "+att.nb+" pièce(s) attendue(s)",N,N,1);
       try{const r=await api("consolideEPI",{salarie:k.nom,nb:att.nb,detail:detTxt,types,nPhotos:N,lots:out});L=r.items||[]}catch(z){toast("Mise en commun impossible ("+z.message+") : pièces gardées telles quelles.")}}
     if(!L.length){const norm=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");res.forEach(x=>{const s=norm(x.serie),d=s.length>=5&&s!=="ILLISIBLE"&&L.find(y=>norm(y.serie)===s&&y.type===x.type);if(d){d.photos=[...new Set([...(d.photos||[]),...(x.photos||[])])];return}L.push(x)})}
     k.items=k.items.filter(x=>!x.ia).concat(L.map(x=>epNewItem({type:EP_T[x.type]?x.type:"autre",marque:x.marque||"",modele:x.modele||"",serie:x.serie||"",fab:x.fab||"",fabD:!!x.fabDeduite,etat:["ok","surv","rebut"].includes(x.etat)?x.etat:"",obs:x.obs||"",motif:x.motif||"",
       ph:(x.photos||[]).map(n=>k.photos[n-1]&&k.photos[n-1].id).filter(Boolean),ia:true,conf:x.confiance||""})));
-    k.an=`✅ ${L.length} équipement(s) proposé(s) par Claude`;epSave();st.textContent=k.an;epPrg(TA,N,N);epPrgFin(L.length+" équipement(s) proposé(s) par Claude");toast("Pré-rapport de "+k.nom+" prêt : vérifie-le à l’étape 3")}
-  catch(z){st.innerHTML=`<span style="color:var(--bad)">${esc(z.message)}</span>`;epPrgFin("Analyse interrompue : "+z.message,1)}finally{b.disabled=false}}
+    finSab();    k.an=`✅ ${L.length} équipement(s) proposé(s) par Claude`;epSave();st.textContent=k.an;epPrg(TA,N,N);epPrgFin(L.length+" équipement(s) proposé(s) par Claude");toast("Pré-rapport de "+k.nom+" prêt : vérifie-le à l’étape 3")}
+  catch(z){finSab();st.innerHTML=`<span style="color:var(--bad)">${esc(z.message)}</span>`;epPrgFin("Analyse interrompue : "+z.message,1)}finally{finSab();b.disabled=false}}
 
 /* ---------- étape 3 : pré-rapport à vérifier ---------- */
 let EPSEL=null;
