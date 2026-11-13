@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-y";
+const APP_VER="2026-11-14-a";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2756,9 +2756,13 @@ function epOpen(){document.getElementById("ep")?.remove();const o=document.creat
   ep$("#epclose").onclick=epClose;ep$("#epsteps").onclick=ev=>{const b=ev.target.closest("button");if(b)epGo(+b.dataset.s)};
   ep$("#epprev").onclick=()=>epGo(epStep-1);ep$("#epnext").onclick=()=>epStep===3?epValider():epGo(epStep+1);
   ep$("#epf1").onchange=ep$("#epf2").onchange=epPhotos;epGo(0)}
-function epClose(){epDB.set(epKey(),EP);document.getElementById("ep")?.remove();document.body.style.overflow="";renderEnt()}
+function epClose(){epDB.set(epKey(),EP);const n=EP&&EP.kits?EP.kits.reduce((t,k)=>t+k.items.length,0):0;
+  if(n&&!(EP.saved&&EP.saved.done)){const m=modal("⚠️ Ce contrôle n’est pas encore enregistré","#B42318",`<p style="margin:0"><b>${n} équipement(s)</b> sont en brouillon <b>sur cet appareil seulement</b> : ils ne sont ni dans le registre, ni dans le Drive, ni dans l’espace du client.</p><p class="hint" style="margin:0">Pour les enregistrer, va à l’étape 4 et clique sur « ✅ Valider et classer ». Tu pourras aussi reprendre plus tard sur cet appareil (bandeau orange sur la fiche).</p>`,`<button class="btn" id="epq_f">Fermer quand même</button><button class="btn pri" id="epq_v" style="background:#1E7F4F;border-color:#1E7F4F">Aller à l’étape 4 pour valider</button>`);
+    m.q("#epq_v").onclick=()=>{m.close();epGo(3)};m.q("#epq_f").onclick=()=>{m.close();epFermer()};return}
+  epFermer()}
+function epFermer(){document.getElementById("ep")?.remove();document.body.style.overflow="";renderEnt()}
 function epGo(i){epStep=Math.max(0,Math.min(3,i));ep$("#epsteps").innerHTML=EP_STEPS.map((s,j)=>`<button class="${j===epStep?"on":""}" data-s="${j}"><i>${j+1}</i>${s[0]}</button>`).join("");
-  ep$("#epprev").style.visibility=epStep?"visible":"hidden";ep$("#epnext").textContent=epStep===3?"Valider et classer":epStep===2?"Voir le rapport":"Suivant";epRender();document.getElementById("ep").scrollTop=0}
+  ep$("#epprev").style.visibility=epStep?"visible":"hidden";{const nb=ep$("#epnext");nb.textContent=epStep===3?"✅ Valider et classer (enregistrer)":epStep===2?"Voir le rapport":"Suivant";nb.style.background=epStep===3?"#1E7F4F":"";nb.style.borderColor=epStep===3?"#1E7F4F":"";nb.style.fontSize=epStep===3?"16px":""}epRender();document.getElementById("ep").scrollTop=0}
 function epProg(){const A=epAll(),d=A.filter(epItemOk).length,r=A.filter(x=>x.etat==="rebut").length,s=A.filter(x=>x.etat==="surv").length;
   ep$("#epprog").textContent=`${EP.kits.filter(k=>k.nom.trim()).length} salarié(s) · ${A.length} équipement(s) · ${d} vérifié(s)`+(s?` · ${s} à surveiller`:"")+(r?` · ${r} rebut`:"")}
 function epRender(){const M=ep$("#epmain");[epS0,epS1,epS2,epS3][epStep](M);epProg();M.querySelectorAll("[data-rest]").forEach(b=>b.onclick=()=>{const [kid,tid]=b.dataset.rest.split("|");const k=EP.kits.find(x=>x.id===kid);if(k)epRemettre(k,tid)})}
@@ -2800,10 +2804,14 @@ async function epShrink(src,max,q){let img;
   if(!img){const u=src instanceof Blob?URL.createObjectURL(src):src;try{img=await new Promise((ok,ko)=>{const i=new Image(),t=setTimeout(()=>ko(new Error("délai dépassé")),20000);i.onload=()=>{clearTimeout(t);ok(i)};i.onerror=()=>{clearTimeout(t);ko(new Error("format non lu"))};i.src=u})}finally{if(src instanceof Blob)setTimeout(()=>URL.revokeObjectURL(u),1000)}}
   const W=img.width,H=img.height;if(!W||!H)throw new Error("photo vide");const k=Math.min(1,max/Math.max(W,H)),c=document.createElement("canvas");c.width=Math.round(W*k);c.height=Math.round(H*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);if(img.close)img.close();return c.toDataURL("image/jpeg",q)}
 let epBusy={};
-function epPrg(titre,i,n){let b=document.getElementById("epprg");if(!b){b=document.createElement("div");b.id="epprg";b.setAttribute("role","status");b.setAttribute("aria-live","polite");
+let EPPRG_T0=0,EPPRG_TM=null;
+function epPrg(titre,i,n,indet){let b=document.getElementById("epprg");if(!b||!EPPRG_T0)EPPRG_T0=Date.now();clearInterval(EPPRG_TM);EPPRG_TM=setInterval(()=>{const x=document.getElementById("epprg_s");if(x)x.textContent=Math.round((Date.now()-EPPRG_T0)/1000)+" s"},1000);
+  if(!document.getElementById("epprg_css")){const c=document.createElement("style");c.id="epprg_css";c.textContent="@keyframes epsab{0%{transform:rotate(0)}45%{transform:rotate(180deg)}55%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}@keyframes epind{0%{margin-left:-35%}100%{margin-left:100%}}.ep-sab{display:inline-block;animation:epsab 1.6s ease-in-out infinite;font-size:22px}@media (prefers-reduced-motion:reduce){.ep-sab{animation:none}}";document.head.appendChild(c)}
+  epPrg2(titre,i,n,indet)}
+function epPrg2(titre,i,n,indet){let b=document.getElementById("epprg");if(!b){b=document.createElement("div");b.id="epprg";b.setAttribute("role","status");b.setAttribute("aria-live","polite");
     b.style.cssText="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;width:min(460px,calc(100% - 24px));background:#12213F;color:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 6px 24px rgba(0,0,0,.35)";document.body.appendChild(b)}
-  const pc=n?Math.round(100*i/n):0;b.innerHTML=`<div style="font-size:14px;color:#C9D2E3">${esc(titre)}</div><div style="font-size:26px;font-weight:700;margin:2px 0 8px">${i} sur ${n}</div><div style="height:10px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden"><div style="height:100%;width:${pc}%;background:#E87722;transition:width .2s"></div></div><div style="font-size:12.5px;color:#C9D2E3;margin-top:6px">${pc} % · ne ferme pas cette page</div>`}
-function epPrgFin(msg,ko){const b=document.getElementById("epprg");if(!b)return;b.innerHTML=`<div style="font-size:18px;font-weight:700">${ko?"⚠️":"✅"} ${esc(msg)}</div>`;b.style.background=ko?"#9A3412":"#1E7F4F";setTimeout(()=>b.remove(),ko?6000:3500)}
+  const pc=n?Math.round(100*i/n):0;b.innerHTML=`<div style="display:flex;gap:10px;align-items:center"><span class="ep-sab" aria-hidden="true">⏳</span><div style="font-size:14px;color:#C9D2E3;flex:1">${esc(titre)}</div><b id="epprg_s" style="font-size:13px;color:#C9D2E3">${Math.round((Date.now()-EPPRG_T0)/1000)} s</b></div><div style="font-size:26px;font-weight:700;margin:2px 0 8px">${indet?"Claude réfléchit…":i+" sur "+n}</div><div style="height:10px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden">${indet?`<div style="height:100%;width:35%;background:#E87722;animation:epind 1.2s linear infinite"></div>`:`<div style="height:100%;width:${pc}%;background:#E87722;transition:width .2s"></div>`}</div><div style="font-size:12.5px;color:#C9D2E3;margin-top:6px">${indet?"":pc+" % · "}ne ferme pas cette page</div>`}
+function epPrgFin(msg,ko){clearInterval(EPPRG_TM);EPPRG_T0=0;const b=document.getElementById("epprg");if(!b)return;b.innerHTML=`<div style="font-size:18px;font-weight:700">${ko?"⚠️":"✅"} ${esc(msg)}</div>`;b.style.background=ko?"#9A3412":"#1E7F4F";setTimeout(()=>b.remove(),ko?6000:3500)}
 async function epPhotos(ev){const F=[...ev.target.files];ev.target.value="";const k=EP.kits.find(x=>x.id===epKitPh);if(!k||!F.length)return;epAddFiles(k,F)}
 async function epAddFiles(k,F){F=F.filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));if(!F.length)return toast("Aucune photo dans ce que tu as choisi");
   const ko=[],T="Ajout des photos"+(k.nom?" – "+k.nom:"");epPrg(T,0,F.length);
@@ -2814,7 +2822,22 @@ async function epAddFiles(k,F){F=F.filter(f=>/^image\//.test(f.type)||/\.(jpe?g|
 }
 
 /* ---------- analyse par Claude, par paquets de 8 photos ---------- */
+function epCombien(k){return new Promise(res=>{const prev=k.attendu||{nb:"",det:{}},det={...prev.det};
+  const ty=["harnais","longe_abs","longe_mt","connecteur","sangle","casque","descendeur","antichute","autre"].filter(t=>EP_T[t]);
+  const m=modal("Combien d’équipements dans ce kit ?","#E87722",`<p style="margin:0">Kit de <b>${esc(k.nom||"ce salarié")}</b> · ${k.photos.length} photo(s). Compte les pièces : Claude en fera <b>exactement</b> ce nombre et ne rattachera une photo que s’il en est sûr.</p>
+    <label class="f" style="max-width:240px">Nombre total d’équipements<input type="number" id="epc_n" min="1" max="60" value="${esc(prev.nb)}" style="font-size:22px;font-weight:700"></label>
+    <details ${Object.keys(det).length?"open":""}><summary style="cursor:pointer;font-weight:600">Détail par type (facultatif, plus précis)</summary>
+    <div style="display:grid;gap:6px;margin-top:8px">${ty.map(t=>`<div style="display:flex;align-items:center;gap:8px"><span style="flex:1">${esc(EP_T[t].n)}</span><button class="btn sm" data-cm="${t}" aria-label="Moins">−</button><b data-cv="${t}" style="min-width:24px;text-align:center">${det[t]||0}</b><button class="btn sm" data-cp="${t}" aria-label="Plus">+</button></div>`).join("")}</div></details>
+    <div class="err" id="epc_e"></div>`,`<button class="btn" data-x2>Annuler</button><button class="btn pri" id="epc_ok">🔎 Lancer l’analyse</button>`);
+  const n=m.q("#epc_n"),som=()=>Object.values(det).reduce((a,b)=>a+b,0),maj=t=>{m.q(`[data-cv="${t}"]`).textContent=det[t]||0;if(som())n.value=som()};
+  setTimeout(()=>n.focus(),50);
+  m.ov.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{const t=b.dataset.cp;det[t]=(det[t]||0)+1;maj(t)});
+  m.ov.querySelectorAll("[data-cm]").forEach(b=>b.onclick=()=>{const t=b.dataset.cm;det[t]=Math.max(0,(det[t]||0)-1);if(!det[t])delete det[t];maj(t)});
+  m.ov.querySelector("[data-x2]").onclick=()=>{m.close();res(null)};
+  m.q("#epc_ok").onclick=()=>{const nb=Number(n.value);if(!nb||nb<1){m.q("#epc_e").textContent="Indique le nombre d’équipements.";return}if(som()&&som()!==nb){m.q("#epc_e").textContent=`Le détail fait ${som()} pièce(s) et le total ${nb} : corrige l’un ou l’autre.`;return}
+    k.attendu={nb,det};epSave();m.close();res(k.attendu)}})}
 async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySelector("[data-an]");if(k.items.some(x=>x.ia)&&!confirm("Relancer l’analyse ? Le pré-rapport de "+k.nom+" proposé par Claude sera remplacé (les équipements ajoutés à la main sont gardés)."))return;
+  const att=await epCombien(k);if(!att)return;const detTxt=Object.entries(att.det||{}).map(([t,n])=>EP_T[t].n+" ×"+n).join(", "),attTxt=att.nb+" équipement(s)"+(detTxt?" ("+detTxt+")":"");
   b.disabled=true;const types=Object.entries(EP_T).map(([c,t])=>c+" = "+t.n).join(" ; "),N=k.photos.length,res=[];
   const TA="Analyse par Claude – "+k.nom;epPrg(TA,0,N);
   try{/* paquets de 4 photos envoyés en parallèle (4 à la fois) : 3 à 4 fois plus rapide qu'un paquet après l'autre */
@@ -2822,30 +2845,37 @@ async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySel
     st.textContent=`Analyse de ${N} photo(s) en cours…`;epPrg(TA+` · analyse en parallèle`,0,N);
     const ouvrier=async()=>{while(suiv<lots.length){const li=suiv++,i=lots[li],P=[];
         for(let j=i;j<Math.min(N,i+TAILLE);j++)P.push({n:j+1,data:await epShrink(k.photos[j].d,1150,.8)});
-        let r,essai=0;while(true){try{r=await api("analyseEPI",{entId:EPE.id,salarie:k.nom,entreprise:EPE.nom,date:fr(EP.date),types,photos:P});break}catch(z){if(++essai>=2)throw z;await new Promise(o=>setTimeout(o,1500))}}
+        let r,essai=0;while(true){try{r=await api("analyseEPI",{entId:EPE.id,salarie:k.nom,entreprise:EPE.nom,date:fr(EP.date),types,photos:P,attendu:attTxt});break}catch(z){if(++essai>=2)throw z;await new Promise(o=>setTimeout(o,1500))}}
         out[li]=r.items||[];faits+=P.length;st.textContent=`Analyse : ${faits} photo(s) sur ${N}…`;epPrg(TA+` · ${faits} photo(s) analysée(s)`,faits,N)}};
     await Promise.all(Array.from({length:Math.min(PAR,lots.length)},ouvrier));out.forEach(L=>res.push(...L));
-    const norm=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""),L=[];
-    res.forEach(x=>{const s=norm(x.serie),d=s.length>=5&&s!=="ILLISIBLE"&&L.find(y=>norm(y.serie)===s&&y.type===x.type);if(d){d.photos=[...new Set([...(d.photos||[]),...(x.photos||[])])];return}L.push(x)});
+    let L=[];
+    if(lots.length>1||res.length!==att.nb){st.textContent="Mise en commun des photos par Claude…";epPrg(TA+" · mise en commun : "+att.nb+" pièce(s) attendue(s)",N,N,1);
+      try{const r=await api("consolideEPI",{salarie:k.nom,nb:att.nb,detail:detTxt,types,nPhotos:N,lots:out});L=r.items||[]}catch(z){toast("Mise en commun impossible ("+z.message+") : pièces gardées telles quelles.")}}
+    if(!L.length){const norm=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");res.forEach(x=>{const s=norm(x.serie),d=s.length>=5&&s!=="ILLISIBLE"&&L.find(y=>norm(y.serie)===s&&y.type===x.type);if(d){d.photos=[...new Set([...(d.photos||[]),...(x.photos||[])])];return}L.push(x)})}
     k.items=k.items.filter(x=>!x.ia).concat(L.map(x=>epNewItem({type:EP_T[x.type]?x.type:"autre",marque:x.marque||"",modele:x.modele||"",serie:x.serie||"",fab:x.fab||"",fabD:!!x.fabDeduite,etat:["ok","surv","rebut"].includes(x.etat)?x.etat:"",obs:x.obs||"",motif:x.motif||"",
       ph:(x.photos||[]).map(n=>k.photos[n-1]&&k.photos[n-1].id).filter(Boolean),ia:true,conf:x.confiance||""})));
     k.an=`✅ ${L.length} équipement(s) proposé(s) par Claude`;epSave();st.textContent=k.an;epPrg(TA,N,N);epPrgFin(L.length+" équipement(s) proposé(s) par Claude");toast("Pré-rapport de "+k.nom+" prêt : vérifie-le à l’étape 3")}
   catch(z){st.innerHTML=`<span style="color:var(--bad)">${esc(z.message)}</span>`;epPrgFin("Analyse interrompue : "+z.message,1)}finally{b.disabled=false}}
 
 /* ---------- étape 3 : pré-rapport à vérifier ---------- */
+let EPSEL=null;
 function epS2(M){const K=EP.kits.filter(k=>k.nom.trim()||k.items.length);
   M.innerHTML=(K.length?"":`<div class="ep-card"><p class="ep-lead" style="margin:0">Ajoute d’abord un salarié et ses photos.</p></div>`)+K.map(k=>{const ok=k.items.filter(epItemOk).length;
-   return `<div class="ep-card" data-k="${k.id}"><div class="ep-kh"><h2 style="margin:0;flex:1">${esc(k.nom||"Salarié sans nom")}</h2><span class="hint">${ok} / ${k.items.length} vérifié(s)</span><button class="btn sm" data-ia>+ Équipement</button></div>
+   const libres=k.photos.filter(p=>!k.items.some(it=>it.ph.includes(p.id)));
+   return `<div class="ep-card" data-k="${k.id}"><div class="ep-kh"><h2 style="margin:0;flex:1">${esc(k.nom||"Salarié sans nom")}</h2><span class="hint">${ok} / ${k.items.length} vérifié(s)${k.attendu?" · "+k.attendu.nb+" attendu(s)":""}</span><button class="btn sm" data-ia>+ Équipement</button></div>
+   ${libres.length?`<div style="background:#FFF4E5;border:1px solid #F5C08A;border-radius:10px;padding:10px 12px;margin:8px 0"><b style="color:#9A3412">📎 Photos non rattachées (${libres.length})</b><div class="hint" style="margin:2px 0 8px">${EPSEL&&EPSEL.k===k.id?"Touche maintenant le bouton « 📎 Rattacher ici » de la bonne pièce, plus bas.":"Touche une photo, puis la pièce à laquelle elle appartient."}</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap">${libres.map(p=>`<button data-lib="${p.id}" aria-label="Photo ${k.photos.indexOf(p)+1}" style="position:relative;width:78px;height:78px;padding:0;border-radius:8px;overflow:hidden;border:3px solid ${EPSEL&&EPSEL.p===p.id?"#E87722":"transparent"};cursor:pointer"><img src="${p.d}" alt="" style="width:100%;height:100%;object-fit:cover"><span style="position:absolute;left:3px;top:3px;background:#12213F;color:#fff;font-size:11px;border-radius:4px;padding:0 4px">${k.photos.indexOf(p)+1}</span></button>`).join("")}</div></div>`:""}
    ${k.items.map((it,i)=>epItemH(k,it,i)).join("")||`<p class="hint">Aucun équipement : lance l’analyse à l’étape 2 ou ajoute-les à la main.</p>`}${epTrashH(k)}</div>`}).join("");
   M.querySelectorAll("[data-k]").forEach(c=>{const k=EP.kits.find(x=>x.id===c.dataset.k);
     c.querySelector("[data-ia]").onclick=()=>{k.items.push(epNewItem());epSave();epRender()};
+    c.querySelectorAll("[data-lib]").forEach(b=>b.onclick=()=>{EPSEL=EPSEL&&EPSEL.p===b.dataset.lib?null:{k:k.id,p:b.dataset.lib};epRender()});
     c.querySelectorAll("[data-it]").forEach(box=>epItemBind(k,k.items.find(x=>x.id===box.dataset.it),box))})}
 function epItemH(k,it,i){const t=EP_T[it.type]||null,age=epAge(it),M=EP_M[it.type]||{surv:[],rb:[]},S=k.photos.filter(p=>it.ph.includes(p.id)),done=epItemOk(it);
   return `<div class="ep-it ${it.etat}" data-it="${it.id}"><div class="ep-ih"><div class="t">${i+1}. ${esc(t?t.n:"Type à choisir")}${it.marque||it.modele?` <span class="hint" style="font-weight:400">· ${esc([it.marque,it.modele].filter(Boolean).join(" "))}</span>`:""}
    <div>${it.ia?`<span class="ep-tag ia">Proposé par Claude</span>`:""}${it.conf==="faible"?`<span class="ep-tag w">Photo peu lisible : à vérifier</span>`:""}${age!==null&&age>10?`<span class="ep-tag b">Plus de 10 ans (${Math.floor(age)} ans) : rebut conseillé</span>`:age!==null&&age>9?`<span class="ep-tag w">Moins d’un an avant les 10 ans</span>`:""}${/illisible/i.test(it.serie)?`<span class="ep-tag b">N° illisible : traçabilité impossible</span>`:""}${done?`<span class="ep-tag" style="background:var(--okbg);color:var(--ok)">✓ Vérifié</span>`:""}</div></div>
    <div class="ep-seg" role="group" aria-label="État">${["ok","surv","rebut"].map(e=>`<button class="${e} ${it.etat===e?"on":""}" data-e="${e}">${EP_ET[e]}</button>`).join("")}</div>
    <button class="btn sm danger ghost" data-del aria-label="Supprimer l’équipement">✕</button></div>
-   <div class="ep-strip">${S.map(p=>`<div class="ep-th"><img src="${p.d}" alt=""></div>`).join("")}<button class="btn sm ghost" data-phs>${S.length?"Changer les photos":"+ Associer des photos"}</button></div>
+   <div class="ep-strip">${S.map(p=>`<div class="ep-th"><img src="${p.d}" alt=""></div>`).join("")}${!S.length?`<span class="ep-tag w">Photo à rattacher</span>`:""}${EPSEL&&EPSEL.k===k.id?`<button class="btn sm pri" data-att style="background:#E87722;border-color:#E87722">📎 Rattacher ici</button>`:""}<button class="btn sm ghost" data-phs>📷 Choisir les photos</button></div>
    <div class="ep-grid"><label class="ep-f">Type<select data-f="type"><option value="">Choisir…</option>${Object.entries(EP_T).map(([c,x])=>`<option value="${c}" ${it.type===c?"selected":""}>${esc(x.n)}</option>`).join("")}</select></label>
     <label class="ep-f">Marque<input data-f="marque" value="${esc(it.marque)}"></label><label class="ep-f">Modèle / référence<input data-f="modele" value="${esc(it.modele)}"></label>
     <label class="ep-f">N° de série / lot<input data-f="serie" value="${esc(it.serie)}"></label><label class="ep-f">Fabrication${it.fabD?" (déduite du n°)":""}<input data-f="fab" value="${esc(it.fab)}" placeholder="2023-03"></label></div>
@@ -2857,6 +2887,7 @@ function epItemBind(k,it,box){const re=()=>{epSave();const i=k.items.indexOf(it)
   box.querySelector("[data-del]").onclick=()=>epSupprItem(k,it);
   box.querySelectorAll("[data-f]").forEach(el=>{el.oninput=()=>{it[el.dataset.f]=el.value;if(el.dataset.f==="fab")it.fabD=false;epSave()};if(el.tagName==="SELECT")el.onchange=()=>{it.type=el.value;it.man={};if(!it.obs&&EP_T[it.type]&&it.etat==="ok")it.obs=EP_T[it.type].ok;re()};if(el.dataset.f==="fab"||el.dataset.f==="serie")el.onchange=re});
   box.querySelectorAll("[data-m]").forEach(c=>c.onchange=()=>{it.man[c.dataset.m]=c.checked;re()});
+  const att=box.querySelector("[data-att]");if(att)att.onclick=()=>{if(EPSEL&&!it.ph.includes(EPSEL.p))it.ph.push(EPSEL.p);EPSEL=null;epSave();epRender();toast("Photo rattachée")};
   box.querySelector("[data-phs]").onclick=()=>{const sel=new Set(it.ph);const m=modal("Photos de l’équipement","#E87722",`<p class="hint" style="margin:0">Touche les photos qui montrent cet équipement.</p><div class="ep-strip" id="epps" style="display:flex;gap:8px;flex-wrap:wrap">${k.photos.map((p,j)=>`<button class="ep-th ${sel.has(p.id)?"sel":""}" data-p="${p.id}" style="position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;border:2px solid ${sel.has(p.id)?"#E87722":"var(--line)"};padding:0"><img src="${p.d}" alt="Photo ${j+1}" style="width:100%;height:100%;object-fit:cover"></button>`).join("")||"Aucune photo pour ce salarié."}</div>`,`<button class="btn" data-x2>Annuler</button><button class="btn pri" id="epps_ok">Valider</button>`);
     m.ov.querySelector("[data-x2]").onclick=m.close;m.ov.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const id=b.dataset.p;sel.has(id)?sel.delete(id):sel.add(id);b.style.borderColor=sel.has(id)?"#E87722":"var(--line)"});
     m.q("#epps_ok").onclick=()=>{it.ph=k.photos.filter(p=>sel.has(p.id)).map(p=>p.id);m.close();re()}}}
@@ -3044,6 +3075,7 @@ async function epValider2(){const K=EP.kits.filter(k=>k.items.length),A=K.flatMa
     m.q("header h2").textContent="✅ Contrôle EPI enregistré";m.q(".bd").innerHTML=`<p style="margin:0 0 8px"><b>Rapports EPI ${N.length>1?"N° "+N[0]+" à "+N[N.length-1]:"N° "+N[0]}</b> enregistrés et classés dans le registre de ${esc(EPE.nom)}${A.some(x=>x.etat!=="ok")?", avec "+A.filter(x=>x.etat!=="ok").length+" réserve(s) à suivre":""}.</p><div id="ep_pv" style="height:55vh;overflow:auto;background:#8A93A3;border-radius:8px;padding:10px;display:grid;gap:10px;justify-items:center;align-content:start"></div>`;
     m.ov.querySelector(".modal").style.width="min(1000px,100%)";if(typeof pfApercu==="function")pfApercu(blob,m.q("#ep_pv"));
     m.ov.querySelector("footer").innerHTML=`${r2.url&&r2.url!=="#"?`<a class="btn" href="${esc(r2.url)}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir dans le Drive</a>`:""}<a class="btn" href="${url}" download="${esc(name)}" style="text-decoration:none">Télécharger le PDF</a><button class="btn pri" id="epok">✅ Voir les rapports dans le registre</button>`;
+    if(EP&&EP.saved)EP.saved.done=1;
     m.q("#epok").onclick=()=>{m.close();document.getElementById("ep")?.remove();document.body.style.overflow="";EP=null;V.tab="epi";renderEnt()}}
   catch(z){st("");m.q("#eperr").textContent=z.message+(EP.saved?" – les rapports sont déjà enregistrés : clique de nouveau sur « Valider et classer » pour relancer le PDF.":"")}}
 
