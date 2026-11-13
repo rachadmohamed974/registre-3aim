@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-m";
+const APP_VER="2026-11-13-n";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2505,6 +2505,18 @@ entForm=function(e){_entForm.apply(this,arguments);try{
     const two=sl.parentElement&&sl.parentElement.classList.contains("two")?sl.parentElement:null;if(two){const row=two.querySelector("#n_sirb").parentElement;two.after(row)}
     document.getElementById("n_sirb").onclick=()=>sirFill(inp,show)}
 }catch(z){console.warn(z)}};
+function entDelBouton(){if(S.role!=="admin"||document.getElementById("entDel"))return;const acts=document.querySelector("#main .acts");if(!acts)return;const e=S.ents.find(x=>x.id===V.ent);if(!e)return;
+  const qr=document.getElementById("qr"),html=`<button class="btn" id="entDel" style="background:#E87722;border-color:#E87722;color:#fff;font-weight:600">🗑 Supprimer l’entreprise</button>`;
+  qr?qr.insertAdjacentHTML("afterend",html):acts.insertAdjacentHTML("beforeend",html);
+  document.getElementById("entDel").onclick=()=>{const n={el:els(e.id).length,res:ress(e.id).length,fic:S.fic.filter(f=>f.entId===e.id).length,du:duList(e.id).length};
+    const m=modal("Supprimer l’entreprise","#E87722",`<p style="margin:0">Tu vas supprimer <b>${esc(e.nom)}</b> et tout son registre :</p>
+      <ul style="margin:6px 0;padding-left:20px;font-size:14px"><li>${n.el} équipement(s) et vérification(s)</li><li>${n.res} observation(s) et réserve(s)</li><li>${n.fic} fiche(s) (contacts, travaux, consignes, personnel…)</li><li>${n.du} version(s) de DUERP</li></ul>
+      <p class="hint" style="margin:0">Les documents déjà rangés dans le Drive (rapports, PDF, photos) ne sont pas effacés. La sauvegarde du dimanche garde aussi une copie.</p>
+      <label class="f">Pour confirmer, tape <b>SUPPRIMER</b><input id="ed_ok" autocomplete="off"></label><div class="err" id="ed_x"></div>`,
+      `<button class="btn" data-x2>Annuler</button><button class="btn" id="ed_go" style="background:#B42318;border-color:#B42318;color:#fff" disabled>Supprimer définitivement</button>`);
+    m.ov.querySelector("[data-x2]").onclick=m.close;const ok=m.q("#ed_ok"),go=m.q("#ed_go");ok.oninput=()=>{go.disabled=ok.value.trim().toUpperCase()!=="SUPPRIMER"};
+    go.onclick=async()=>{go.disabled=true;go.textContent="Suppression…";try{await api("delEnt",{id:e.id});m.close();V={view:"dash"};S.ents=S.ents.filter(x=>x.id!==e.id);render();toast(e.nom+" a été supprimée");reload().then(()=>{if(V.view==="dash")render()}).catch(()=>{})}
+      catch(z){m.q("#ed_x").textContent=z.message;go.disabled=false;go.textContent="Supprimer définitivement"}}}}
 const NJ={"1000":"EI","5498":"EURL","5499":"SARL","5422":"SARL","5485":"SARL","5710":"SAS","5720":"SASU","5599":"SA","5505":"SA","5410":"SNC","6540":"SCI","9220":"Association","9210":"Association","5306":"SCS"};
 const TR={"00":"0 salarié","01":"1 ou 2 salariés","02":"3 à 5 salariés","03":"6 à 9 salariés","11":"10 à 19 salariés","12":"20 à 49 salariés","21":"50 à 99 salariés","22":"100 à 199 salariés","31":"200 à 249 salariés","32":"250 à 499 salariés","41":"500 à 999 salariés"};
 async function sirFill(nafInp,show){const h=document.getElementById("n_sirh"),b=document.getElementById("n_sirb"),v=k=>document.getElementById("n_"+k);
@@ -2527,7 +2539,7 @@ async function sirFill(nafInp,show){const h=document.getElementById("n_sirh"),b=
   catch(z){h.innerHTML='<span style="color:var(--bad)">Recherche impossible : '+esc(z.name==="AbortError"?"l’annuaire ne répond pas":z.message)+'.</span>'}
   finally{b.disabled=false;b.textContent="🔎 Remplir depuis le SIRET"}}
 const _renderEnt=renderEnt;
-renderEnt=function(){_renderEnt.apply(this,arguments);try{const vb=document.getElementById("vgpN");if(vb&&S.role==="admin"&&!document.getElementById("epiN")&&typeof openEPI==="function"){vb.insertAdjacentHTML("afterend",'<button class="btn" id="epiN" title="Contrôle des EPI antichute (harnais, longes, connecteurs…) – rapport RUNIXO CONTRÔLE classé dans ce registre">Contrôle EPI</button>');const ee=S.ents.find(x=>x.id===V.ent);document.getElementById("epiN").onclick=()=>openEPI(ee)}}catch(z){}try{const e=S.ents.find(x=>x.id===V.ent),meta=document.querySelector(".hero .meta");if(!e||!meta||meta.querySelector("[data-naf]"))return;
+renderEnt=function(){_renderEnt.apply(this,arguments);try{entDelBouton()}catch(z){}try{const vb=document.getElementById("vgpN");if(vb&&S.role==="admin"&&!document.getElementById("epiN")&&typeof openEPI==="function"){vb.insertAdjacentHTML("afterend",'<button class="btn" id="epiN" title="Contrôle des EPI antichute (harnais, longes, connecteurs…) – rapport RUNIXO CONTRÔLE classé dans ce registre">Contrôle EPI</button>');const ee=S.ents.find(x=>x.id===V.ent);document.getElementById("epiN").onclick=()=>openEPI(ee)}}catch(z){}try{const e=S.ents.find(x=>x.id===V.ent),meta=document.querySelector(".hero .meta");if(!e||!meta||meta.querySelector("[data-naf]"))return;
   if(estAbo(e.id)){const h=document.querySelector(".hero h1");if(h&&!h.querySelector("[data-abo]"))h.insertAdjacentHTML("beforeend",` <span data-abo class="pill" style="background:#E5F3EB;color:#1B5E20;font-size:13px;vertical-align:middle">★ Abonné prévention${metaGet(e.id).deb?" depuis le "+fr(metaGet(e.id).deb):""}</span>`)}
   const n=nafEnt(e);meta.insertAdjacentHTML("beforeend",`<div data-naf><span>Code NAF</span><br>${n?esc(n):S.role==="admin"?'<span style="color:var(--warn)">À renseigner (Modifier la fiche)</span>':"–"}</div>`)}catch(z){}};
 
