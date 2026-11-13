@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-p";
+const APP_VER="2026-11-13-s";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -548,7 +548,14 @@ function demo(a,p){
    case"delFiche":DB.fic=DB.fic.filter(x=>x.id!==p.id);return{};
    case"lireDoc":return{items:[{rub:"lev",libelle:"Chariot élévateur – VGP",detail:"Toyota 8FD25 – n° 30215",serie:"30215",dernier:today(),per:6,organisme:"RUNIXO CONTRÔLE",resultat:"R",ref:"VGP-2026-0198",notes:"",reserves:[{texte:"Ceinture de sécurité à remplacer",gravite:"moyenne"}]}]};
    case"analyseEPI":return{items:(p.photos||[]).map((x,i)=>({photos:[x.n],type:["harnais","connecteur","longe_abs","sangle"][i%4],marque:"PETZL",modele:["AVAO BOD FAST","OK TRIACT","ABSORBICA-Y","C40"][i%4],serie:i===3?"illisible":"22L04562355"+(80+x.n),fab:"2022-12",fabDeduite:true,etat:i===3?"rebut":i===2?"surv":"ok",obs:"Constat de démonstration "+x.n,motif:i===3?"Référence illisible — traçabilité impossible":i===2?"Décoloration prononcée":"",confiance:i===1?"faible":"bonne"}))};
-   case"saveEPI":{DB.epSeq=DB.epSeq||43;const out=(p.kits||[]).map(k=>{DB.epSeq++;const lib="Kit EPI antichute – "+k.salarie;let el=DB.els.find(x=>x.entId===p.entId&&x.rub==="epi"&&x.libelle===lib);if(!el){el={id:rid("x"),entId:p.entId,rub:"epi",libelle:lib,per:12,doc:""};DB.els.push(el)}Object.assign(el,{detail:k.nb+" équipement(s)",dernier:p.date,prochain:addM(p.date,12),organisme:"RUNIXO CONTRÔLE",resultat:k.resultat,ref:"Rapport EPI N° "+DB.epSeq,notes:k.notes});(k.reserves||[]).forEach(r=>DB.res.push({id:rid("r"),entId:p.entId,elId:el.id,date:p.date,texte:r.texte,gravite:r.gravite,levee:"",preuve:""}));DB.ep=DB.ep||[];const pid=rid("p");DB.ep.push({id:pid,entId:p.entId,elId:el.id,num:String(DB.epSeq),date:p.date,salarie:k.salarie,data:k.data});log(p.entId,"Contrôle EPI N° "+DB.epSeq+" : "+k.salarie);return{salarie:k.salarie,num:String(DB.epSeq),pid,elId:el.id}});return{kits:out}}
+   case"saveEPI":{DB.epSeq=DB.epSeq||43;DB.ep=DB.ep||[];const out=(p.kits||[]).map(k=>{const old=k.pid&&DB.ep.find(x=>x.id===k.pid);if(!old)DB.epSeq++;const num=old?old.num:String(DB.epSeq);
+     const lib="Kit EPI antichute – "+k.salarie;let el=DB.els.find(x=>x.entId===p.entId&&x.rub==="epi"&&x.libelle===lib);if(!el){el={id:rid("x"),entId:p.entId,rub:"epi",libelle:lib,per:12,doc:""};DB.els.push(el)}
+     Object.assign(el,{detail:k.nb+" équipement(s)",dernier:p.date,prochain:addM(p.date,12),organisme:"RUNIXO CONTRÔLE",resultat:k.resultat,ref:"Rapport EPI N° "+num,notes:k.notes});
+     let row=old;if(!row){row={id:rid("p"),entId:p.entId,elId:el.id,num,date:p.date,salarie:k.salarie,pdf:""};DB.ep.push(row)}
+     if(old){const oA=JSON.parse(old.data||"{}"),oN=JSON.parse(k.data||"{}");if(oA.recap&&!oN.recap)oN.recap=oA.recap;k.data=JSON.stringify(oN)}row.data=k.data;row.resultat=k.resultat;
+     log(p.entId,(old?"Rapport EPI complété N° ":"Contrôle EPI N° ")+num+" : "+k.salarie);return{salarie:k.salarie,num,pid:row.id,elId:el.id}});return{kits:out}}
+   case"epiPhoto":{DB.phs=DB.phs||{};const id="f"+Math.random().toString(36).slice(2,8);DB.phs[id]=p.data;return{fid:id}}
+   case"epiPhotoGet":return{data:(DB.phs||{})[p.fid]||""};
    case"epiPdf":{const ids=p.kind==="kit"?[p.pid]:(p.pids||[]);(DB.ep||[]).filter(x=>ids.includes(x.id)).forEach(x=>{if(p.kind==="kit")x.pdf="#kit-"+x.num;else{const o=JSON.parse(x.data||"{}");o.recap="#recap";x.data=JSON.stringify(o)}});return{url:"#"}}
    case"listEPI":return{rows:(DB.ep||[]).filter(x=>x.entId===p.entId).map(x=>({...x}))};
    case"lastEPI":return{kits:(DB.ep||[]).filter(x=>x.entId===p.entId).reverse().map(x=>({salarie:x.salarie,num:x.num,date:x.date,data:x.data}))};
@@ -638,9 +645,9 @@ function renderDash(){
 }
 
 /* ============ FICHE ENTREPRISE ============ */
-const TABS=["id","duerp","trav","inst","lev","epi","inc","form","maint","cons","dae","feu","obs","reg"];
-function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||(k==="duerp"?{n:"📋 Document unique",c:DG}:{n:"Réglementation",c:"#B71C1C"});
-  const n=FT[k]?fics(e.id,k).length:k==="reg"||k==="id"||k==="duerp"?null:cnt(k),al=FT[k]?fics(e.id,k).some(f=>["retard"].includes(statutF(f))):k==="reg"||k==="id"||k==="duerp"?false:alert(k);
+const TABS=["id","duerp","docs","trav","inst","lev","epi","inc","form","maint","cons","dae","feu","obs","reg"];
+function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||(k==="duerp"?{n:"📋 Document unique",c:DG}:k==="docs"?{n:"📁 Documents",c:"#1F5FA8"}:{n:"Réglementation",c:"#B71C1C"});
+  const n=FT[k]?fics(e.id,k).length:k==="reg"||k==="id"||k==="duerp"||k==="docs"?null:cnt(k),al=FT[k]?fics(e.id,k).some(f=>["retard"].includes(statutF(f))):k==="reg"||k==="id"||k==="duerp"||k==="docs"?false:alert(k);
   const lab=k==="trav"?"Travaux et contrôles":k==="maint"?"Maintenance":k==="cons"?"Consignes":k==="dae"?"Défibrillateur":k==="feu"?"Incidents":r.n;
   return `<button class="tab ${V.tab===k?"on":""}" style="--rc:${r.c}" data-t="${k}" role="tab" aria-selected="${V.tab===k}"><span class="dot"></span>${lab}${n!==null?` <span class="ct ${al?"alert":""}">${n}</span>`:""}</button>`}).join("")}
 function renderEnt(){
@@ -669,6 +676,7 @@ function renderEnt(){
   if(V.tab==="obs")return panelObs(e,pn);
   if(V.tab==="reg")return panelReg(pn);
   if(V.tab==="dae")return panelDAE(e,pn);
+  if(V.tab==="docs")return panelDocs(e,pn);
   if(V.tab==="duerp")return panelDuerp(e,pn);
   if(V.tab==="trav"||V.tab==="maint"||V.tab==="cons"||V.tab==="feu")return listeFiches(e,V.tab,pn);
   panelRub(e,V.tab,pn);
@@ -2493,7 +2501,7 @@ entForm=function(e){_entForm.apply(this,arguments);try{
     const self=e&&e.id,si=dig((document.getElementById("n_siret")||{}).value),no=nrm((document.getElementById("n_nom")||{}).value),O=S.ents.filter(x=>x.id!==self);
     const same=si.length===14&&O.find(x=>dig(x.siret)===si),sirn=!same&&si.length>=9&&O.find(x=>dig(x.siret).slice(0,9)===si.slice(0,9)),nom=!same&&!sirn&&no&&O.find(x=>nrm(x.nom)===no);
     const err=document.getElementById("n_e");if(!same&&!sirn&&!nom)return;
-    ev.stopImmediatePropagation();ev.preventDefault();NAF_FORM.pending=null;
+    ev.stopImmediatePropagation();ev.preventDefault();NAF_FORM.pending=null;btn.dataset.lock="";
     const x=same||sirn||nom,why=same?"le même SIRET":sirn?"le même SIREN (même société, autre établissement ?)":"le même nom";
     err.innerHTML=`<div style="background:#FCE8E6;border:1px solid #B42318;border-radius:8px;padding:10px;color:#7A1A12;font-weight:400">⚠️ <b>${esc(x.nom)}</b> existe déjà dans le registre avec ${why}${x.siret?" (SIRET "+esc(x.siret)+")":""}.
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm pri" id="n_dupo">Ouvrir la fiche existante</button>${same?"":`<button type="button" class="btn sm" id="n_dupf">C’est une autre entreprise : enregistrer quand même</button>`}</div></div>`;
@@ -2720,7 +2728,8 @@ const epDB=(()=>{let p;const open=()=>p||(p=new Promise((ok,ko)=>{const r=indexe
 let EP=null,EPE=null,epStep=0,epSaveH=null,epKitPh=null;
 const ep$=s=>document.querySelector("#ep "+s);
 const epId=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-function epSave(){clearTimeout(epSaveH);epSaveH=setTimeout(()=>epDB.set("e_"+EPE.id,EP),400)}
+const epKey=()=>EP&&EP.rev?"r_"+EP.rev.pid:"e_"+EPE.id;
+function epSave(){clearTimeout(epSaveH);epSaveH=setTimeout(()=>epDB.set(epKey(),EP),400)}
 function epNewItem(o){return Object.assign({id:epId("i"),type:"",marque:"",modele:"",serie:"",fab:"",fabD:false,etat:"",obs:"",motif:"",ph:[],man:{},ia:false,conf:""},o||{})}
 function epKit(nom){return{id:epId("k"),nom:nom||"",photos:[],items:[],an:""}}
 function epAge(it){const m=String(it.fab||"").match(/(\d{4})(?:-(\d{2}))?/);if(!m)return null;const d=new Date(EP.date+"T00:00:00"),f=new Date(Number(m[1]),m[2]?Number(m[2])-1:0,1);return(d-f)/(365.25*864e5)}
@@ -2739,7 +2748,7 @@ function epNew(e){EP={v:1,date:today(),verif:"MOHAMED Rachad",contact:e.contact|
 /* ---------- écran ---------- */
 const EP_STEPS=[["Contrôle"],["Salariés et photos"],["Pré-rapport à vérifier"],["Rapport"]];
 function epOpen(){document.getElementById("ep")?.remove();const o=document.createElement("div");o.id="ep";o.setAttribute("role","dialog");o.setAttribute("aria-label","Contrôle EPI antichute");
-  o.innerHTML=`<header class="ep-top"><div class="in"><div><b>Contrôle EPI antichute – ${esc(EPE.nom)}</b><small>RUNIXO CONTRÔLE · brouillon gardé sur cet appareil, photos comprises</small></div><div style="flex:1"></div><button class="ep-x" id="epclose">Fermer</button></div><nav class="ep-steps" id="epsteps"></nav></header>
+  o.innerHTML=`<header class="ep-top"><div class="in"><div><b>${EP.rev?"Compléter le rapport N° "+esc(EP.rev.num)+" – "+esc(EPE.nom):"Contrôle EPI antichute – "+esc(EPE.nom)}</b><small>RUNIXO CONTRÔLE · ${EP.rev?"révision "+EP.rev.rev+" du contrôle du "+fr(EP.date):"brouillon gardé sur cet appareil, photos comprises"}</small></div><div style="flex:1"></div><button class="ep-x" id="epclose">Fermer</button></div><nav class="ep-steps" id="epsteps"></nav></header>
   <div class="ep-main" id="epmain"></div>
   <div class="ep-bar"><div class="in"><div class="ep-prog" id="epprog"></div><button class="btn" id="epprev">Précédent</button><button class="btn pri" id="epnext">Suivant</button></div></div>
   <input type="file" id="epf1" accept="image/*" multiple hidden><input type="file" id="epf2" accept="image/*" capture="environment" hidden>`;
@@ -2747,7 +2756,7 @@ function epOpen(){document.getElementById("ep")?.remove();const o=document.creat
   ep$("#epclose").onclick=epClose;ep$("#epsteps").onclick=ev=>{const b=ev.target.closest("button");if(b)epGo(+b.dataset.s)};
   ep$("#epprev").onclick=()=>epGo(epStep-1);ep$("#epnext").onclick=()=>epStep===3?epValider():epGo(epStep+1);
   ep$("#epf1").onchange=ep$("#epf2").onchange=epPhotos;epGo(0)}
-function epClose(){epDB.set("e_"+EPE.id,EP);document.getElementById("ep")?.remove();document.body.style.overflow="";renderEnt()}
+function epClose(){epDB.set(epKey(),EP);document.getElementById("ep")?.remove();document.body.style.overflow="";renderEnt()}
 function epGo(i){epStep=Math.max(0,Math.min(3,i));ep$("#epsteps").innerHTML=EP_STEPS.map((s,j)=>`<button class="${j===epStep?"on":""}" data-s="${j}"><i>${j+1}</i>${s[0]}</button>`).join("");
   ep$("#epprev").style.visibility=epStep?"visible":"hidden";ep$("#epnext").textContent=epStep===3?"Valider et classer":epStep===2?"Voir le rapport":"Suivant";epRender();document.getElementById("ep").scrollTop=0}
 function epProg(){const A=epAll(),d=A.filter(epItemOk).length,r=A.filter(x=>x.etat==="rebut").length,s=A.filter(x=>x.etat==="surv").length;
@@ -2775,13 +2784,13 @@ function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rappo
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-add1>+ Ajouter des photos</button><button class="btn" data-add2>📷 Prendre une photo</button>
    <button class="btn pri" data-an ${k.photos.length&&k.nom.trim()&&!epBusy[k.id]?"":"disabled"}>Analyser avec Claude (${k.photos.length} photo${k.photos.length>1?"s":""})</button><span class="ep-busy" data-st>${epBusy[k.id]?`<b style="color:var(--orange)">${esc(epBusy[k.id])}</b>`:k.an?esc(k.an):""}</span></div>
    ${k.items.length?`<p class="hint" style="margin:8px 0 0">${k.items.length} équipement(s) dans le pré-rapport.</p>`:""}${epTrashH(k)}</div>`).join("")+
-  `<button class="btn" id="ep_ak">+ Ajouter un salarié</button>`;
-  M.querySelector("#ep_ak").onclick=()=>{EP.kits.push(epKit(""));epSave();epRender();setTimeout(()=>{const l=[...M.querySelectorAll("[data-nom]")].pop();l&&l.focus()},50)};
+  (EP.rev?`<p class="hint">Révision du rapport N° ${esc(EP.rev.num)} : ajoute ou corrige les pièces de ce salarié.</p>`:`<button class="btn" id="ep_ak">+ Ajouter un salarié</button>`);
+  if(M.querySelector("#ep_ak"))M.querySelector("#ep_ak").onclick=()=>{EP.kits.push(epKit(""));epSave();epRender();setTimeout(()=>{const l=[...M.querySelectorAll("[data-nom]")].pop();l&&l.focus()},50)};
   M.querySelectorAll("[data-k]").forEach(c=>{const k=EP.kits.find(x=>x.id===c.dataset.k);
     c.querySelector("[data-nom]").oninput=ev=>{k.nom=ev.target.value.toUpperCase().replace(/^\s+/,"");epSave();const b=c.querySelector("[data-an]");b.disabled=!(k.photos.length&&k.nom.trim())};
     c.querySelector("[data-nom]").onblur=ev=>{ev.target.value=k.nom.trim();k.nom=k.nom.trim();epSave()};
     c.querySelector("[data-kdel]").onclick=()=>{if((k.photos.length||k.items.length)&&!confirm("Retirer "+(k.nom||"ce salarié")+" et ses photos ?"))return;EP.kits=EP.kits.filter(x=>x!==k);if(!EP.kits.length)EP.kits.push(epKit(""));epSave();epRender()};
-    c.querySelector("[data-add1]").onclick=()=>{epKitPh=k.id;epDB.set("e_"+EPE.id,EP);ep$("#epf1").click()};c.querySelector("[data-add2]").onclick=()=>{epKitPh=k.id;epDB.set("e_"+EPE.id,EP);ep$("#epf2").click()};
+    c.querySelector("[data-add1]").onclick=()=>{epKitPh=k.id;epDB.set(epKey(),EP);ep$("#epf1").click()};c.querySelector("[data-add2]").onclick=()=>{epKitPh=k.id;epDB.set(epKey(),EP);ep$("#epf2").click()};
     c.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();epSupprPhoto(k,b.dataset.pdel)});
     c.querySelector("[data-an]").onclick=()=>epAnalyse(k,c);
     c.ondragover=ev=>{ev.preventDefault();c.style.outline="3px dashed var(--orange)"};c.ondragleave=()=>{c.style.outline=""};
@@ -2898,7 +2907,7 @@ function epBuild(host,nums,opt){opt=opt||{};host.innerHTML="";const K=EP.kits.fi
    blk(`<div class="leg">Légende : <b style="color:#1E7F4F">OK</b> conforme – <b style="color:#C76A00">À SURVEILLER</b> utilisable, à réviser – <b style="color:#B42318">REBUT</b> mise hors service immédiate et destruction. Tout EPI ayant subi un arrêt de chute doit être retiré du service.</div>`);
    sec({at,head:epHead("RÉCAPITULATIF",plage),foot,num:"Récapitulatif "+plage})}
   /* un rapport par salarié */
-  K.forEach((k,i)=>{if(opt.only!=null&&i!==opt.only)return;const at=[],blk=h=>at.push({k:"b",h}),hd=h=>at.push({k:"h",h:`<div class="vg-h">${h}</div>`}),r=epKitRes(k);
+  K.forEach((k,i)=>{if(opt.recapOnly||(opt.only!=null&&i!==opt.only))return;const at=[],blk=h=>at.push({k:"b",h}),hd=h=>at.push({k:"h",h:`<div class="vg-h">${h}</div>`}),r=epKitRes(k);
    blk(`<div class="av ${r.r||r.s?"R":"C"}"><div class="v"><small>RÉSULTAT DU CONTRÔLE</small><b>${r.lib}</b><span>${r.r?"Les équipements au rebut doivent être retirés immédiatement et détruits.":r.s?"Équipements utilisables, à réviser avant le prochain contrôle.":"Aucune anomalie bloquante. Équipements autorisés à l’utilisation."}</span></div><div class="k"><div><b>${r.nb}</b>contrôlés</div><div><b style="color:#1E7F4F">${r.ok}</b>OK</div><div><b style="color:#C76A00">${r.s}</b>à surveiller</div><div><b style="color:#B42318">${r.r}</b>rebut</div><div class="nx">Prochaine vérification avant le <b>${nx}</b></div></div></div>`);
    hd("1. INFORMATIONS");blk(`<table class="kv">${[["Client",`<b>${esc(EPE.nom)}</b>`],["Contact",esc(EP.contact||"—")],["Salarié / kit",`<b>${esc(k.nom)}</b>`],["Date du contrôle",fr(EP.date)],["Prochaine vérification",`<b>${nx}</b>`],["Contrôleur",esc(EP.verif)+" — RUNIXO CONTRÔLE"]].map(x=>`<tr><td class="k">${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</table>`);
    hd("2. RÉSULTATS PAR ÉQUIPEMENT");const th=`<thead><tr><th style="width:5%">N°</th><th style="width:19%">ÉQUIPEMENT</th><th style="width:22%">MARQUE / MODÈLE / N°</th><th style="width:10%">FABRIC.</th><th style="width:11%">ÉTAT</th><th>OBSERVATIONS</th></tr></thead>`;
@@ -2907,7 +2916,7 @@ function epBuild(host,nums,opt){opt=opt||{};host.innerHTML="";const K=EP.kits.fi
    const PH=k.items.map((x,j)=>({x,j,p:k.photos.find(p=>x.ph.includes(p.id))})).filter(o=>o.p);
    if(PH.length){hd("3. PHOTOS DES ÉQUIPEMENTS CONTRÔLÉS");for(let a=0;a<PH.length;a+=3)blk(`<div class="phs">${PH.slice(a,a+3).map(o=>`<figure><img src="${o.p.d}" alt="">${o.j+1}. ${esc(epDesig(o.x))}<b>État : ${EP_ET[o.x.etat]||"—"}</b></figure>`).join("")}</div>`)}
    hd(`${PH.length?4:3}. CONCLUSION ET VALIDATION`);
-   blk(`<div class="cc ${r.r||r.s?"R":"C"}"><b class="t">${r.lib}</b><p>Le kit EPI antichute de ${esc(k.nom)} (${r.nb} équipement${r.nb>1?"s":""}) a fait l’objet d’une vérification périodique conformément à la norme EN 365 et à l’article R.4323-104 du Code du travail.</p>${r.r?`<p>${r.r} équipement${r.r>1?"s":""} déclaré${r.r>1?"s":""} au rebut : retrait immédiat du service et destruction, à remplacer avant toute nouvelle utilisation.</p>`:""}${r.s?`<p>${r.s} équipement${r.s>1?"s":""} à surveiller : utilisation possible, révision à prévoir.</p>`:""}<p><b>Prochaine vérification à effectuer avant le : ${nx}</b></p></div>`);
+   blk(`<div class="cc ${r.r||r.s?"R":"C"}"><b class="t">${r.lib}</b><p>Le kit EPI antichute de ${esc(k.nom)} (${r.nb} équipement${r.nb>1?"s":""}) a fait l’objet d’une vérification périodique conformément à la norme EN 365 et à l’article R.4323-104 du Code du travail.</p>${r.r?`<p>${r.r} équipement${r.r>1?"s":""} déclaré${r.r>1?"s":""} au rebut : retrait immédiat du service et destruction, à remplacer avant toute nouvelle utilisation.</p>`:""}${r.s?`<p>${r.s} équipement${r.s>1?"s":""} à surveiller : utilisation possible, révision à prévoir.</p>`:""}${k.revInfo?`<p style="border-top:1px solid #ddd;padding-top:5px"><b>Rapport complété le ${fr(k.revInfo.le)} (révision ${k.revInfo.rev})</b>${k.revInfo.ajout>0?` : ${k.revInfo.ajout} équipement${k.revInfo.ajout>1?"s":""} ajouté${k.revInfo.ajout>1?"s":""}`:""}. Cette version remplace la précédente, conservée en archive.${k.revInfo.sansPhotos?" Photos des pièces initiales : voir le rapport d’origine N° "+esc(k.revInfo.num)+" du "+fr(EP.date)+".":""}</p>`:""}<p><b>Prochaine vérification à effectuer avant le : ${nx}</b></p></div>`);
    blk(`<div class="sg"><div><b>Pour ${esc(EPE.nom)} — l’utilisateur</b><br>${esc(k.nom)}<br><br><span style="color:#666">Signature précédée de « Lu et approuvé »</span><br><br>Date : ____ / ____ / ________</div><div><b>Pour RUNIXO CONTRÔLE — le contrôleur</b><br>${esc(EP.verif)}<br><br>${fr(EP.date)}<img src="${VG_IMG.cachet}" alt=""></div></div>`);
    sec({at,head:epHead("RAPPORT EPI",`N° ${nums[i]}`),foot,num:`Rapport EPI N° ${nums[i]} – ${k.nom}`})});
   return tot}
@@ -2926,39 +2935,110 @@ async function epListe(e,pn){const box=document.createElement("div");box.id="epl
       ${rec?`<a class="btn sm" href="${esc(rec)}" target="_blank" rel="noopener" style="text-decoration:none">📄 Récapitulatif (PDF)</a>`:""}</div>
       <div style="margin-top:8px">${G.map(x=>{const I=x._o.items||[],r=I.filter(y=>y.etat==="rebut").length,s2=I.filter(y=>y.etat==="surv").length;
         return `<details style="border-top:1px solid var(--line);padding:8px 0" ${j===0&&G.length===1?"open":""}><summary style="cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none">
-          <b style="min-width:180px">👷 ${esc(x.salarie)}</b><span class="hint">Rapport N° ${esc(x.num)} · ${I.length} équipement${I.length>1?"s":""}</span>
+          <b style="min-width:180px">👷 ${esc(x.salarie)}</b><span class="hint">Rapport N° ${esc(x.num)}${x._o.rev?" – rév. "+x._o.rev:""} · ${I.length} équipement${I.length>1?"s":""}</span>
           <span class="pill ${r?"p-nc":s2?"p-bientot":"p-ok"}">${r?r+" rebut":s2?s2+" à surveiller":"Conforme"}</span><span style="flex:1"></span>
-          ${x.pdf?`<a class="btn sm" href="${esc(x.pdf)}" target="_blank" rel="noopener" style="text-decoration:none" onclick="event.stopPropagation()">📄 Rapport (PDF)</a>`:""}</summary>
+          ${x.pdf?`<a class="btn sm" href="${esc(x.pdf)}" target="_blank" rel="noopener" style="text-decoration:none" onclick="event.stopPropagation()">👁 Voir</a><a class="btn sm" href="${esc(dlUrl(x.pdf))}" target="_blank" rel="noopener" style="text-decoration:none" onclick="event.stopPropagation()">⬇ Télécharger</a>`:""}${S.role==="admin"?`<button class="btn sm" data-rev="${x.id}" onclick="event.stopPropagation();event.preventDefault()">✏️ Compléter</button>`:""}</summary>
           <div style="overflow-x:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse;font-size:13.5px"><tr style="text-align:left;color:var(--ink3);font-size:12.5px"><th style="padding:4px 6px">Équipement</th><th style="padding:4px 6px">Marque / modèle / n°</th><th style="padding:4px 6px">Fabrication</th><th style="padding:4px 6px">État</th><th style="padding:4px 6px">Observations</th></tr>
           ${I.map(y=>`<tr style="border-top:1px solid var(--line)"><td style="padding:5px 6px"><b>${esc((EP_T[y.type]||EP_T.autre).n)}</b></td><td style="padding:5px 6px">${esc([y.marque,y.modele,y.serie].filter(Boolean).join(" / ")||"—")}</td><td style="padding:5px 6px">${esc(y.fab||"—")}</td><td style="padding:5px 6px"><b style="color:${col[y.etat]||"inherit"}">${et[y.etat]||"—"}</b></td><td style="padding:5px 6px">${esc(y.obs||"")}${y.motif&&y.etat!=="ok"?` <b>${esc(y.motif)}</b>`:""}</td></tr>`).join("")}</table></div></details>`}).join("")}</div></div>`}).join("")}
 const _renderEntEp=renderEnt;
 renderEnt=function(){_renderEntEp.apply(this,arguments);try{if(V.tab==="epi"){const e=S.ents.find(x=>x.id===V.ent),pn=document.getElementById("pn");if(e&&pn&&!document.getElementById("eplist"))epListe(e,pn)}}catch(z){console.warn(z)}};
 
+/* ---------- onglet « 📁 Documents » : tous les documents de l'entreprise, rangés par date ---------- */
+let DOCF="tous";
+async function panelDocs(e,pn){const ty={vgp:"VGP – levage",epi:"EPI antichute",duerp:"Document unique",verif:"Vérifications",form:"Formations",autre:"Autres documents"};
+  pn.innerHTML=`<div class="card rubh" style="--rc:#1F5FA8"><div><h2>📁 Documents</h2><p>Tous les rapports et documents de ${esc(e.nom)}, du plus récent au plus ancien</p></div></div><div id="docl"><div class="card empty">Chargement des documents…</div></div>`;
+  let ep=EPLIST[e.id];if(!ep){try{ep=EPLIST[e.id]=(await api("listEPI",{entId:e.id})).rows||[]}catch(z){ep=[]}}
+  if(V.tab!=="docs"||!document.getElementById("docl"))return;
+  const D=[],epDocs=new Set();
+  ep.forEach(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}const d=String(x.date).slice(0,10);
+    if(x.pdf){epDocs.add(x.pdf);D.push({d,t:"epi",rev:x.id,titre:`Rapport EPI N° ${x.num}${o.rev?" – rév. "+o.rev:""} – ${x.salarie}`,sous:`${(o.items||[]).length} équipement(s) · prochain contrôle avant le ${fr(addM(d,12))}`,url:x.pdf})}
+    if(o.recap&&!D.some(z=>z.url===o.recap)){epDocs.add(o.recap);D.push({d,t:"epi",titre:"Récapitulatif du contrôle EPI",sous:"Tous les salariés contrôlés ce jour-là",url:o.recap,top:1})}});
+  els(e.id).forEach(x=>{if(!x.doc||x.doc==="#"||epDocs.has(x.doc))return;D.push({d:String(x.dernier||x.majLe||"").slice(0,10),t:x.rub==="lev"?"vgp":x.rub==="form"?"form":x.rub==="epi"?"epi":"verif",titre:x.libelle+(x.ref?" – "+x.ref:""),sous:[x.detail,x.organisme].filter(Boolean).join(" · "),url:x.doc})});
+  S.fic.filter(f=>f.entId===e.id&&f.doc&&f.doc!=="#").forEach(f=>D.push({d:String(f.date||"").slice(0,10),t:f.type==="perso"?"form":"autre",titre:f.a||"Document",sous:(FT[f.type]||{}).n||"",url:f.doc}));
+  duList(e.id).filter(d=>d.statut==="validé").forEach(d=>D.push({d:String(d.date).slice(0,10),t:"duerp",titre:`Document unique – version ${d.version}`,sous:"Validé"+(d.date?" le "+fr(d.date):""),du:d.id}));
+  const types=[...new Set(D.map(x=>x.t))],V2=D.filter(x=>DOCF==="tous"||x.t===DOCF).sort((a,b)=>String(b.d).localeCompare(String(a.d))||(b.top||0)-(a.top||0));
+  const par={};V2.forEach(x=>(par[x.d||"sans date"]=par[x.d||"sans date"]||[]).push(x));
+  const jour=d=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return"Sans date";const t=new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});return t.charAt(0).toUpperCase()+t.slice(1)};
+  const ic={vgp:"🏗️",epi:"🦺",duerp:"📋",verif:"🔧",form:"🎓",autre:"📄"};
+  document.getElementById("docl").innerHTML=!D.length?`<div class="card empty">Aucun document pour l’instant. Les rapports VGP, EPI, le document unique validé et les rapports déposés apparaîtront ici, rangés par date.</div>`:
+   `${types.length>1?`<div class="quick" style="margin:0 0 12px">${[["tous","Tous ("+D.length+")"]].concat(types.map(t=>[t,(ic[t]||"")+" "+ty[t]+" ("+D.filter(x=>x.t===t).length+")"])).map(([k,l])=>`<button class="chip" data-df="${k}" style="${DOCF===k?"border-style:solid;border-color:#1F5FA8;color:var(--ink);font-weight:600":""}">${l}</button>`).join("")}</div>`:""}
+   ${Object.keys(par).map(d=>`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:15px;color:#1F5FA8;margin:0 0 6px">📅 ${esc(jour(d))}</div>
+     ${par[d].map(x=>`<div class="card" style="padding:10px 14px;margin-bottom:6px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px" aria-hidden="true">${ic[x.t]||"📄"}</span><div style="flex:1;min-width:200px"><b>${esc(x.titre)}</b><div class="hint">${esc(ty[x.t])}${x.sous?" · "+esc(x.sous):""}</div></div>
+       ${x.url?`<a class="btn sm" href="${esc(x.url)}" target="_blank" rel="noopener" style="text-decoration:none">👁 Voir</a>${/drive\.google/.test(x.url)?`<a class="btn sm" href="${esc(dlUrl(x.url))}" target="_blank" rel="noopener" style="text-decoration:none">⬇ Télécharger</a>`:""}${x.rev&&S.role==="admin"?`<button class="btn sm" data-rev="${x.rev}">✏️ Compléter</button>`:""}`:`<button class="btn sm" data-ddu="${x.du}">📄 Ouvrir</button>`}</div>`).join("")}</div>`).join("")}`;
+  document.querySelectorAll("[data-df]").forEach(b=>b.onclick=()=>{DOCF=b.dataset.df;panelDocs(e,pn)});
+  document.querySelectorAll("[data-ddu]").forEach(b=>b.onclick=()=>{const d=S.du.find(x=>x.id===b.dataset.ddu);if(d)pfFlowDu(e,d)})}
+function pfFlowDu(e,d){pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d))}
+
+/* ---------- bandeau « contrôle EPI en cours sur cet appareil » ---------- */
+const _renderEntBrouillon=renderEnt;
+renderEnt=function(){_renderEntBrouillon.apply(this,arguments);try{if(S.role!=="admin")return;const e=S.ents.find(x=>x.id===V.ent);if(!e)return;
+  epDB.get("e_"+e.id).then(d=>{if(!d||!d.kits||V.ent!==e.id||document.getElementById("epbrou"))return;const K=d.kits.filter(k=>k.photos.length||k.items.length);if(!K.length)return;
+    const acts=document.querySelector("#main .acts");if(!acts)return;const nph=K.reduce((a,k)=>a+k.photos.length,0);
+    acts.insertAdjacentHTML("beforebegin",`<div id="epbrou" class="card" style="padding:12px 14px;margin-bottom:12px;border:2px solid #E87722;background:#FFF4E5;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b style="color:#9A3412">⏳ Contrôle EPI en cours sur cet appareil</b><div class="hint">${K.length} salarié(s) · ${nph} photo(s) · pas encore validé : il n’apparaîtra dans le registre qu’après « Valider et classer ».</div></div><button class="btn pri" id="epbrou_go" style="background:#E87722;border-color:#E87722">Reprendre le contrôle</button></div>`);
+    document.getElementById("epbrou_go").onclick=()=>openEPI(e)})}catch(z){}};
+
+/* ---------- anti double-clic sur les boutons qui enregistrent ---------- */
+document.addEventListener("click",ev=>{const b=ev.target.closest("#n_s,#ed_go,#sg_val,#f_s,#r_s,#fi_s,#du_c,#t_s,#i_s,#u_s");if(!b)return;
+  if(b.dataset.lock==="1"){ev.preventDefault();ev.stopImmediatePropagation();return}b.dataset.lock="1";setTimeout(()=>{if(b.isConnected)b.dataset.lock=""},6000)},true);
+document.addEventListener("input",ev=>{const o=ev.target.closest&&ev.target.closest(".ov");if(o)o.querySelectorAll("[data-lock]").forEach(b=>b.dataset.lock="")},true);
+
+/* ---------- compléter un rapport EPI déjà validé (révision) ---------- */
+const dlUrl=u=>{const m=String(u||"").match(/\/d\/([\w-]+)/)||String(u||"").match(/[?&]id=([\w-]+)/);return m?"https://drive.google.com/uc?export=download&id="+m[1]:u};
+async function epReviser(e,x,lst){EPE=e;const key="r_"+x.id,d=await epDB.get(key);
+  if(d&&d.kits&&d.rev){const m=modal("Révision en cours","#E87722",`<p style="margin:0">Tu avais commencé à compléter le rapport N° ${esc(x.num)} de <b>${esc(x.salarie)}</b> sur cet appareil. Tu reprends ?</p>`,`<button class="btn" id="rvn">Recommencer</button><button class="btn pri" id="rvr">Reprendre</button>`);
+    m.q("#rvr").onclick=()=>{m.close();EP=d;epOpen();epGo(1)};m.q("#rvn").onclick=async()=>{m.close();await epDB.del(key);epReviser(e,x,lst)};return}
+  let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}
+  const kit=epKit(x.salarie);kit.items=(o.items||[]).map(it=>epNewItem({...it,ph:it.ph||[],man:{0:true,1:true,2:true}}));
+  const P=o.photos||[];
+  EP={v:1,date:String(x.date).slice(0,10),verif:"MOHAMED Rachad",contact:e.contact||"",kits:[kit],
+    rev:{pid:x.id,num:x.num,rev:(o.rev||0)+1,nbAvant:kit.items.length,log:o.revLog||[],sansPhotos:!P.length,autres:(lst||[]).filter(y=>String(y.date).slice(0,10)===String(x.date).slice(0,10)&&y.id!==x.id)}};
+  for(let i=0;i<P.length;i++){epPrg("Chargement des photos – "+x.salarie,i+1,P.length);try{const r=await api("epiPhotoGet",{fid:P[i].fid});kit.photos.push({id:P[i].id,fid:P[i].fid,d:r.data})}catch(z){}}
+  if(P.length)epPrgFin(kit.photos.length+" photo(s) chargée(s)",kit.photos.length<P.length);
+  kit.items.forEach(it=>it.ph=it.ph.filter(id=>kit.photos.some(p=>p.id===id)));
+  await epDB.set(key,EP);epOpen();epGo(1);
+  if(EP.rev.sansPhotos)toast("Ce rapport a été fait avant la sauvegarde des photos : les pièces sont reprises sans leurs photos.")}
+document.addEventListener("click",ev=>{const b=ev.target.closest("[data-rev]");if(!b)return;ev.preventDefault();ev.stopPropagation();
+  const e=S.ents.find(z=>z.id===V.ent),L=EPLIST[V.ent]||[],x=L.find(z=>z.id===b.dataset.rev);if(e&&x)epReviser(e,x,L)},true);
+
 /* ---------- validation : numéros, registre, PDF ---------- */
-async function epValider(){const K=EP.kits.filter(k=>k.items.length),A=K.flatMap(k=>k.items);
+let EP_VALID=false;
+async function epValider(){if(EP_VALID)return;EP_VALID=true;try{await epValider2()}finally{EP_VALID=false}}
+async function epValider2(){const K=EP.kits.filter(k=>k.items.length),A=K.flatMap(k=>k.items);
   if(!K.length)return toast("Aucun équipement à mettre dans le rapport");
   const sansNom=K.find(k=>!k.nom.trim());if(sansNom){epGo(1);return toast("Indique le nom de chaque salarié")}
   const m0=A.filter(x=>!epItemOk(x)).length;if(m0){epGo(2);return toast(m0+" équipement(s) à vérifier avant de valider")}
   const m=modal("Validation du contrôle EPI","#E87722",`<p style="margin:0" id="epst">Enregistrement dans le registre…</p><div class="err" id="eperr"></div>`,`<button class="btn" data-x2>Fermer</button>`);m.ov.querySelector("[data-x2]").onclick=m.close;const st=t=>m.q("#epst").textContent=t;
-  try{if(!EP.saved){const kits=K.map(k=>{const r=epKitRes(k);return{salarie:k.nom,nb:r.nb,rebut:r.r,resultat:r.code,notes:r.lib.toLowerCase(),
+  try{if(!EP.saved){
+      const aEnv=K.flatMap(k=>k.photos.filter(p=>!p.fid&&k.items.some(it=>it.ph.includes(p.id))).map(p=>({k,p})));
+      for(let i=0;i<aEnv.length;i++){st(`Sauvegarde des photos dans le Drive : ${i+1} sur ${aEnv.length}…`);const {k,p}=aEnv[i];
+        const r=await api("epiPhoto",{entId:EPE.id,date:EP.date,salarie:k.nom,name:`${k.nom.replace(/\W+/g,"_")}_photo_${k.photos.indexOf(p)+1}.jpg`,data:p.d});p.fid=r.fid;if(i%3===2)await epDB.set(epKey(),EP)}
+      await epDB.set(epKey(),EP);st("Enregistrement dans le registre…");
+      const kits=K.map(k=>{const r=epKitRes(k);const rv=EP.rev?{pid:EP.rev.pid,rev:EP.rev.rev}:{};return{...rv,salarie:k.nom,nb:r.nb,rebut:r.r,resultat:r.code,notes:r.lib.toLowerCase()+(EP.rev?" (rév. "+EP.rev.rev+")":""),
         reserves:k.items.filter(x=>x.etat!=="ok").map(x=>({texte:`${k.nom} : ${epDesig(x)} ${epRef(x)} – ${x.etat==="rebut"?"REBUT, à retirer du service et remplacer":"à surveiller"}${x.motif?" ("+x.motif+")":""}`,gravite:x.etat==="rebut"?"haute":"moyenne"})),
-        data:JSON.stringify({items:k.items.map(x=>({type:x.type,marque:x.marque,modele:x.modele,serie:x.serie,fab:x.fab,fabD:x.fabD,etat:x.etat,obs:x.obs,motif:x.motif}))})}});
-      const r=await api("saveEPI",{entId:EPE.id,date:EP.date,kits});EP.saved={nums:r.kits.map(x=>x.num),pids:r.kits.map(x=>x.pid)};await epDB.set("e_"+EPE.id,EP)}
+        data:JSON.stringify({items:k.items.map(x=>({type:x.type,marque:x.marque,modele:x.modele,serie:x.serie,fab:x.fab,fabD:x.fabD,etat:x.etat,obs:x.obs,motif:x.motif,ph:x.ph})),
+          photos:k.photos.filter(p=>p.fid).map(p=>({id:p.id,fid:p.fid})),rev:EP.rev?EP.rev.rev:0,revLog:(EP.rev?EP.rev.log:[]).concat(EP.rev?[{le:today(),rev:EP.rev.rev,ajout:k.items.length-EP.rev.nbAvant}]:[])})}});
+      const r=await api("saveEPI",{entId:EPE.id,date:EP.date,kits});EP.saved={nums:r.kits.map(x=>x.num+(EP.rev?" – rév. "+EP.rev.rev:"")),pids:r.kits.map(x=>x.pid)};await epDB.set(epKey(),EP)}
+    if(EP.rev)K.forEach(k=>k.revInfo={le:today(),rev:EP.rev.rev,ajout:k.items.length-EP.rev.nbAvant,sansPhotos:EP.rev.sansPhotos,num:EP.rev.num});
     await need("jspdf","h2c");let off=document.getElementById("vgoff");if(!off){off=document.createElement("div");off.id="vgoff";document.body.appendChild(off)}
-    const pdfDe=async(opt,lab)=>{epBuild(off,EP.saved.nums,opt);const{jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",compress:true}),P=off.querySelectorAll(".vg-pg");
+    const pdfDe=async(opt,lab)=>{epBuild(off,opt.nums||EP.saved.nums,opt);const{jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",compress:true}),P=off.querySelectorAll(".vg-pg");
       for(let i=0;i<P.length;i++){st(`${lab} : page ${i+1} sur ${P.length}…`);const c=await html2canvas(P[i],{scale:1.8,backgroundColor:"#ffffff",logging:false});if(i)doc.addPage();doc.addImage(c.toDataURL("image/jpeg",.86),"JPEG",0,0,210,297)}
       off.innerHTML="";return doc};
     const N=EP.saved.nums,base=EPE.nom.replace(/\W+/g,"_"),name=`Rapports_EPI_${N.length>1?N[0]+"_a_"+N[N.length-1]:N[0]}_${base}_${EP.date}.pdf`;
-    const doc=await pdfDe({},"PDF récapitulatif"),blob=doc.output("blob");
-    st("Classement du récapitulatif dans le Drive du client…");const r2=await api("epiPdf",{entId:EPE.id,kind:"recap",pids:EP.saved.pids,date:EP.date,name:"Recapitulatif_"+name,data:doc.output("datauristring").split(",")[1]});
+    let doc,blob,r2;
+    if(EP.rev){const sauve=EP.kits,autres=EP.rev.autres.map(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}const k=epKit(x.salarie);k.items=(o.items||[]).map(it=>epNewItem({...it,ph:[]}));k._num=x.num;return k});
+      const tous=autres.concat(K.map(k=>{k._num=EP.saved.nums[0];return k})).sort((a,b)=>parseInt(a._num)-parseInt(b._num));
+      EP.kits=tous;try{doc=await pdfDe({recapOnly:true,nums:tous.map(k=>k._num)},"Récapitulatif mis à jour")}finally{EP.kits=sauve}
+      blob=doc.output("blob");st("Classement du récapitulatif mis à jour…");r2=await api("epiPdf",{entId:EPE.id,kind:"recap",pids:EP.rev.autres.map(x=>x.id).concat(EP.saved.pids),date:EP.date,name:`Recapitulatif_EPI_${EP.date}_maj_${today()}_${base}.pdf`,data:doc.output("datauristring").split(",")[1]})}
+    else{doc=await pdfDe({},"PDF récapitulatif");blob=doc.output("blob");
+      st("Classement du récapitulatif dans le Drive du client…");r2=await api("epiPdf",{entId:EPE.id,kind:"recap",pids:EP.saved.pids,date:EP.date,name:"Recapitulatif_"+name,data:doc.output("datauristring").split(",")[1]})}
     for(let i=0;i<K.length;i++){if((EP.saved.kitsOk||[]).includes(i))continue;const dk=await pdfDe({only:i},`Rapport de ${K[i].nom}`);
-      st(`Classement du rapport de ${K[i].nom}…`);await api("epiPdf",{entId:EPE.id,kind:"kit",pid:EP.saved.pids[i],date:EP.date,name:`Rapport_EPI_N${N[i]}_${K[i].nom.replace(/\W+/g,"_")}_${EP.date}.pdf`,data:dk.output("datauristring").split(",")[1]});
-      EP.saved.kitsOk=(EP.saved.kitsOk||[]).concat(i);await epDB.set("e_"+EPE.id,EP)}
+      st(`Classement du rapport de ${K[i].nom}…`);await api("epiPdf",{entId:EPE.id,kind:"kit",pid:EP.saved.pids[i],date:EP.date,name:`Rapport_EPI_N${String(N[i]).replace(/\s*–\s*rév\.\s*/,"_rev").replace(/\W+/g,"_")}_${K[i].nom.replace(/\W+/g,"_")}_${EP.date}.pdf`,data:dk.output("datauristring").split(",")[1]});
+      EP.saved.kitsOk=(EP.saved.kitsOk||[]).concat(i);await epDB.set(epKey(),EP)}
     delete EPLIST[EPE.id];
-    await reload();await epDB.del("e_"+EPE.id);const url=URL.createObjectURL(blob);
-    m.q(".bd").innerHTML=`<p style="margin:0 0 8px"><b>Rapports EPI ${N.length>1?"N° "+N[0]+" à "+N[N.length-1]:"N° "+N[0]}</b> enregistrés et classés dans le registre de ${esc(EPE.nom)}${A.some(x=>x.etat!=="ok")?", avec "+A.filter(x=>x.etat!=="ok").length+" réserve(s) à suivre":""}.</p><div id="ep_pv" style="height:55vh;overflow:auto;background:#8A93A3;border-radius:8px;padding:10px;display:grid;gap:10px;justify-items:center;align-content:start"></div>`;
+    await reload();await epDB.del(epKey());const url=URL.createObjectURL(blob);
+    m.q("header h2").textContent="✅ Contrôle EPI enregistré";m.q(".bd").innerHTML=`<p style="margin:0 0 8px"><b>Rapports EPI ${N.length>1?"N° "+N[0]+" à "+N[N.length-1]:"N° "+N[0]}</b> enregistrés et classés dans le registre de ${esc(EPE.nom)}${A.some(x=>x.etat!=="ok")?", avec "+A.filter(x=>x.etat!=="ok").length+" réserve(s) à suivre":""}.</p><div id="ep_pv" style="height:55vh;overflow:auto;background:#8A93A3;border-radius:8px;padding:10px;display:grid;gap:10px;justify-items:center;align-content:start"></div>`;
     m.ov.querySelector(".modal").style.width="min(1000px,100%)";if(typeof pfApercu==="function")pfApercu(blob,m.q("#ep_pv"));
-    m.ov.querySelector("footer").innerHTML=`${r2.url&&r2.url!=="#"?`<a class="btn" href="${esc(r2.url)}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir dans le Drive</a>`:""}<a class="btn" href="${url}" download="${esc(name)}" style="text-decoration:none">Télécharger le PDF</a><button class="btn pri" id="epok">Terminer</button>`;
+    m.ov.querySelector("footer").innerHTML=`${r2.url&&r2.url!=="#"?`<a class="btn" href="${esc(r2.url)}" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir dans le Drive</a>`:""}<a class="btn" href="${url}" download="${esc(name)}" style="text-decoration:none">Télécharger le PDF</a><button class="btn pri" id="epok">✅ Voir les rapports dans le registre</button>`;
     m.q("#epok").onclick=()=>{m.close();document.getElementById("ep")?.remove();document.body.style.overflow="";EP=null;V.tab="epi";renderEnt()}}
   catch(z){st("");m.q("#eperr").textContent=z.message+(EP.saved?" – les rapports sont déjà enregistrés : clique de nouveau sur « Valider et classer » pour relancer le PDF.":"")}}
 
