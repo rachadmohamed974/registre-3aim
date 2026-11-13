@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-t";
+const APP_VER="2026-11-13-u";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -556,7 +556,7 @@ function demo(a,p){
      log(p.entId,(old?"Rapport EPI complété N° ":"Contrôle EPI N° ")+num+" : "+k.salarie);return{salarie:k.salarie,num,pid:row.id,elId:el.id}});return{kits:out}}
    case"epiPhoto":{DB.phs=DB.phs||{};const id="f"+Math.random().toString(36).slice(2,8);DB.phs[id]=p.data;return{fid:id}}
    case"epiPhotoGet":return{data:(DB.phs||{})[p.fid]||""};
-   case"epiPdf":{const ids=p.kind==="kit"?[p.pid]:(p.pids||[]);(DB.ep||[]).filter(x=>ids.includes(x.id)).forEach(x=>{if(p.kind==="kit")x.pdf="#kit-"+x.num;else{const o=JSON.parse(x.data||"{}");o.recap="#recap";x.data=JSON.stringify(o)}});return{url:"#"}}
+   case"epiPdf":{const ids=p.kind==="kit"?[p.pid]:(p.pids||[]);(DB.ep||[]).filter(x=>ids.includes(x.id)).forEach(x=>{if(p.kind==="kit"){x.pdf="https://drive.google.com/file/d/kit"+x.num+"/view";const el=DB.els.find(y=>y.id===x.elId);if(el)el.doc=x.pdf}else{const o=JSON.parse(x.data||"{}");o.recap="#recap";x.data=JSON.stringify(o)}});return{url:"#"}}
    case"listEPI":return{rows:(DB.ep||[]).filter(x=>x.entId===p.entId).map(x=>({...x}))};
    case"lastEPI":return{kits:(DB.ep||[]).filter(x=>x.entId===p.entId).reverse().map(x=>({salarie:x.salarie,num:x.num,date:x.date,data:x.data}))};
    case"demandeSignature":{const d=(DB.du||[]).find(x=>x.id===p.duId);d.statut="à signer";log(d.entId,"DUERP envoyé au client pour signature");return{du:{...d},envoye:true}}
@@ -3105,7 +3105,7 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
 /* ============ BARRE LATÉRALE (administrateur) : mes clients + derniers documents ============ */
 (function(){
   const css=document.createElement("style");css.textContent=`
-  #sbar{position:fixed;top:0;left:0;bottom:0;width:290px;z-index:30;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);box-shadow:2px 0 12px rgba(0,0,0,.06)}
+  #sbar{position:fixed;top:0;left:0;bottom:0;width:var(--sbw,290px);z-index:30;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);box-shadow:2px 0 12px rgba(0,0,0,.06)}
   #sbar .sb-h{background:#12213F;color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px}
   #sbar .sb-h b{flex:1;font-size:16px}
   #sbar .sb-x{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer}
@@ -3123,10 +3123,23 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
   #sbar .sb-b{display:inline-block;font-size:11px;font-weight:700;border-radius:10px;padding:1px 7px;margin-top:3px}
   #sbar .sb-d{font-size:11.5px;font-weight:700;color:#1F5FA8;padding:10px 14px 2px;text-transform:none}
   #sbtog{position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:31;background:#12213F;color:#fff;border:0;border-radius:22px;padding:9px 14px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}
-  body.sb-on #app{margin-left:290px}
+  body.sb-on #app{margin-left:var(--sbw,290px)}
+  #sbar .sb-rz{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:2;touch-action:none}
+  #sbar .sb-rz:hover,#sbar .sb-rz.on{background:rgba(232,119,34,.35)}
+  #sbar .sb-f{display:flex;gap:6px;align-items:center;width:100%;background:none;border:0;padding:6px 14px 6px 30px;cursor:pointer;color:var(--ink);font:inherit;font-size:13.5px;text-align:left}
+  #sbar .sb-f:hover{background:var(--bg)}
+  #sbar .sb-f.vide{color:var(--ink3)}
+  #sbar .sb-f .n{margin-left:auto;font-size:11.5px;font-weight:700;background:var(--bg);border-radius:9px;padding:0 7px;color:var(--ink2)}
+  #sbar .sb-doc{display:flex;gap:6px;width:100%;background:none;border:0;padding:5px 14px 5px 50px;cursor:pointer;color:var(--ink);font:inherit;font-size:13px;text-align:left;line-height:1.3}
+  #sbar .sb-doc:hover{background:#FFF4E5}
+  #sbar .sb-doc small{display:block;color:var(--ink3);font-size:11.5px}
+  #sbar .sb-sub{padding:4px 14px 2px 50px;font-size:11.5px;font-weight:700;color:#1F5FA8}
   @media (max-width:1100px){body.sb-on #app{margin-left:0} #sbar{box-shadow:4px 0 24px rgba(0,0,0,.3)}}
   @media print{#sbar,#sbtog{display:none!important} body.sb-on #app{margin-left:0}}`;document.head.appendChild(css);
-  let ouvert=(()=>{try{const v=localStorage.getItem("reg3aim_sb");return v===null?innerWidth>1100:v==="1"}catch(e){return innerWidth>1100}})(),onglet="cli",q="";
+  let largeur=(()=>{try{return Math.min(500,Math.max(220,Number(localStorage.getItem("reg3aim_sbw"))||290))}catch(e){return 290}})();
+  document.documentElement.style.setProperty("--sbw",largeur+"px");
+  const OUV=new Set(),OUVF=new Set();
+    let ouvert=(()=>{try{const v=localStorage.getItem("reg3aim_sb");return v===null?innerWidth>1100:v==="1"}catch(e){return innerWidth>1100}})(),onglet="cli",q="";
   const ic={vgp:"🏗️",epi:"🦺",duerp:"📋",verif:"🔧",form:"🎓",autre:"📄"};
   function profil(e){if(estAbo(e.id))return["★ Abonné prévention","#1B5E20","#E5F3EB"];const E=els(e.id);
     if(E.some(x=>(x.rub==="lev"||x.rub==="epi")&&/RUNIXO/i.test(x.organisme||"")))return["🔧 Contrôles seuls","#1F5FA8","#E8F0FB"];return["Registre","#6B7280","#EEF0F3"]}
@@ -3141,15 +3154,40 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
     const b=document.createElement("aside");b.id="sbar";b.setAttribute("aria-label","Clients et documents");
     b.innerHTML=`<div class="sb-h"><b>☰ Clients et documents</b><button class="sb-x" id="sbx" aria-label="Fermer la barre">✕</button></div>
       <div class="sb-tabs" role="tablist"><button class="${onglet==="cli"?"on":""}" data-sbo="cli">🏢 Mes clients (${S.ents.length})</button><button class="${onglet==="doc"?"on":""}" data-sbo="doc">📄 Documents</button></div>
-      <div class="sb-s"><input id="sbq" placeholder="${onglet==="cli"?"Rechercher un client…":"Rechercher un document…"}" value="${esc(q)}" aria-label="Rechercher"></div><div class="sb-l" id="sbl"></div>`;
+      <div class="sb-s"><input id="sbq" placeholder="${onglet==="cli"?"Rechercher un client ou un document…":"Rechercher un document…"}" value="${esc(q)}" aria-label="Rechercher"></div><div class="sb-l" id="sbl"></div>`;
+    b.insertAdjacentHTML("beforeend",`<div class="sb-rz" title="Glisser pour régler la largeur" aria-hidden="true"></div>`);
     document.body.appendChild(b);
+    const rz=b.querySelector(".sb-rz");rz.onpointerdown=ev=>{ev.preventDefault();rz.classList.add("on");rz.setPointerCapture(ev.pointerId);
+      rz.onpointermove=m=>{largeur=Math.min(500,Math.max(220,m.clientX));document.documentElement.style.setProperty("--sbw",largeur+"px")};
+      rz.onpointerup=()=>{rz.classList.remove("on");rz.onpointermove=null;try{localStorage.setItem("reg3aim_sbw",String(largeur))}catch(e){}}};
     b.querySelector("#sbx").onclick=()=>{ouvert=false;garde();dessine()};
     b.querySelectorAll("[data-sbo]").forEach(x=>x.onclick=()=>{onglet=x.dataset.sbo;q="";dessine()});
-    const inp=b.querySelector("#sbq");inp.oninput=()=>{q=inp.value;liste()};liste()}
+    const inp=b.querySelector("#sbq");inp.oninput=()=>{q=inp.value;liste();if(q.trim()&&!window._sbPre){window._sbPre=1;
+      const A=S.ents.filter(e=>!EPLIST[e.id]&&S.els.some(x=>x.entId===e.id&&x.rub==="epi"));Promise.all(A.map(e=>api("listEPI",{entId:e.id}).then(r=>{EPLIST[e.id]=r.rows||[]}).catch(()=>{}))).then(()=>{if(A.length)liste()})}};liste()}
   function liste(){const L=document.getElementById("sbl");if(!L)return;const f=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(),ok=t=>!f||String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(f);
-    if(onglet==="cli"){const E=S.ents.filter(e=>ok(e.nom+" "+(e.ville||"")+" "+(e.siret||""))).sort((a,b)=>a.nom.localeCompare(b.nom,"fr"));
-      L.innerHTML=E.map(e=>{const p=profil(e);return `<button class="sb-i ${V.view==="ent"&&V.ent===e.id?"on":""}" data-sbe="${e.id}"><div style="flex:1;min-width:0"><div class="t">${esc(e.nom)}</div><div class="k">${esc([e.ville,e.activite].filter(Boolean).join(" · ").slice(0,60))}</div><span class="sb-b" style="color:${p[1]};background:${p[2]}">${p[0]}</span></div></button>`}).join("")||`<p class="hint" style="padding:12px 14px">Aucun client trouvé.</p>`;
-      L.querySelectorAll("[data-sbe]").forEach(x=>x.onclick=()=>{V={view:"ent",ent:x.dataset.sbe,tab:"id"};render();scrollTo(0,0);if(innerWidth<=1100){ouvert=false;dessine()}})}
+    if(onglet==="cli"){
+      const tous=docs(),dossiers=e=>{const D=tous.filter(x=>x.ent===e.id),epiL=EPLIST[e.id];
+        const epi=epiL?epiL.flatMap(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}return(x.pdf?[{d:String(x.date).slice(0,10),titre:"N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,url:x.pdf,sal:1}]:[]).concat(o.recap?[{d:String(x.date).slice(0,10),titre:"Récapitulatif du contrôle",url:o.recap,rec:1}]:[])}).filter((x,i,a)=>a.findIndex(y=>y.url===x.url)===i):D.filter(x=>x.t==="epi");
+        const duV=duList(e.id).map(d=>({d:String(d.date||"").slice(0,10),titre:"Version "+d.version+" – "+(d.statut==="validé"?"validée":d.statut==="à signer"?"à signer":"brouillon"),du:d.id,ent:e.id}));
+        return[["duerp","📋","Document unique",duV],["vgp","🏗️","VGP – levage",D.filter(x=>x.t==="vgp")],["epi","🦺","EPI antichute",epi],["reg","📒","Registre",D.filter(x=>x.t!=="vgp"&&x.t!=="epi"&&x.t!=="duerp")]]};
+      const docH=(x,eid)=>`<button class="sb-doc" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${eid}"><span aria-hidden="true">📄</span><span style="flex:1;min-width:0">${esc(x.titre)}<small>${x.d?fr(x.d):""}</small></span></button>`;
+      const E=S.ents.filter(e=>!f||ok(e.nom+" "+(e.ville||"")+" "+(e.siret||""))).sort((a,b)=>a.nom.localeCompare(b.nom,"fr"));
+      let h=E.map(e=>{const p=profil(e),o=OUV.has(e.id)||(f&&E.length<=3);return `<button class="sb-i ${V.view==="ent"&&V.ent===e.id?"on":""}" data-sbt="${e.id}" aria-expanded="${o}"><span aria-hidden="true">${o?"📂":"📁"}</span><div style="flex:1;min-width:0"><div class="t">${esc(e.nom)}</div><span class="sb-b" style="color:${p[1]};background:${p[2]}">${p[0]}</span></div></button>`+
+        (o?`<button class="sb-f" data-sbfiche="${e.id}" style="color:#1F5FA8">↗ Ouvrir la fiche</button>`+dossiers(e).map(([k,i2,n,L])=>{const key=e.id+"|"+k,oo=OUVF.has(key);
+          let inner="";if(oo){if(k==="epi"){const par={};L.forEach(x=>(par[x.d]=par[x.d]||[]).push(x));inner=Object.keys(par).sort().reverse().map(d=>`<div class="sb-sub">📅 Contrôle du ${d?fr(d):"?"}</div>`+par[d].sort((a,b)=>(b.rec||0)-(a.rec||0)).map(x=>docH(x,e.id)).join("")).join("")}
+            else inner=L.slice().sort((a,b)=>String(b.d).localeCompare(String(a.d))).map(x=>docH(x,e.id)).join("");if(!L.length)inner=`<div class="sb-sub" style="color:var(--ink3);font-weight:400">Aucun document</div>`}
+          return `<button class="sb-f ${L.length?"":"vide"}" data-sbf="${key}" aria-expanded="${oo}"><span aria-hidden="true">${oo?"▾":"▸"} ${i2}</span>${n}<span class="n">${k==="epi"&&!EPLIST[e.id]?"…":L.length}</span></button>`+inner}).join(""):"")}).join("");
+      if(f){const nomE=id=>(S.ents.find(z=>z.id===id)||{}).nom||"",epiT=[];
+        Object.keys(EPLIST).forEach(id=>(EPLIST[id]||[]).forEach(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}if(!x.pdf)return;
+          const cle=(o.items||[]).map(it=>[(EP_T[it.type]||{}).n,it.marque,it.modele,it.serie].join(" ")).join(" ");
+          epiT.push({t:"epi",titre:"Rapport EPI N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,cle,url:x.pdf,ent:id,nom:nomE(id),d:String(x.date).slice(0,10)})}));
+        const vus=new Set(epiT.map(x=>x.url)),T=epiT.concat(tous.filter(x=>!vus.has(x.url))).filter(x=>(ok(x.titre)||ok(x.cle||""))&&!ok(x.nom)).slice(0,40);if(T.length)h+=`<div class="sb-d">🔎 Documents trouvés (${T.length})</div>`+T.map(x=>`<button class="sb-doc" style="padding-left:14px" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${x.ent}"><span aria-hidden="true">${ic[x.t]||"📄"}</span><span style="flex:1;min-width:0">${esc(x.titre)}<small>${esc(x.nom)} · ${x.d?fr(x.d):""}</small></span></button>`).join("")}
+      L.innerHTML=h||`<p class="hint" style="padding:12px 14px">Aucun client ni document trouvé.</p>`;
+      L.querySelectorAll("[data-sbt]").forEach(x=>x.onclick=()=>{const id=x.dataset.sbt;OUV.has(id)?OUV.delete(id):OUV.add(id);liste()});
+      L.querySelectorAll("[data-sbfiche]").forEach(x=>x.onclick=()=>{V={view:"ent",ent:x.dataset.sbfiche,tab:"id"};render();scrollTo(0,0);if(innerWidth<=1100){ouvert=false;dessine()}});
+      L.querySelectorAll("[data-sbf]").forEach(x=>x.onclick=async()=>{const k=x.dataset.sbf;OUVF.has(k)?OUVF.delete(k):OUVF.add(k);const [eid,t]=k.split("|");
+        if(t==="epi"&&!EPLIST[eid]&&OUVF.has(k)){liste();try{EPLIST[eid]=(await api("listEPI",{entId:eid})).rows||[]}catch(z){EPLIST[eid]=[]}}liste()});
+      L.querySelectorAll("[data-sbent]").forEach(x=>x.onclick=()=>{if(x.dataset.sbu){window.open(x.dataset.sbu,"_blank","noopener");return}const d=S.du.find(z=>z.id===x.dataset.sbdu),e=S.ents.find(z=>z.id===x.dataset.sbent);if(d&&e)pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d))})}
     else{const D=docs().filter(x=>ok(x.titre+" "+x.nom)).slice(0,80);let jour="";
       L.innerHTML=D.map(x=>{const h=x.d!==jour?`<div class="sb-d">📅 ${x.d?fr(x.d):"Sans date"}</div>`:"";jour=x.d;return h+`<button class="sb-i" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${x.ent}"><span aria-hidden="true">${ic[x.t]||"📄"}</span><div style="flex:1;min-width:0"><div class="t">${esc(x.titre)}</div><div class="k">${esc(x.nom)}</div></div></button>`}).join("")||`<p class="hint" style="padding:12px 14px">Aucun document pour l’instant.</p>`;
       L.querySelectorAll("[data-sbent]").forEach(x=>x.onclick=()=>{if(x.dataset.sbu){window.open(x.dataset.sbu,"_blank","noopener");return}const d=S.du.find(z=>z.id===x.dataset.sbdu),e=S.ents.find(z=>z.id===x.dataset.sbent);if(d&&e)pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d))})}}
