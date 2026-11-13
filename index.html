@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-n";
+const APP_VER="2026-11-13-o";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -549,7 +549,8 @@ function demo(a,p){
    case"lireDoc":return{items:[{rub:"lev",libelle:"Chariot élévateur – VGP",detail:"Toyota 8FD25 – n° 30215",serie:"30215",dernier:today(),per:6,organisme:"RUNIXO CONTRÔLE",resultat:"R",ref:"VGP-2026-0198",notes:"",reserves:[{texte:"Ceinture de sécurité à remplacer",gravite:"moyenne"}]}]};
    case"analyseEPI":return{items:(p.photos||[]).map((x,i)=>({photos:[x.n],type:["harnais","connecteur","longe_abs","sangle"][i%4],marque:"PETZL",modele:["AVAO BOD FAST","OK TRIACT","ABSORBICA-Y","C40"][i%4],serie:i===3?"illisible":"22L04562355"+(80+x.n),fab:"2022-12",fabDeduite:true,etat:i===3?"rebut":i===2?"surv":"ok",obs:"Constat de démonstration "+x.n,motif:i===3?"Référence illisible — traçabilité impossible":i===2?"Décoloration prononcée":"",confiance:i===1?"faible":"bonne"}))};
    case"saveEPI":{DB.epSeq=DB.epSeq||43;const out=(p.kits||[]).map(k=>{DB.epSeq++;const lib="Kit EPI antichute – "+k.salarie;let el=DB.els.find(x=>x.entId===p.entId&&x.rub==="epi"&&x.libelle===lib);if(!el){el={id:rid("x"),entId:p.entId,rub:"epi",libelle:lib,per:12,doc:""};DB.els.push(el)}Object.assign(el,{detail:k.nb+" équipement(s)",dernier:p.date,prochain:addM(p.date,12),organisme:"RUNIXO CONTRÔLE",resultat:k.resultat,ref:"Rapport EPI N° "+DB.epSeq,notes:k.notes});(k.reserves||[]).forEach(r=>DB.res.push({id:rid("r"),entId:p.entId,elId:el.id,date:p.date,texte:r.texte,gravite:r.gravite,levee:"",preuve:""}));DB.ep=DB.ep||[];const pid=rid("p");DB.ep.push({id:pid,entId:p.entId,elId:el.id,num:String(DB.epSeq),date:p.date,salarie:k.salarie,data:k.data});log(p.entId,"Contrôle EPI N° "+DB.epSeq+" : "+k.salarie);return{salarie:k.salarie,num:String(DB.epSeq),pid,elId:el.id}});return{kits:out}}
-   case"epiPdf":return{url:"#"};
+   case"epiPdf":{const ids=p.kind==="kit"?[p.pid]:(p.pids||[]);(DB.ep||[]).filter(x=>ids.includes(x.id)).forEach(x=>{if(p.kind==="kit")x.pdf="#kit-"+x.num;else{const o=JSON.parse(x.data||"{}");o.recap="#recap";x.data=JSON.stringify(o)}});return{url:"#"}}
+   case"listEPI":return{rows:(DB.ep||[]).filter(x=>x.entId===p.entId).map(x=>({...x}))};
    case"lastEPI":return{kits:(DB.ep||[]).filter(x=>x.entId===p.entId).reverse().map(x=>({salarie:x.salarie,num:x.num,date:x.date,data:x.data}))};
    case"demandeSignature":{const d=(DB.du||[]).find(x=>x.id===p.duId);d.statut="à signer";log(d.entId,"DUERP envoyé au client pour signature");return{du:{...d},envoye:true}}
    case"signerDuerp":{const d=(DB.du||[]).find(x=>x.id===p.duId);const o=JSON.parse(d.data||"{}");o.sign={v:String(d.version),nom:p.nom,fonction:p.fonction,date:today(),heure:"14:05",fid:"demo",par:who.role};DB.sigs=DB.sigs||{};DB.sigs[d.id]=p.sig;d.data=JSON.stringify(o);d.statut="validé";d.date=today();log(d.entId,"DUERP signé par "+p.nom);return{du:{...d}}}
@@ -2862,11 +2863,11 @@ function epS3(M){const K=EP.kits.filter(k=>k.items.length),A=K.flatMap(k=>k.item
   if(!K.length)return;const sc=M.querySelector("#epsc"),n=epBuild(sc,K.map(k=>"…"));
   const fit=()=>{const w=M.querySelector("#eppvw").clientWidth-20,z=Math.min(1,w/794);sc.style.transform=`scale(${z})`;sc.style.width="794px";sc.style.marginLeft=Math.max(10,(M.querySelector("#eppvw").clientWidth-794*z)/2)+"px";M.querySelector("#eppvw").style.height=(n*1133*z+10)+"px"};fit()}
 function epHead(titre,num){return `<div class="hd"><div class="hl"><img src="${VG_IMG.logo}" alt=""><div><div class="br">RUNIXO CONTRÔLE</div><div class="sb">Vérification périodique des EPI antichute – EN 365</div><div class="ad">109 Lotissement Les Lilas – 97440 Saint-André – La Réunion<br>RCS 988 171 740 – Tél. 0692 09 85 92 – controle@3aim.fr</div></div></div><div class="hr"><b>${titre}</b><span>${esc(num)}</span><span>Date : ${fr(EP.date)}</span></div></div>`}
-function epBuild(host,nums){host.innerHTML="";const K=EP.kits.filter(k=>k.items.length),foot=`<div class="ft"><span>${EP_PIED}</span><span class="vg-pn" style="white-space:nowrap"></span></div>`;let tot=0;
+function epBuild(host,nums,opt){opt=opt||{};host.innerHTML="";const K=EP.kits.filter(k=>k.items.length),foot=`<div class="ft"><span>${EP_PIED}</span><span class="vg-pn" style="white-space:nowrap"></span></div>`;let tot=0;
   const sec=(R)=>{const d=document.createElement("div");host.appendChild(d);tot+=vgPaginate(d,R)};
   const nx=fr(addM(EP.date,12)),plage=nums.length>1?`N° ${nums[0]} à ${nums[nums.length-1]}`:`N° ${nums[0]}`;
   /* récapitulatif */
-  {const at=[],blk=h=>at.push({k:"b",h}),hd=h=>at.push({k:"h",h:`<div class="vg-h">${h}</div>`}),RR=K.map(epKitRes),T=k=>RR.reduce((a,b)=>a+b[k],0);
+  if(opt.only==null){const at=[],blk=h=>at.push({k:"b",h}),hd=h=>at.push({k:"h",h:`<div class="vg-h">${h}</div>`}),RR=K.map(epKitRes),T=k=>RR.reduce((a,b)=>a+b[k],0);
    blk(`<div class="av ${T("r")||T("s")?"R":"C"}"><div class="v"><small>RÉCAPITULATIF DES CONTRÔLES EPI ANTICHUTE</small><b>${K.length} salarié${K.length>1?"s":""} · ${T("nb")} équipements</b><span>Rapports ${plage}</span></div><div class="k"><div><b>${T("nb")}</b>contrôlés</div><div><b style="color:#1E7F4F">${T("ok")}</b>OK</div><div><b style="color:#C76A00">${T("s")}</b>à surveiller</div><div><b style="color:#B42318">${T("r")}</b>rebut</div><div class="nx">Prochaine vérification avant le <b>${nx}</b></div></div></div>`);
    hd("INFORMATIONS");blk(`<table class="kv">${[["Client",`<b>${esc(EPE.nom)}</b>${EPE.adresse||EPE.ville?"<br>"+esc([EPE.adresse,[EPE.cp,EPE.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ")):""}`],["Contact",esc(EP.contact||"—")],["Date du contrôle",fr(EP.date)],["Contrôleur",esc(EP.verif)+" — RUNIXO CONTRÔLE (personne compétente)"],["Référence",`<i>EN 365 – Code du travail art. R.4323-104 (vérification au moins tous les 12 mois)</i>`]].map(r=>`<tr><td class="k">${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`);
    hd("RÉSULTATS PAR SALARIÉ");const th=`<thead><tr><th style="width:15%">RAPPORT</th><th style="width:27%">SALARIÉ</th><th style="width:11%">ÉQUIP.</th><th style="width:9%">OK</th><th style="width:10%">SURV.</th><th style="width:10%">REBUT</th><th>RÉSULTAT</th></tr></thead>`;
@@ -2877,7 +2878,7 @@ function epBuild(host,nums){host.innerHTML="";const K=EP.kits.filter(k=>k.items.
    blk(`<div class="leg">Légende : <b style="color:#1E7F4F">OK</b> conforme – <b style="color:#C76A00">À SURVEILLER</b> utilisable, à réviser – <b style="color:#B42318">REBUT</b> mise hors service immédiate et destruction. Tout EPI ayant subi un arrêt de chute doit être retiré du service.</div>`);
    sec({at,head:epHead("RÉCAPITULATIF",plage),foot,num:"Récapitulatif "+plage})}
   /* un rapport par salarié */
-  K.forEach((k,i)=>{const at=[],blk=h=>at.push({k:"b",h}),hd=h=>at.push({k:"h",h:`<div class="vg-h">${h}</div>`}),r=epKitRes(k);
+  K.forEach((k,i)=>{if(opt.only!=null&&i!==opt.only)return;const at=[],blk=h=>at.push({k:"b",h}),hd=h=>at.push({k:"h",h:`<div class="vg-h">${h}</div>`}),r=epKitRes(k);
    blk(`<div class="av ${r.r||r.s?"R":"C"}"><div class="v"><small>RÉSULTAT DU CONTRÔLE</small><b>${r.lib}</b><span>${r.r?"Les équipements au rebut doivent être retirés immédiatement et détruits.":r.s?"Équipements utilisables, à réviser avant le prochain contrôle.":"Aucune anomalie bloquante. Équipements autorisés à l’utilisation."}</span></div><div class="k"><div><b>${r.nb}</b>contrôlés</div><div><b style="color:#1E7F4F">${r.ok}</b>OK</div><div><b style="color:#C76A00">${r.s}</b>à surveiller</div><div><b style="color:#B42318">${r.r}</b>rebut</div><div class="nx">Prochaine vérification avant le <b>${nx}</b></div></div></div>`);
    hd("1. INFORMATIONS");blk(`<table class="kv">${[["Client",`<b>${esc(EPE.nom)}</b>`],["Contact",esc(EP.contact||"—")],["Salarié / kit",`<b>${esc(k.nom)}</b>`],["Date du contrôle",fr(EP.date)],["Prochaine vérification",`<b>${nx}</b>`],["Contrôleur",esc(EP.verif)+" — RUNIXO CONTRÔLE"]].map(x=>`<tr><td class="k">${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</table>`);
    hd("2. RÉSULTATS PAR ÉQUIPEMENT");const th=`<thead><tr><th style="width:5%">N°</th><th style="width:19%">ÉQUIPEMENT</th><th style="width:22%">MARQUE / MODÈLE / N°</th><th style="width:10%">FABRIC.</th><th style="width:11%">ÉTAT</th><th>OBSERVATIONS</th></tr></thead>`;
@@ -2891,6 +2892,28 @@ function epBuild(host,nums){host.innerHTML="";const K=EP.kits.filter(k=>k.items.
    sec({at,head:epHead("RAPPORT EPI",`N° ${nums[i]}`),foot,num:`Rapport EPI N° ${nums[i]} – ${k.nom}`})});
   return tot}
 
+/* ---------- rapports EPI rangés par date puis par salarié (onglet EPI antichute, admin et client) ---------- */
+const EPLIST={};
+async function epListe(e,pn){const box=document.createElement("div");box.id="eplist";box.style.marginTop="22px";pn.appendChild(box);
+  if(!EPLIST[e.id]){box.innerHTML=`<div class="card" style="padding:14px"><span class="hint">Chargement des rapports de contrôle…</span></div>`;
+    try{EPLIST[e.id]=(await api("listEPI",{entId:e.id})).rows||[]}catch(z){box.innerHTML="";return}}
+  if(!document.body.contains(box))return;const L=EPLIST[e.id];if(!L.length){box.innerHTML="";return}
+  const par={};L.forEach(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}x._o=o;(par[x.date]=par[x.date]||[]).push(x)});
+  const D=Object.keys(par).sort().reverse(),et={ok:"OK",surv:"À surveiller",rebut:"Rebut"},col={ok:"var(--ok)",surv:"var(--warn)",rebut:"var(--bad)"};
+  box.innerHTML=`<div class="card rubh" style="--rc:#E87722"><div><h2>Rapports de contrôle EPI</h2><p>Classés par date de contrôle, puis par salarié – RUNIXO CONTRÔLE</p></div></div>`+D.map((d,j)=>{const G=par[d].sort((a,b)=>Number(a.num)-Number(b.num)),it=G.flatMap(x=>x._o.items||[]),rb=it.filter(x=>x.etat==="rebut").length,sv=it.filter(x=>x.etat==="surv").length,rec=(G.find(x=>x._o.recap)||{})._o?.recap;
+    return `<div class="card" style="padding:14px 16px;margin-bottom:12px;border-left:5px solid #E87722">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b style="font-size:18px">Contrôle du ${fr(d)}</b><div class="hint">${G.length} salarié${G.length>1?"s":""} · ${it.length} équipement${it.length>1?"s":""}${sv?` · ${sv} à surveiller`:""}${rb?` · <b style="color:var(--bad)">${rb} rebut</b>`:""} · prochain contrôle avant le ${fr(addM(d,12))}</div></div>
+      ${rec?`<a class="btn sm" href="${esc(rec)}" target="_blank" rel="noopener" style="text-decoration:none">📄 Récapitulatif (PDF)</a>`:""}</div>
+      <div style="margin-top:8px">${G.map(x=>{const I=x._o.items||[],r=I.filter(y=>y.etat==="rebut").length,s2=I.filter(y=>y.etat==="surv").length;
+        return `<details style="border-top:1px solid var(--line);padding:8px 0" ${j===0&&G.length===1?"open":""}><summary style="cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none">
+          <b style="min-width:180px">👷 ${esc(x.salarie)}</b><span class="hint">Rapport N° ${esc(x.num)} · ${I.length} équipement${I.length>1?"s":""}</span>
+          <span class="pill ${r?"p-nc":s2?"p-bientot":"p-ok"}">${r?r+" rebut":s2?s2+" à surveiller":"Conforme"}</span><span style="flex:1"></span>
+          ${x.pdf?`<a class="btn sm" href="${esc(x.pdf)}" target="_blank" rel="noopener" style="text-decoration:none" onclick="event.stopPropagation()">📄 Rapport (PDF)</a>`:""}</summary>
+          <div style="overflow-x:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse;font-size:13.5px"><tr style="text-align:left;color:var(--ink3);font-size:12.5px"><th style="padding:4px 6px">Équipement</th><th style="padding:4px 6px">Marque / modèle / n°</th><th style="padding:4px 6px">Fabrication</th><th style="padding:4px 6px">État</th><th style="padding:4px 6px">Observations</th></tr>
+          ${I.map(y=>`<tr style="border-top:1px solid var(--line)"><td style="padding:5px 6px"><b>${esc((EP_T[y.type]||EP_T.autre).n)}</b></td><td style="padding:5px 6px">${esc([y.marque,y.modele,y.serie].filter(Boolean).join(" / ")||"—")}</td><td style="padding:5px 6px">${esc(y.fab||"—")}</td><td style="padding:5px 6px"><b style="color:${col[y.etat]||"inherit"}">${et[y.etat]||"—"}</b></td><td style="padding:5px 6px">${esc(y.obs||"")}${y.motif&&y.etat!=="ok"?` <b>${esc(y.motif)}</b>`:""}</td></tr>`).join("")}</table></div></details>`}).join("")}</div></div>`}).join("")}
+const _renderEntEp=renderEnt;
+renderEnt=function(){_renderEntEp.apply(this,arguments);try{if(V.tab==="epi"){const e=S.ents.find(x=>x.id===V.ent),pn=document.getElementById("pn");if(e&&pn&&!document.getElementById("eplist"))epListe(e,pn)}}catch(z){console.warn(z)}};
+
 /* ---------- validation : numéros, registre, PDF ---------- */
 async function epValider(){const K=EP.kits.filter(k=>k.items.length),A=K.flatMap(k=>k.items);
   if(!K.length)return toast("Aucun équipement à mettre dans le rapport");
@@ -2901,11 +2924,17 @@ async function epValider(){const K=EP.kits.filter(k=>k.items.length),A=K.flatMap
         reserves:k.items.filter(x=>x.etat!=="ok").map(x=>({texte:`${k.nom} : ${epDesig(x)} ${epRef(x)} – ${x.etat==="rebut"?"REBUT, à retirer du service et remplacer":"à surveiller"}${x.motif?" ("+x.motif+")":""}`,gravite:x.etat==="rebut"?"haute":"moyenne"})),
         data:JSON.stringify({items:k.items.map(x=>({type:x.type,marque:x.marque,modele:x.modele,serie:x.serie,fab:x.fab,fabD:x.fabD,etat:x.etat,obs:x.obs,motif:x.motif}))})}});
       const r=await api("saveEPI",{entId:EPE.id,date:EP.date,kits});EP.saved={nums:r.kits.map(x=>x.num),pids:r.kits.map(x=>x.pid)};await epDB.set("e_"+EPE.id,EP)}
-    st("Création du PDF…");await need("jspdf","h2c");let off=document.getElementById("vgoff");if(!off){off=document.createElement("div");off.id="vgoff";document.body.appendChild(off)}
-    epBuild(off,EP.saved.nums);const{jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",compress:true}),P=off.querySelectorAll(".vg-pg");
-    for(let i=0;i<P.length;i++){st(`Création du PDF : page ${i+1} sur ${P.length}…`);const c=await html2canvas(P[i],{scale:1.8,backgroundColor:"#ffffff",logging:false});if(i)doc.addPage();doc.addImage(c.toDataURL("image/jpeg",.86),"JPEG",0,0,210,297)}
-    off.innerHTML="";const N=EP.saved.nums,name=`Rapports_EPI_${N.length>1?N[0]+"_a_"+N[N.length-1]:N[0]}_${EPE.nom.replace(/\W+/g,"_")}_${EP.date}.pdf`,blob=doc.output("blob");
-    st("Classement du PDF dans le Drive du client…");const r2=await api("epiPdf",{entId:EPE.id,pids:EP.saved.pids,name,data:doc.output("datauristring").split(",")[1]});
+    await need("jspdf","h2c");let off=document.getElementById("vgoff");if(!off){off=document.createElement("div");off.id="vgoff";document.body.appendChild(off)}
+    const pdfDe=async(opt,lab)=>{epBuild(off,EP.saved.nums,opt);const{jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",compress:true}),P=off.querySelectorAll(".vg-pg");
+      for(let i=0;i<P.length;i++){st(`${lab} : page ${i+1} sur ${P.length}…`);const c=await html2canvas(P[i],{scale:1.8,backgroundColor:"#ffffff",logging:false});if(i)doc.addPage();doc.addImage(c.toDataURL("image/jpeg",.86),"JPEG",0,0,210,297)}
+      off.innerHTML="";return doc};
+    const N=EP.saved.nums,base=EPE.nom.replace(/\W+/g,"_"),name=`Rapports_EPI_${N.length>1?N[0]+"_a_"+N[N.length-1]:N[0]}_${base}_${EP.date}.pdf`;
+    const doc=await pdfDe({},"PDF récapitulatif"),blob=doc.output("blob");
+    st("Classement du récapitulatif dans le Drive du client…");const r2=await api("epiPdf",{entId:EPE.id,kind:"recap",pids:EP.saved.pids,date:EP.date,name:"Recapitulatif_"+name,data:doc.output("datauristring").split(",")[1]});
+    for(let i=0;i<K.length;i++){if((EP.saved.kitsOk||[]).includes(i))continue;const dk=await pdfDe({only:i},`Rapport de ${K[i].nom}`);
+      st(`Classement du rapport de ${K[i].nom}…`);await api("epiPdf",{entId:EPE.id,kind:"kit",pid:EP.saved.pids[i],date:EP.date,name:`Rapport_EPI_N${N[i]}_${K[i].nom.replace(/\W+/g,"_")}_${EP.date}.pdf`,data:dk.output("datauristring").split(",")[1]});
+      EP.saved.kitsOk=(EP.saved.kitsOk||[]).concat(i);await epDB.set("e_"+EPE.id,EP)}
+    delete EPLIST[EPE.id];
     await reload();await epDB.del("e_"+EPE.id);const url=URL.createObjectURL(blob);
     m.q(".bd").innerHTML=`<p style="margin:0 0 8px"><b>Rapports EPI ${N.length>1?"N° "+N[0]+" à "+N[N.length-1]:"N° "+N[0]}</b> enregistrés et classés dans le registre de ${esc(EPE.nom)}${A.some(x=>x.etat!=="ok")?", avec "+A.filter(x=>x.etat!=="ok").length+" réserve(s) à suivre":""}.</p><div id="ep_pv" style="height:55vh;overflow:auto;background:#8A93A3;border-radius:8px;padding:10px;display:grid;gap:10px;justify-items:center;align-content:start"></div>`;
     m.ov.querySelector(".modal").style.width="min(1000px,100%)";if(typeof pfApercu==="function")pfApercu(blob,m.q("#ep_pv"));
