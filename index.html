@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-a";
+const APP_VER="2026-11-13-b";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2374,11 +2374,12 @@ async function duAuto(e,det,eff){const i=DM.findIndex(x=>x[0]===det.m),ok=i>=0;
     const base=ex?{...ex}:{relances:"oui",verificateur:"RUNIXO CONTRÔLE"};
     ["nom","forme","siret","adresse","cp","ville","activite","effectif","contact","email","tel"].forEach(k=>{if(d[k]&&!String(base[k]||"").trim())base[k]=d[k]});
     LK={metier:d.metier||"",naf:nafNorm(d.naf)||nafOf(d.activite),activite:d.activite||"",effectif:d.effectif||""};
-    entForm(base);
+    base.__naf=LK.naf;entForm(base);
     toast(ex?"Entreprise déjà dans le registre : vérifie la fiche puis « Enregistrer »":"Fiche pré-remplie depuis Lakaz : vérifie puis « Enregistrer » – le DUERP sera créé tout seul");
     return true}
   const _api=api;
   api=async function(action,p){const res=await _api(action,p);
+    if(action==="saveEnt"&&res&&res.ent&&res.ent.id&&NAF_FORM.pending!==null){const n=NAF_FORM.pending;NAF_FORM.pending=null;if(n)nafSetEnt(res.ent.id,n);else if(NAFS.ent[res.ent.id]){delete NAFS.ent[res.ent.id];nafSaveLocal()}if(LK&&n)LK.naf=n}
     if(action==="saveEnt"&&LK&&res&&res.ent&&res.ent.id){const L=LK;LK=null;const id=res.ent.id;
       if(L.naf)nafSetEnt(id,L.naf);
       setTimeout(async()=>{const e=S.ents.find(x=>x.id===id)||res.ent;
@@ -2393,6 +2394,22 @@ async function duAuto(e,det,eff){const i=DM.findIndex(x=>x[0]===det.m),ok=i>=0;
   const t2=setInterval(()=>{if(S.role!=="admin"||DEMO){if(DEMO)clearInterval(t2);return}clearInterval(t2);
     api("nafMaps").then(r=>{if(r&&r.map){NAFS.map=Object.assign({},r.map,NAFS.map);NAFS.ent=Object.assign({},r.ent||{},NAFS.ent);NAFS.srv=true;nafSaveLocal()}}).catch(()=>{})},1500);
 })();
+
+/* ---------- code NAF dans la fiche entreprise ---------- */
+const NAF_FORM={pending:null};
+const _entForm=entForm;
+entForm=function(e){_entForm.apply(this,arguments);try{
+  const act=document.getElementById("n_activite"),lab=act&&act.closest("label");if(!lab)return;
+  const v=(e&&e.__naf)||nafEnt(e&&e.id?e:null)||nafOf(e&&e.activite);
+  lab.insertAdjacentHTML("afterend",`<div class="two"><label class="f">Code NAF<input id="n_naf" value="${esc(v||"")}" placeholder="41.20A" autocomplete="off"></label><div class="hint" id="n_nafh" style="align-self:end;padding-bottom:9px"></div></div>`);
+  const inp=document.getElementById("n_naf"),h=document.getElementById("n_nafh");
+  const show=()=>{const raw=inp.value.trim(),n=nafNorm(raw);if(!raw){h.textContent="Sert à proposer le bon type de DUERP.";return}if(!n){h.innerHTML='<span style="color:var(--bad)">Format attendu : 41.20A</span>';return}const d=nafDetect(n,"",act.value);h.textContent=d.m?"Type de DUERP : "+d.m:"Type non reconnu : tu le choisiras dans le DUERP."};
+  inp.oninput=show;act.addEventListener("input",show);show();
+  const btn=document.getElementById("n_s");if(btn)btn.addEventListener("click",()=>{const raw=inp.value.trim();NAF_FORM.pending=raw?nafNorm(raw):""},true);
+}catch(z){console.warn(z)}};
+const _renderEnt=renderEnt;
+renderEnt=function(){_renderEnt.apply(this,arguments);try{const e=S.ents.find(x=>x.id===V.ent),meta=document.querySelector(".hero .meta");if(!e||!meta||meta.querySelector("[data-naf]"))return;
+  const n=nafEnt(e);meta.insertAdjacentHTML("beforeend",`<div data-naf><span>Code NAF</span><br>${n?esc(n):S.role==="admin"?'<span style="color:var(--warn)">À renseigner (Modifier la fiche)</span>':"–"}</div>`)}catch(z){}};
 
 /* ---------- bandeaux du DUERP ---------- */
 const _panelDuerp=panelDuerp;
