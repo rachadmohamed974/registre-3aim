@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-k";
+const APP_VER="2026-11-13-l";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2633,18 +2633,22 @@ function fo2cat(t){t=String(t||"").toLowerCase();const rec=/maintien|recycl|actu
   if(/sst|secour/.test(t))return rec?"mac-sst":"sst";if(/prap/.test(t))return"prap";if(/habilitation|h0b0|électri|electri/.test(t))return"h0b0";if(/chariot|cariste/.test(t))return"chariot";
   if(/nacelle|pemp/.test(t))return"nacelle";if(/grue/.test(t))return"grue";if(/engin/.test(t))return"engins";if(/hauteur|harnais/.test(t))return"harnais";if(/aipr/.test(t))return"aipr";return"autre"}
 async function devisDepuisRegistre(entId,t){const e=S.ents.find(x=>x.id===entId);if(!e)return;
-  const brut=String(t).replace(/\s*\((DUERP|Issu)[^)]*\)\s*$/,"").trim(),nb=(String(t).match(/(\d+)\s*(salari|cariste|personne)/i)||[])[1]||"";
-  const o={nom:e.nom,adresse:e.adresse||"",cpVille:[e.cp,e.ville].filter(Boolean).join(" "),siret:e.siret||"",contact:e.contact||"",email:e.email&&e.email!=="contact@3aim.fr"?e.email:"",tel:e.tel||"",activite:e.activite||"",effectif:e.effectif||"",
-    origine:t,formations:[{cat:fo2cat(brut),t:brut,type:/maintien|recycl|actualis/i.test(brut)?"recyclage":"",nb:Number(nb)||0}]};
-  const code="REGISTRE3AIM:"+btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-  let copie=false;try{await navigator.clipboard.writeText(code);copie=true}catch(z){}
+  const brut=String(t).replace(/\s*\((DUERP|Issu)[^)]*\)\s*$/,"").trim(),nb0=Number((String(t).match(/(\d+)\s*(salari|cariste|personne)/i)||[])[1])||1;
   const m=modal("Créer le devis dans la Case","#C2410C",`<p style="margin:0"><b>${esc(e.nom)}</b> – ${esc(brut)}</p>
-    <p class="hint" style="margin:0">${copie?"✅ La demande est copiée.":"Copie la demande ci-dessous (Ctrl+C) :"}</p>
-    <textarea readonly id="dvcode" rows="3" style="width:100%;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:6px">${esc(code)}</textarea>
-    <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.6"><li>Clique sur « Ouvrir la Case ».</li><li>Va dans <b>Devis › ✏️ Nouveau devis</b>.</li><li>Clique dans le cadre « … ou colle le texte d’un mail » et fais <b>Ctrl+V</b> : le devis se pré-remplit tout seul.</li></ol>`,
-    `<button class="btn" id="dvcp">Copier de nouveau</button><a class="btn pri" href="${LAKAZ_URL}" target="_blank" rel="noopener" style="text-decoration:none;background:#C2410C;border-color:#C2410C">Ouvrir la Case</a>`);
-  const ta=m.q("#dvcode");m.q("#dvcp").onclick=async()=>{ta.select();try{await navigator.clipboard.writeText(code);toast("Demande copiée")}catch(z){document.execCommand("copy");toast("Demande copiée")}};
-  if(!copie){ta.focus();ta.select()}}
+    <label class="f" style="max-width:260px">Nombre de personnes à former<input type="number" id="dvnb" min="1" value="${nb0}" style="font-size:18px;font-weight:600"></label>
+    <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.6"><li>Clique sur <b>« Copier et ouvrir la Case »</b>.</li><li>Dans la Case, va dans <b>Devis › ✏️ Nouveau devis</b>.</li><li>Clique dans le cadre « … ou colle le texte d’un mail » et fais <b>Ctrl+V</b> : le devis se remplit tout seul et la page descend jusqu’à la formation.</li></ol>
+    <div class="hint" id="dvok"></div>`,
+    `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="dvgo" style="background:#C2410C;border-color:#C2410C">Copier et ouvrir la Case</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;setTimeout(()=>{const i=m.q("#dvnb");i.focus();i.select()},50);
+  m.q("#dvgo").onclick=async()=>{const nb=Math.max(1,Number(m.q("#dvnb").value)||1);
+    const o={nom:e.nom,adresse:e.adresse||"",cpVille:[e.cp,e.ville].filter(Boolean).join(" "),siret:e.siret||"",contact:e.contact||"",email:e.email&&e.email!=="contact@3aim.fr"?e.email:"",tel:e.tel||"",activite:e.activite||"",effectif:e.effectif||"",
+      origine:t,formations:[{cat:fo2cat(brut),t:brut,type:/maintien|recycl|actualis/i.test(brut)?"recyclage":"",nb}]};
+    const code="REGISTRE3AIM:"+btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+    let ok=false;try{await navigator.clipboard.writeText(code);ok=true}catch(z){}
+    if(!ok){const ta=document.createElement("textarea");ta.value=code;document.body.appendChild(ta);ta.select();try{ok=document.execCommand("copy")}catch(z){}ta.remove()}
+    window.open(LAKAZ_URL,"_blank","noopener");
+    m.q("#dvok").innerHTML=ok?`<b style="color:var(--ok)">✅ Demande copiée (${nb} personne${nb>1?"s":""}) et Case ouverte dans un nouvel onglet.</b>`:`<b style="color:var(--bad)">La copie automatique n’a pas marché : copie ce code (Ctrl+C) :</b><textarea readonly rows="3" style="width:100%;font-size:11px">${esc(code)}</textarea>`;
+    m.q("#dvgo").textContent="Copier de nouveau"}}
 document.addEventListener("click",ev=>{const b=ev.target.closest("[data-dv]");if(b){ev.preventDefault();ev.stopPropagation();devisDepuisRegistre(b.dataset.dv,b.dataset.dvt)}},true);
 
 /* ---------- compteur de temps (gardé sur cet ordinateur) ---------- */
