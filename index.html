@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-u";
+const APP_VER="2026-11-13-v";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -3167,10 +3167,10 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
   function liste(){const L=document.getElementById("sbl");if(!L)return;const f=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(),ok=t=>!f||String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(f);
     if(onglet==="cli"){
       const tous=docs(),dossiers=e=>{const D=tous.filter(x=>x.ent===e.id),epiL=EPLIST[e.id];
-        const epi=epiL?epiL.flatMap(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}return(x.pdf?[{d:String(x.date).slice(0,10),titre:"N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,url:x.pdf,sal:1}]:[]).concat(o.recap?[{d:String(x.date).slice(0,10),titre:"Récapitulatif du contrôle",url:o.recap,rec:1}]:[])}).filter((x,i,a)=>a.findIndex(y=>y.url===x.url)===i):D.filter(x=>x.t==="epi");
+        const epi=epiL?epiL.flatMap(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}return(x.pdf?[{d:String(x.date).slice(0,10),titre:"N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,url:x.pdf,sal:1,rid:x.id}]:[]).concat(o.recap?[{d:String(x.date).slice(0,10),titre:"Récapitulatif du contrôle",url:o.recap,rec:1}]:[])}).filter((x,i,a)=>a.findIndex(y=>y.url===x.url)===i):D.filter(x=>x.t==="epi");
         const duV=duList(e.id).map(d=>({d:String(d.date||"").slice(0,10),titre:"Version "+d.version+" – "+(d.statut==="validé"?"validée":d.statut==="à signer"?"à signer":"brouillon"),du:d.id,ent:e.id}));
         return[["duerp","📋","Document unique",duV],["vgp","🏗️","VGP – levage",D.filter(x=>x.t==="vgp")],["epi","🦺","EPI antichute",epi],["reg","📒","Registre",D.filter(x=>x.t!=="vgp"&&x.t!=="epi"&&x.t!=="duerp")]]};
-      const docH=(x,eid)=>`<button class="sb-doc" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${eid}"><span aria-hidden="true">📄</span><span style="flex:1;min-width:0">${esc(x.titre)}<small>${x.d?fr(x.d):""}</small></span></button>`;
+      const docH=(x,eid)=>`<div style="display:flex;align-items:center"><button class="sb-doc" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${eid}"><span aria-hidden="true">📄</span><span style="flex:1;min-width:0">${esc(x.titre)}<small>${x.d?fr(x.d):""}</small></span></button>${x.rid?`<button class="btn sm" data-sbrev="${x.rid}" data-sbre="${eid}" title="Compléter ce rapport (ajouter une pièce)" style="margin-right:10px;white-space:nowrap">✏️ Compléter</button>`:""}</div>`;
       const E=S.ents.filter(e=>!f||ok(e.nom+" "+(e.ville||"")+" "+(e.siret||""))).sort((a,b)=>a.nom.localeCompare(b.nom,"fr"));
       let h=E.map(e=>{const p=profil(e),o=OUV.has(e.id)||(f&&E.length<=3);return `<button class="sb-i ${V.view==="ent"&&V.ent===e.id?"on":""}" data-sbt="${e.id}" aria-expanded="${o}"><span aria-hidden="true">${o?"📂":"📁"}</span><div style="flex:1;min-width:0"><div class="t">${esc(e.nom)}</div><span class="sb-b" style="color:${p[1]};background:${p[2]}">${p[0]}</span></div></button>`+
         (o?`<button class="sb-f" data-sbfiche="${e.id}" style="color:#1F5FA8">↗ Ouvrir la fiche</button>`+dossiers(e).map(([k,i2,n,L])=>{const key=e.id+"|"+k,oo=OUVF.has(key);
@@ -3183,6 +3183,7 @@ addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelec
           epiT.push({t:"epi",titre:"Rapport EPI N° "+x.num+(o.rev?" rév. "+o.rev:"")+" – "+x.salarie,cle,url:x.pdf,ent:id,nom:nomE(id),d:String(x.date).slice(0,10)})}));
         const vus=new Set(epiT.map(x=>x.url)),T=epiT.concat(tous.filter(x=>!vus.has(x.url))).filter(x=>(ok(x.titre)||ok(x.cle||""))&&!ok(x.nom)).slice(0,40);if(T.length)h+=`<div class="sb-d">🔎 Documents trouvés (${T.length})</div>`+T.map(x=>`<button class="sb-doc" style="padding-left:14px" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${x.ent}"><span aria-hidden="true">${ic[x.t]||"📄"}</span><span style="flex:1;min-width:0">${esc(x.titre)}<small>${esc(x.nom)} · ${x.d?fr(x.d):""}</small></span></button>`).join("")}
       L.innerHTML=h||`<p class="hint" style="padding:12px 14px">Aucun client ni document trouvé.</p>`;
+      L.querySelectorAll("[data-sbrev]").forEach(x=>x.onclick=()=>{const eid=x.dataset.sbre,e=S.ents.find(z=>z.id===eid),r=(EPLIST[eid]||[]).find(z=>z.id===x.dataset.sbrev);if(!e||!r)return;V={view:"ent",ent:eid,tab:"epi"};render();if(innerWidth<=1100){ouvert=false;dessine()}epReviser(e,r,EPLIST[eid])});
       L.querySelectorAll("[data-sbt]").forEach(x=>x.onclick=()=>{const id=x.dataset.sbt;OUV.has(id)?OUV.delete(id):OUV.add(id);liste()});
       L.querySelectorAll("[data-sbfiche]").forEach(x=>x.onclick=()=>{V={view:"ent",ent:x.dataset.sbfiche,tab:"id"};render();scrollTo(0,0);if(innerWidth<=1100){ouvert=false;dessine()}});
       L.querySelectorAll("[data-sbf]").forEach(x=>x.onclick=async()=>{const k=x.dataset.sbf;OUVF.has(k)?OUVF.delete(k):OUVF.add(k);const [eid,t]=k.split("|");
