@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-s";
+const APP_VER="2026-11-13-t";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -3100,6 +3100,63 @@ function selPrepare(){const pn=document.getElementById("pn");document.getElement
     L.forEach(x=>{S[x.k]=S[x.k].filter(y=>y.id!==x.id);api(act[x.k],{id:x.id}).catch(z=>toast(z.message))});
     SELM=false;toast(L.length+" ligne(s) supprimée(s)");renderEnt()}}
 addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelector(".ov")){SELM=false;renderEnt()}});
+</script>
+<script>
+/* ============ BARRE LATÉRALE (administrateur) : mes clients + derniers documents ============ */
+(function(){
+  const css=document.createElement("style");css.textContent=`
+  #sbar{position:fixed;top:0;left:0;bottom:0;width:290px;z-index:30;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);box-shadow:2px 0 12px rgba(0,0,0,.06)}
+  #sbar .sb-h{background:#12213F;color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px}
+  #sbar .sb-h b{flex:1;font-size:16px}
+  #sbar .sb-x{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer}
+  #sbar .sb-s{padding:10px 12px;border-bottom:1px solid var(--line)}
+  #sbar .sb-s input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+  #sbar .sb-tabs{display:flex;border-bottom:1px solid var(--line)}
+  #sbar .sb-tabs button{flex:1;background:none;border:0;padding:9px 6px;font-weight:600;font-size:13.5px;color:var(--ink2);border-bottom:3px solid transparent;cursor:pointer}
+  #sbar .sb-tabs button.on{color:var(--ink);border-color:#E87722}
+  #sbar .sb-l{flex:1;overflow-y:auto;padding:6px 0}
+  #sbar .sb-i{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;padding:8px 14px;cursor:pointer;color:var(--ink);font:inherit}
+  #sbar .sb-i:hover,#sbar .sb-i:focus-visible{background:var(--bg)}
+  #sbar .sb-i.on{background:#FFF4E5;box-shadow:inset 3px 0 #E87722}
+  #sbar .sb-i .t{font-weight:600;font-size:14px;line-height:1.25}
+  #sbar .sb-i .k{font-size:12px;color:var(--ink3);margin-top:2px}
+  #sbar .sb-b{display:inline-block;font-size:11px;font-weight:700;border-radius:10px;padding:1px 7px;margin-top:3px}
+  #sbar .sb-d{font-size:11.5px;font-weight:700;color:#1F5FA8;padding:10px 14px 2px;text-transform:none}
+  #sbtog{position:fixed;left:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:31;background:#12213F;color:#fff;border:0;border-radius:22px;padding:9px 14px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer}
+  body.sb-on #app{margin-left:290px}
+  @media (max-width:1100px){body.sb-on #app{margin-left:0} #sbar{box-shadow:4px 0 24px rgba(0,0,0,.3)}}
+  @media print{#sbar,#sbtog{display:none!important} body.sb-on #app{margin-left:0}}`;document.head.appendChild(css);
+  let ouvert=(()=>{try{const v=localStorage.getItem("reg3aim_sb");return v===null?innerWidth>1100:v==="1"}catch(e){return innerWidth>1100}})(),onglet="cli",q="";
+  const ic={vgp:"🏗️",epi:"🦺",duerp:"📋",verif:"🔧",form:"🎓",autre:"📄"};
+  function profil(e){if(estAbo(e.id))return["★ Abonné prévention","#1B5E20","#E5F3EB"];const E=els(e.id);
+    if(E.some(x=>(x.rub==="lev"||x.rub==="epi")&&/RUNIXO/i.test(x.organisme||"")))return["🔧 Contrôles seuls","#1F5FA8","#E8F0FB"];return["Registre","#6B7280","#EEF0F3"]}
+  function docs(){const D=[],nom=id=>(S.ents.find(e=>e.id===id)||{}).nom||"";
+    S.els.forEach(x=>{if(!x.doc||x.doc==="#")return;D.push({d:String(x.dernier||"").slice(0,10),t:x.rub==="lev"?"vgp":x.rub==="epi"?"epi":x.rub==="form"?"form":"verif",titre:x.libelle+(x.ref?" – "+x.ref:""),ent:x.entId,nom:nom(x.entId),url:x.doc})});
+    S.fic.forEach(f=>{if(f.doc&&f.doc!=="#")D.push({d:String(f.date||"").slice(0,10),t:f.type==="perso"?"form":"autre",titre:f.a||"Document",ent:f.entId,nom:nom(f.entId),url:f.doc})});
+    S.du.filter(d=>d.statut==="validé").forEach(d=>D.push({d:String(d.date||"").slice(0,10),t:"duerp",titre:"Document unique – v"+d.version,ent:d.entId,nom:nom(d.entId),du:d.id}));
+    return D.filter(x=>x.nom).sort((a,b)=>String(b.d).localeCompare(String(a.d)))}
+  function dessine(){document.getElementById("sbar")?.remove();document.getElementById("sbtog")?.remove();document.body.classList.toggle("sb-on",ouvert&&S.role==="admin");
+    if(S.role!=="admin")return;
+    if(!ouvert){const t=document.createElement("button");t.id="sbtog";t.textContent="☰ Clients et documents";t.onclick=()=>{ouvert=true;garde();dessine()};document.body.appendChild(t);return}
+    const b=document.createElement("aside");b.id="sbar";b.setAttribute("aria-label","Clients et documents");
+    b.innerHTML=`<div class="sb-h"><b>☰ Clients et documents</b><button class="sb-x" id="sbx" aria-label="Fermer la barre">✕</button></div>
+      <div class="sb-tabs" role="tablist"><button class="${onglet==="cli"?"on":""}" data-sbo="cli">🏢 Mes clients (${S.ents.length})</button><button class="${onglet==="doc"?"on":""}" data-sbo="doc">📄 Documents</button></div>
+      <div class="sb-s"><input id="sbq" placeholder="${onglet==="cli"?"Rechercher un client…":"Rechercher un document…"}" value="${esc(q)}" aria-label="Rechercher"></div><div class="sb-l" id="sbl"></div>`;
+    document.body.appendChild(b);
+    b.querySelector("#sbx").onclick=()=>{ouvert=false;garde();dessine()};
+    b.querySelectorAll("[data-sbo]").forEach(x=>x.onclick=()=>{onglet=x.dataset.sbo;q="";dessine()});
+    const inp=b.querySelector("#sbq");inp.oninput=()=>{q=inp.value;liste()};liste()}
+  function liste(){const L=document.getElementById("sbl");if(!L)return;const f=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim(),ok=t=>!f||String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").includes(f);
+    if(onglet==="cli"){const E=S.ents.filter(e=>ok(e.nom+" "+(e.ville||"")+" "+(e.siret||""))).sort((a,b)=>a.nom.localeCompare(b.nom,"fr"));
+      L.innerHTML=E.map(e=>{const p=profil(e);return `<button class="sb-i ${V.view==="ent"&&V.ent===e.id?"on":""}" data-sbe="${e.id}"><div style="flex:1;min-width:0"><div class="t">${esc(e.nom)}</div><div class="k">${esc([e.ville,e.activite].filter(Boolean).join(" · ").slice(0,60))}</div><span class="sb-b" style="color:${p[1]};background:${p[2]}">${p[0]}</span></div></button>`}).join("")||`<p class="hint" style="padding:12px 14px">Aucun client trouvé.</p>`;
+      L.querySelectorAll("[data-sbe]").forEach(x=>x.onclick=()=>{V={view:"ent",ent:x.dataset.sbe,tab:"id"};render();scrollTo(0,0);if(innerWidth<=1100){ouvert=false;dessine()}})}
+    else{const D=docs().filter(x=>ok(x.titre+" "+x.nom)).slice(0,80);let jour="";
+      L.innerHTML=D.map(x=>{const h=x.d!==jour?`<div class="sb-d">📅 ${x.d?fr(x.d):"Sans date"}</div>`:"";jour=x.d;return h+`<button class="sb-i" data-sbu="${esc(x.url||"")}" data-sbdu="${x.du||""}" data-sbent="${x.ent}"><span aria-hidden="true">${ic[x.t]||"📄"}</span><div style="flex:1;min-width:0"><div class="t">${esc(x.titre)}</div><div class="k">${esc(x.nom)}</div></div></button>`}).join("")||`<p class="hint" style="padding:12px 14px">Aucun document pour l’instant.</p>`;
+      L.querySelectorAll("[data-sbent]").forEach(x=>x.onclick=()=>{if(x.dataset.sbu){window.open(x.dataset.sbu,"_blank","noopener");return}const d=S.du.find(z=>z.id===x.dataset.sbdu),e=S.ents.find(z=>z.id===x.dataset.sbent);if(d&&e)pdfFlow(e,"Document unique – version "+d.version,()=>exportDUERP(e,d))})}}
+  function garde(){try{localStorage.setItem("reg3aim_sb",ouvert?"1":"0")}catch(e){}}
+  const _r=render;render=function(){_r.apply(this,arguments);try{dessine()}catch(z){console.warn(z)}};
+  window.sbRafraichir=dessine;
+})();
 </script>
 </body>
 </html>
