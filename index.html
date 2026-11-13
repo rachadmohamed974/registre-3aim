@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-d";
+const APP_VER="2026-11-13-e";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2408,6 +2408,19 @@ entForm=function(e){_entForm.apply(this,arguments);try{
   const show=()=>{const raw=inp.value.trim(),n=nafNorm(raw);if(!raw){h.textContent="Sert à proposer le bon type de DUERP.";return}if(!n){h.innerHTML='<span style="color:var(--bad)">Format attendu : 41.20A</span>';return}const d=nafDetect(n,"",act.value);h.textContent=d.m?"Type de DUERP : "+d.m:"Type non reconnu : tu le choisiras dans le DUERP."};
   inp.oninput=show;act.addEventListener("input",show);show();
   const btn=document.getElementById("n_s");if(btn)btn.addEventListener("click",()=>{const raw=inp.value.trim();NAF_FORM.pending=raw?nafNorm(raw):""},true);
+  /* contrôle des doublons : même SIRET = bloqué ; même SIREN (autre établissement) ou même nom = confirmation */
+  if(btn){let ok2=false;btn.addEventListener("click",ev=>{if(ok2){ok2=false;return}
+    const dig=x=>String(x||"").replace(/\D/g,""),nrm=x=>String(x||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\b(SARL|SASU|SAS|EURL|SA|SNC|SCI|EI|STE|SOCIETE|ENTREPRISE|ETS)\b/g,"").replace(/[^A-Z0-9]/g,"");
+    const self=e&&e.id,si=dig((document.getElementById("n_siret")||{}).value),no=nrm((document.getElementById("n_nom")||{}).value),O=S.ents.filter(x=>x.id!==self);
+    const same=si.length===14&&O.find(x=>dig(x.siret)===si),sirn=!same&&si.length>=9&&O.find(x=>dig(x.siret).slice(0,9)===si.slice(0,9)),nom=!same&&!sirn&&no&&O.find(x=>nrm(x.nom)===no);
+    const err=document.getElementById("n_e");if(!same&&!sirn&&!nom)return;
+    ev.stopImmediatePropagation();ev.preventDefault();NAF_FORM.pending=null;
+    const x=same||sirn||nom,why=same?"le même SIRET":sirn?"le même SIREN (même société, autre établissement ?)":"le même nom";
+    err.innerHTML=`<div style="background:#FCE8E6;border:1px solid #B42318;border-radius:8px;padding:10px;color:#7A1A12;font-weight:400">⚠️ <b>${esc(x.nom)}</b> existe déjà dans le registre avec ${why}${x.siret?" (SIRET "+esc(x.siret)+")":""}.
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm pri" id="n_dupo">Ouvrir la fiche existante</button>${same?"":`<button type="button" class="btn sm" id="n_dupf">C’est une autre entreprise : enregistrer quand même</button>`}</div></div>`;
+    err.scrollIntoView({behavior:"smooth",block:"center"});
+    document.getElementById("n_dupo").onclick=()=>{document.querySelectorAll(".ov").forEach(o=>o.remove());V={view:"ent",ent:x.id,tab:"id"};render();scrollTo(0,0)};
+    const f=document.getElementById("n_dupf");if(f)f.onclick=()=>{err.innerHTML="";ok2=true;btn.click()}},true)}
   /* recherche par SIRET dans l'annuaire officiel des entreprises (données INSEE, gratuit) */
   const sir=document.getElementById("n_siret"),sl=sir&&sir.closest("label");
   if(sl){sl.insertAdjacentHTML("afterend",`<div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" id="n_sirb" style="background:#E87722;border-color:#E87722;color:#fff">🔎 Remplir depuis le SIRET</button><span class="hint" id="n_sirh">Tape le SIRET (14 chiffres) ou le SIREN (9 chiffres), puis clique.</span></div>`);
