@@ -1115,12 +1115,15 @@ function hdrD(doc,e,title,sub){const W=doc.internal.pageSize.getWidth(),a=hex("#
   doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text(P(e.nom),12,7.8);doc.setFont("helvetica","normal");doc.setTextColor(220,240,220);doc.text("Document unique d'évaluation des risques professionnels",W-12,7.8,{align:"right"});
   doc.setFillColor(...hex(DG));doc.rect(12,18,4,sub?14:10,"F");doc.setTextColor(...hex(DGD));doc.setFont("helvetica","bold");doc.setFontSize(17);doc.text(P(title),19,25);
   if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(110,118,132);doc.text(P(sub),19,30.5)}return sub?38:34}
+const pfStep=t=>{try{window.PFSTEP&&window.PFSTEP(t)}catch(z){}};
+const withTO=(p,ms,lab)=>Promise.race([p,new Promise((ok,ko)=>setTimeout(()=>ko(new Error(lab+" : pas de réponse après "+Math.round(ms/1000)+" secondes")),ms))]);
 async function exportDUERP(e,d){
-  await need("autotable");
+  pfStep("Chargement des outils PDF");await withTO(need("autotable"),30000,"Chargement des outils PDF");
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4",orientation:"landscape"}),W=297,H=210,o=duObj(d),INK=[20,33,61],G1=hex(DGD),G2=hex(DG);
-  let PHS=[];try{PHS=await loadPhotos(d)}catch(x){}
+  pfStep("Lecture des photos de la tournée");let PHS=[];try{PHS=await withTO(Promise.resolve(loadPhotos(d)),25000,"Photos de la tournée")}catch(x){console.warn(x)}
   const KEEP=PHS.filter(p=>p.keep==="oui").sort((a,b)=>Number(a.n)-Number(b.n));
-  let photo="";if(o.cover&&PHS.some(p=>p.id===o.cover)){try{photo=(await api("photoFull",{duId:d.id,id:o.cover})).data}catch(x){}}if(!photo)photo=await getPhoto(e);
+  pfStep("Récupération de la photo de couverture");let photo="";if(o.cover&&PHS.some(p=>p.id===o.cover)){try{photo=(await withTO(api("photoFull",{duId:d.id,id:o.cover}),25000,"Photo de couverture")).data}catch(x){console.warn(x)}}if(!photo){try{photo=await withTO(getPhoto(e),25000,"Photo de l’entreprise")}catch(x){console.warn(x);photo="";toast("La photo de l’entreprise met trop de temps à arriver : le PDF est fait sans elle.")}}
+  pfStep("Mise en page du document");await new Promise(r=>setTimeout(r,50));
   const T=(y,txt,size=9.5,w=W-28,x=14,lh=4.6)=>{doc.setFont("helvetica","normal");doc.setFontSize(size);doc.setTextColor(...INK);const L=doc.splitTextToSize(P(txt),w);doc.text(L,x,y);return y+L.length*lh};
   const H2=(y,txt)=>{doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(...G1);doc.text(P(txt),14,y);return y+6};
   let curT="";const tbl={theme:"grid",styles:{fontSize:8.4,cellPadding:2.2,lineColor:[220,226,220],textColor:INK,valign:"middle"},headStyles:{fillColor:G2,textColor:255,fontSize:8.4},margin:{left:12,right:12,top:36},didDrawPage:x=>{if(x.pageNumber>1&&curT)hdrD(doc,e,curT+" (suite)")}};
@@ -1574,10 +1577,13 @@ async function cropTo(url,ratio){ // recadrage centré au format du cadre
 }
 /* ---------- PDF : préparation puis aperçu, ouvrir, télécharger, classer dans le Drive ---------- */
 async function pdfFlow(e,titre,make){
-  const m=modal("PDF – "+esc(titre),"#2E7D32",`<div id="pf_b" style="min-height:120px;display:grid;place-items:center;text-align:center"><div><div style="font-size:20px;font-weight:600">Préparation du PDF…</div><div class="hint">Quelques secondes, ne ferme pas cette fenêtre.</div></div></div>`,`<button class="btn" data-x2>Fermer</button>`);
+  const m=modal("PDF – "+esc(titre),"#2E7D32",`<div id="pf_b" style="min-height:120px;display:grid;place-items:center;text-align:center"><div><div style="font-size:20px;font-weight:600">Préparation du PDF…</div><div class="hint" id="pf_s">Démarrage</div><div class="hint" id="pf_c">0 s</div></div></div>`,`<button class="btn" data-x2>Fermer</button>`);
   const md=m.ov.querySelector(".modal");md.style.width="min(1100px,100%)";
   m.ov.querySelector("[data-x2]").onclick=m.close;
-  let r;try{r=await make()}catch(z){console.error(z);m.q("#pf_b").innerHTML=`<div style="text-align:left;width:100%"><p style="margin:0 0 8px;color:var(--bad);font-weight:600">Le PDF n’a pas pu être fait.</p><div class="calc" style="word-break:break-word"><b>${esc(z&&z.message||String(z))}</b></div><p class="hint">Fais une capture de ce message et envoie-la à Claude.</p></div>`;return}
+  const t0=Date.now();let step="Démarrage";window.PFSTEP=t=>{step=t;const el=m.q("#pf_s");if(el)el.textContent="Étape : "+t+"…"};
+  const clk=setInterval(()=>{const el=m.q("#pf_c");if(el)el.textContent=Math.round((Date.now()-t0)/1000)+" s"},1000);
+  let r;try{r=await withTO(make(),120000,"Le PDF est bloqué à l’étape « "+step+" »")}catch(z){clearInterval(clk);window.PFSTEP=null;z=new Error((z&&z.message||String(z))+" (étape : "+step+")");console.error(z);m.q("#pf_b").innerHTML=`<div style="text-align:left;width:100%"><p style="margin:0 0 8px;color:var(--bad);font-weight:600">Le PDF n’a pas pu être fait.</p><div class="calc" style="word-break:break-word"><b>${esc(z&&z.message||String(z))}</b></div><p class="hint">Fais une capture de ce message et envoie-la à Claude.</p></div>`;return}
+  clearInterval(clk);window.PFSTEP=null;
   if(!document.body.contains(m.ov))return;
   const url=URL.createObjectURL(r.blob),mo=Math.round(r.blob.size/1024);
   m.q("#pf_b").outerHTML=`<div id="pf_b" style="width:100%"><iframe src="${url}#view=FitH" title="Aperçu du PDF" style="width:100%;height:68vh;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe><div class="hint" style="margin-top:6px">${esc(r.name)} · ${mo>1024?(mo/1024).toFixed(1)+" Mo":mo+" Ko"} · si l’aperçu reste blanc (téléphone), utilise « Ouvrir en grand ».</div><div class="err" id="pf_x"></div></div>`;
