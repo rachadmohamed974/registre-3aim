@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-l";
+const APP_VER="2026-11-13-m";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2901,6 +2901,64 @@ async function epValider(){const K=EP.kits.filter(k=>k.items.length),A=K.flatMap
     m.q("#epok").onclick=()=>{m.close();document.getElementById("ep")?.remove();document.body.style.overflow="";EP=null;V.tab="epi";renderEnt()}}
   catch(z){st("");m.q("#eperr").textContent=z.message+(EP.saved?" – les rapports sont déjà enregistrés : clique de nouveau sur « Valider et classer » pour relancer le PDF.":"")}}
 
+</script>
+<script>
+/* ============ ENREGISTREMENT INSTANTANÉ + SUPPRESSION GROUPÉE ============
+   Les modifications et suppressions s'affichent tout de suite ; l'envoi au moteur se fait en arrière-plan,
+   dans l'ordre, avec un indicateur en haut de l'écran. En cas d'échec, un message prévient et le registre se recharge. */
+(function(){
+  const DELS=new Set(["delEl","delRes","delFiche","delDuerp","delPhoto"]);
+  const UPD={saveEl:["el","els"],saveRes:["res","res"],saveFiche:["fic","fic"],saveDuerp:["du","du"]};
+  let Q=Promise.resolve(),N=0,ERR=0,tFin=null;
+  function ind(){let b=document.getElementById("syncq");if(!b){b=document.createElement("div");b.id="syncq";b.setAttribute("role","status");b.setAttribute("aria-live","polite");
+      b.style.cssText="position:fixed;top:calc(70px + env(safe-area-inset-top,0px));right:16px;z-index:70;padding:7px 12px;border-radius:20px;font-size:13.5px;font-weight:600;box-shadow:0 3px 12px rgba(0,0,0,.2);transition:opacity .4s";document.body.appendChild(b)}
+    clearTimeout(tFin);
+    if(N>0){b.style.opacity="1";b.style.background="#12213F";b.style.color="#fff";b.textContent="⏳ Enregistrement…"+(N>1?" ("+N+")":"")}
+    else{b.style.background=ERR?"#B42318":"#1E7F4F";b.style.color="#fff";b.textContent=ERR?"⚠️ Non enregistré":"✓ Enregistré";tFin=setTimeout(()=>{b.style.opacity="0"},1800);ERR=0}}
+  function echec(z,action){ERR=1;const m=modal("Une modification n’a pas été enregistrée","#B42318",`<p style="margin:0">Le moteur a répondu : <b>${esc(z&&z.message||String(z))}</b></p><p class="hint" style="margin:0">Vérifie ta connexion. Le registre va se recharger pour afficher l’état réellement enregistré ; refais ensuite la modification.</p>`,`<button class="btn pri" id="sq_r">Recharger le registre</button>`);
+    m.q("#sq_r").onclick=async()=>{m.close();try{await reload();render()}catch(x){toast(x.message)}}}
+  addEventListener("beforeunload",ev=>{if(N>0){ev.preventDefault();ev.returnValue=""}});
+  const _api=api;
+  api=function(action,p){
+    const u=UPD[action],isDel=DELS.has(action),isUpd=u&&p&&p[u[0]]&&p[u[0]].id;
+    if(DEMO||!(isDel||isUpd))return _api(action,p);
+    N++;ind();
+    const job=Q.then(()=>_api(action,p)).then(r=>{
+      if(isUpd&&r&&r[u[0]]){const arr=S[u[1]],o=r[u[0]],i=arr.findIndex(x=>x.id===o.id);
+        if(i>=0){const keep=arr[i]._o;arr[i]=o;if(keep&&action==="saveDuerp")arr[i]._o=keep}
+        if(!document.querySelector(".ov")&&!document.getElementById("vg")&&!document.getElementById("ep")&&V.view==="ent")try{renderEnt()}catch(z){}}
+      return r}).catch(z=>{echec(z,action)}).finally(()=>{N--;ind()});
+    Q=job.catch(()=>{});
+    if(isUpd){const o=JSON.parse(JSON.stringify(p[u[0]]));if(action==="saveEl"&&o.dernier&&o.per)o.prochain=addM(o.dernier,o.per);return Promise.resolve({[u[0]]:o})}
+    return Promise.resolve({})};
+  const _reload=reload;reload=async function(){await Q;return _reload.apply(this,arguments)};
+  window.syncAttente=()=>Q;
+})();
+
+/* ---------- suppression groupée dans les listes ---------- */
+let SELM=false;
+const _renderEntSel=renderEnt;
+renderEnt=function(){_renderEntSel.apply(this,arguments);try{selPrepare()}catch(z){console.warn(z)}};
+function selPrepare(){const pn=document.getElementById("pn");document.getElementById("selbar")?.remove();if(!pn||S.role==="lecture")return;
+  const T=V.tab,isObs=T==="obs",rows=[...pn.querySelectorAll(".card")].map(c=>{const m=c.querySelector("[data-m]"),f=c.querySelector("[data-fm]");
+    if(f)return{c,id:f.dataset.fm,k:"fic"};if(m&&(isObs||RUB[T]))return{c,id:m.dataset.m,k:isObs?"res":"els"};return null}).filter(Boolean);
+  if(rows.length<2){SELM=false;return}
+  const h=pn.querySelector(".rubh .sp");if(h&&!pn.querySelector("#selon"))h.insertAdjacentHTML("afterend",`<button class="btn ${SELM?"pri":""}" id="selon" style="margin-right:6px">${SELM?"✓ Sélection":"☑ Sélectionner"}</button>`);
+  pn.querySelector("#selon").onclick=()=>{SELM=!SELM;renderEnt()};
+  if(!SELM)return;
+  rows.forEach(r=>{r.c.style.position="relative";r.c.style.paddingLeft="44px";r.c.insertAdjacentHTML("afterbegin",`<input type="checkbox" class="selcb" data-sid="${r.id}" data-sk="${r.k}" aria-label="Sélectionner" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;height:20px;cursor:pointer;z-index:2">`)});
+  const bar=document.createElement("div");bar.id="selbar";bar.style.cssText="position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:65;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100% - 24px)";
+  bar.innerHTML=`<b id="seln">0 sélectionné</b><button class="btn sm" id="selall">Tout sélectionner</button><button class="btn sm danger" id="seldel" disabled>🗑 Supprimer la sélection</button><button class="btn sm ghost" id="selx">Annuler</button>`;document.body.appendChild(bar);
+  const cbs=()=>[...pn.querySelectorAll(".selcb")],maj=()=>{const n=cbs().filter(c=>c.checked).length;bar.querySelector("#seln").textContent=n+" sélectionné"+(n>1?"s":"");bar.querySelector("#seldel").disabled=!n};
+  pn.querySelectorAll(".selcb").forEach(c=>{c.onclick=ev=>ev.stopPropagation();c.onchange=maj});
+  bar.querySelector("#selall").onclick=()=>{const all=cbs().every(c=>c.checked);cbs().forEach(c=>c.checked=!all);maj()};
+  bar.querySelector("#selx").onclick=()=>{SELM=false;renderEnt()};
+  bar.querySelector("#seldel").onclick=()=>{const L=cbs().filter(c=>c.checked).map(c=>({id:c.dataset.sid,k:c.dataset.sk}));if(!L.length)return;
+    if(!confirm(`Supprimer définitivement ${L.length} ligne${L.length>1?"s":""} ?`))return;
+    const act={els:"delEl",res:"delRes",fic:"delFiche"};
+    L.forEach(x=>{S[x.k]=S[x.k].filter(y=>y.id!==x.id);api(act[x.k],{id:x.id}).catch(z=>toast(z.message))});
+    SELM=false;toast(L.length+" ligne(s) supprimée(s)");renderEnt()}}
+addEventListener("keydown",ev=>{if(ev.key==="Escape"&&SELM&&!document.querySelector(".ov")){SELM=false;renderEnt()}});
 </script>
 </body>
 </html>
