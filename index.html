@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-c";
+const APP_VER="2026-11-13-d";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2408,7 +2408,33 @@ entForm=function(e){_entForm.apply(this,arguments);try{
   const show=()=>{const raw=inp.value.trim(),n=nafNorm(raw);if(!raw){h.textContent="Sert à proposer le bon type de DUERP.";return}if(!n){h.innerHTML='<span style="color:var(--bad)">Format attendu : 41.20A</span>';return}const d=nafDetect(n,"",act.value);h.textContent=d.m?"Type de DUERP : "+d.m:"Type non reconnu : tu le choisiras dans le DUERP."};
   inp.oninput=show;act.addEventListener("input",show);show();
   const btn=document.getElementById("n_s");if(btn)btn.addEventListener("click",()=>{const raw=inp.value.trim();NAF_FORM.pending=raw?nafNorm(raw):""},true);
+  /* recherche par SIRET dans l'annuaire officiel des entreprises (données INSEE, gratuit) */
+  const sir=document.getElementById("n_siret"),sl=sir&&sir.closest("label");
+  if(sl){sl.insertAdjacentHTML("afterend",`<div style="grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" id="n_sirb" style="background:#E87722;border-color:#E87722;color:#fff">🔎 Remplir depuis le SIRET</button><span class="hint" id="n_sirh">Tape le SIRET (14 chiffres) ou le SIREN (9 chiffres), puis clique.</span></div>`);
+    const two=sl.parentElement&&sl.parentElement.classList.contains("two")?sl.parentElement:null;if(two){const row=two.querySelector("#n_sirb").parentElement;two.after(row)}
+    document.getElementById("n_sirb").onclick=()=>sirFill(inp,show)}
 }catch(z){console.warn(z)}};
+const NJ={"1000":"EI","5498":"EURL","5499":"SARL","5422":"SARL","5485":"SARL","5710":"SAS","5720":"SASU","5599":"SA","5505":"SA","5410":"SNC","6540":"SCI","9220":"Association","9210":"Association","5306":"SCS"};
+const TR={"00":"0 salarié","01":"1 ou 2 salariés","02":"3 à 5 salariés","03":"6 à 9 salariés","11":"10 à 19 salariés","12":"20 à 49 salariés","21":"50 à 99 salariés","22":"100 à 199 salariés","31":"200 à 249 salariés","32":"250 à 499 salariés","41":"500 à 999 salariés"};
+async function sirFill(nafInp,show){const h=document.getElementById("n_sirh"),b=document.getElementById("n_sirb"),v=k=>document.getElementById("n_"+k);
+  const d=String(v("siret").value||"").replace(/\D/g,"");if(d.length!==14&&d.length!==9){h.innerHTML='<span style="color:var(--bad)">Le SIRET doit faire 14 chiffres (ou le SIREN 9 chiffres).</span>';return}
+  b.disabled=true;b.textContent="Recherche…";h.textContent="Interrogation de l’annuaire des entreprises…";
+  try{const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
+    const r=await fetch("https://recherche-entreprises.api.gouv.fr/search?q="+d+"&page=1&per_page=1",{signal:ctl.signal});clearTimeout(t);
+    if(!r.ok)throw new Error(r.status===429?"trop de recherches d’affilée, réessaie dans quelques secondes":"annuaire indisponible ("+r.status+")");
+    const j=await r.json(),u=(j.results||[])[0];if(!u)throw new Error("aucune entreprise trouvée pour ce numéro");
+    const et=(d.length===14&&(u.matching_etablissements||[]).find(x=>x.siret===d))||u.siege||{};
+    const ens=(et.liste_enseignes||[])[0]||et.nom_commercial||"",nom=ens||u.nom_raison_sociale||u.nom_complet||"";
+    const dir=(u.dirigeants||[]).find(x=>x.nom)||null;
+    const put=(k,val)=>{const el=v(k);if(el&&val&&!String(el.value||"").trim()){el.value=val;el.dispatchEvent(new Event("input"));return 1}return 0};
+    let n=0;n+=put("nom",nom);n+=put("forme",NJ[u.nature_juridique]||"");if(d.length===9&&et.siret){v("siret").value=et.siret.replace(/(\d{3})(\d{3})(\d{3})(\d{5})/,"$1 $2 $3 $4");n++}
+    n+=put("adresse",String(et.adresse||"").replace(new RegExp("\\s*"+(et.code_postal||"#")+".*$"),"").trim());n+=put("cp",et.code_postal||"");n+=put("ville",et.libelle_commune||"");
+    if(dir)n+=put("contact",[dir.prenoms,dir.nom].filter(Boolean).join(" ").replace(/\s+/g," ").trim());
+    const naf=nafNorm(et.activite_principale||u.activite_principale);if(naf&&!nafInp.value.trim()){nafInp.value=naf;n++}show();
+    const ferme=(et.etat_administratif||u.etat_administratif)==="F",tr=TR[et.tranche_effectif_salarie||u.tranche_effectif_salarie];
+    h.innerHTML=(ferme?'<b style="color:var(--bad)">⚠️ Établissement FERMÉ selon l’annuaire.</b> ':"")+(n?"✅ "+n+" champ(s) rempli(s)":"Rien à compléter : les champs étaient déjà remplis")+(naf?" · NAF "+esc(naf):"")+(tr?" · "+esc(tr):"")+". Vérifie puis « Enregistrer »."}
+  catch(z){h.innerHTML='<span style="color:var(--bad)">Recherche impossible : '+esc(z.name==="AbortError"?"l’annuaire ne répond pas":z.message)+'.</span>'}
+  finally{b.disabled=false;b.textContent="🔎 Remplir depuis le SIRET"}}
 const _renderEnt=renderEnt;
 renderEnt=function(){_renderEnt.apply(this,arguments);try{const e=S.ents.find(x=>x.id===V.ent),meta=document.querySelector(".hero .meta");if(!e||!meta||meta.querySelector("[data-naf]"))return;
   const n=nafEnt(e);meta.insertAdjacentHTML("beforeend",`<div data-naf><span>Code NAF</span><br>${n?esc(n):S.role==="admin"?'<span style="color:var(--warn)">À renseigner (Modifier la fiche)</span>':"–"}</div>`)}catch(z){}};
