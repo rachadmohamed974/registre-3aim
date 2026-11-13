@@ -5,7 +5,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Registre de sécurité – 3AIM CFA</title>
+<title>Registre de sécurité & Document unique – 3AIM CFA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -495,7 +495,7 @@ async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,e
 function logout(){store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};render()}
 
 function renderLogin(msg){
-  $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark">3A</div><div><b style="color:var(--ink)">3AIM CFA</b><small style="color:var(--ink2)">Registre de sécurité</small></div></div>
+  $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark">3A</div><div><b style="color:var(--ink)">3AIM CFA</b><small style="color:var(--ink2)">Registre de sécurité &amp; Document unique</small></div></div>
   <h1 style="margin-top:18px">Votre registre de sécurité, toujours à jour</h1></div>
   <form class="bd" id="lf"><label class="f">Code d’accès<input id="lc" autocomplete="off" placeholder="ENT-XXXXXX" required></label>
   <div class="err" id="le">${esc(msg||"")}</div><button class="btn pri" style="justify-content:center">Ouvrir le registre</button>
@@ -512,7 +512,7 @@ function render(){
   const ent=S.ents.find(e=>e.id===S.entId);
   const who=S.role==="admin"?"Espace 3AIM CFA":S.role==="client"?"Espace entreprise – "+(ent?.nom||""):"Consultation – "+(ent?.nom||"");
   $("#app").innerHTML=`${DEMO?`<div class="demo">Mode démonstration : les données ne sont pas enregistrées. Colle l’URL de ton Apps Script dans le fichier pour passer en réel.</div>`:""}
-  <header class="top"><div class="in"><div class="brand" id="home"><div class="mark">3A</div><div><b>Registre de sécurité</b><small>3AIM CFA</small></div></div><div class="sp"></div>
+  <header class="top"><div class="in"><div class="brand" id="home"><div class="mark">3A</div><div><b>Registre de sécurité &amp; Document unique</b><small>3AIM CFA</small></div></div><div class="sp"></div>
   <span class="who">${esc(who)}</span><button class="btn dk sm" id="out">Se déconnecter</button></div></header><main class="wrap" id="main"></main>`;
   $("#out").onclick=logout;$("#home").onclick=()=>{if(S.role==="admin"){V={view:"dash"};render()}};
   if(V.view==="machine")return renderMachine();
@@ -539,7 +539,7 @@ function renderDash(){
   const list=f=>{$("#el").innerHTML=all.filter(a=>!f||a.e.nom.toLowerCase().includes(f)).sort((a,b)=>a.s-b.s).map(a=>{const first=els(a.e.id).filter(x=>["retard","nc"].includes(statut(x)))[0]||els(a.e.id).filter(x=>statut(x)==="bientot").sort((x,y)=>x.prochain.localeCompare(y.prochain))[0];
    return `<button class="card ent" data-e="${a.e.id}"><div class="gauge" style="--v:${a.s};--gc:${scol(a.s)}"><span>${a.s}</span></div><div><div class="nm">${esc(a.e.nom)}</div><div class="hint">${esc([a.e.activite,a.e.ville].filter(Boolean).join(" · "))}</div>
     ${first?`<div class="al" style="color:${STC[statut(first)]}">${statut(first)==="nc"?"Non conforme : ":statut(first)==="retard"?"En retard : ":"Bientôt : "}${esc(first.libelle)}${first.prochain&&statut(first)!=="nc"?" ("+fr(first.prochain)+")":""}</div>`:""}
-    <div class="pills">${a.ret?`<span class="pill p-retard">${a.ret} en retard / NC</span>`:""}${a.bie?`<span class="pill p-bientot">${a.bie} à renouveler</span>`:""}${a.vid?`<span class="pill p-vide">${a.vid} à renseigner</span>`:""}${!a.ret&&!a.bie&&!a.vid&&els(a.e.id).length?`<span class="pill p-ok">Tout est à jour</span>`:""}</div></div>
+    <div class="pills">${typeof duPill==="function"?duPill(a.e.id):""}${a.ret?`<span class="pill p-retard">${a.ret} en retard / NC</span>`:""}${a.bie?`<span class="pill p-bientot">${a.bie} à renouveler</span>`:""}${a.vid?`<span class="pill p-vide">${a.vid} à renseigner</span>`:""}${!a.ret&&!a.bie&&!a.vid&&els(a.e.id).length?`<span class="pill p-ok">Tout est à jour</span>`:""}</div></div>
     <span class="hint">Ouvrir</span></button>`}).join("")||(all.length?`<p class="hint">Aucun résultat.</p>`:$("#el").innerHTML);
    document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{V={view:"ent",ent:b.dataset.e,tab:"id"};render();scrollTo(0,0)})};
   if(all.length)list("");
@@ -551,7 +551,7 @@ function renderDash(){
 
 /* ============ FICHE ENTREPRISE ============ */
 const TABS=["id","duerp","trav","inst","lev","epi","inc","form","maint","cons","dae","feu","obs","reg"];
-function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||(k==="duerp"?{n:"DUERP",c:DG}:{n:"Réglementation",c:"#B71C1C"});
+function tabsHtml(e,cnt,alert){return TABS.map(k=>{const r=RUB[k]||FT[k]||(k==="duerp"?{n:"📋 Document unique",c:DG}:{n:"Réglementation",c:"#B71C1C"});
   const n=FT[k]?fics(e.id,k).length:k==="reg"||k==="id"||k==="duerp"?null:cnt(k),al=FT[k]?fics(e.id,k).some(f=>["retard"].includes(statutF(f))):k==="reg"||k==="id"||k==="duerp"?false:alert(k);
   const lab=k==="trav"?"Travaux et contrôles":k==="maint"?"Maintenance":k==="cons"?"Consignes":k==="dae"?"Défibrillateur":k==="feu"?"Incidents":r.n;
   return `<button class="tab ${V.tab===k?"on":""}" style="--rc:${r.c}" data-t="${k}" role="tab" aria-selected="${V.tab===k}"><span class="dot"></span>${lab}${n!==null?` <span class="ct ${al?"alert":""}">${n}</span>`:""}</button>`}).join("")}
@@ -565,7 +565,7 @@ function renderEnt(){
    <div><h1>${esc(e.nom)}</h1><div class="hint">${esc(e.activite||"")}</div>
    <div class="meta"><div><span>Adresse</span><br>${esc([e.adresse,[e.cp,e.ville].filter(Boolean).join(" ")].filter(Boolean).join(", "))||"–"}</div><div><span>SIRET</span><br>${esc(e.siret||"–")}</div><div><span>Contact</span><br>${esc(e.contact||"–")}${e.email?`<br>${esc(e.email)}`:adm?`<br><span style="color:var(--bad)">Pas de mail : pas de relance</span>`:""}</div></div></div>
    <div style="text-align:center"><div class="gauge big" style="--v:${s};--gc:${scol(s)}"><span>${s}%</span></div><div class="hint" style="margin-top:6px">Conformité</div></div></section>
-  <div class="acts">${ro?"":`<button class="btn" id="dep" title="Le document est lu automatiquement et rangé dans la bonne rubrique">Déposer un rapport</button>`}${adm?`<button class="btn" id="vgpN" title="Contrôle VGP sur le terrain, rapport RUNIXO CONTRÔLE classé dans ce registre">Nouvelle VGP</button>`:""}<button class="btn pri" id="vw">Voir le registre</button>${ro?"":`<button class="btn" id="ml">Envoyer par mail</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
+  <div class="acts"><button class="btn" id="duB" style="background:#2E7D32;border-color:#2E7D32;color:#fff;font-weight:600;font-size:16px;padding:10px 16px">📋 Document unique (DUERP)</button>${ro?"":`<button class="btn" id="dep" title="Le document est lu automatiquement et rangé dans la bonne rubrique">Déposer un rapport</button>`}${adm?`<button class="btn" id="vgpN" title="Contrôle VGP sur le terrain, rapport RUNIXO CONTRÔLE classé dans ce registre">Nouvelle VGP</button>`:""}<button class="btn pri" id="vw">Voir le registre</button>${ro?"":`<button class="btn" id="ml">Envoyer par mail</button>`}<button class="btn" id="xp">Exporter en PDF</button><button class="btn" id="xx">Exporter en Excel</button>
    ${ro?"":`<button class="btn" id="ef">Modifier la fiche</button>`}${adm?`<button class="btn" id="ac">Accès client</button><button class="btn" id="qr">Étiquettes QR machines</button>`:""}<input type="file" id="phf" accept="image/*" hidden><input type="file" id="depf" hidden></div>
   <nav class="tabs" role="tablist">${tabsHtml(e,cnt,alert)}</nav>
   <div class="panel" id="pn"></div>`;
@@ -573,7 +573,7 @@ function renderEnt(){
   if($("#bk"))$("#bk").onclick=()=>{V={view:"dash"};render()};
   if(!ro){$("#ph").onclick=()=>$("#phf").click();$("#phf").onchange=ev=>uploadPhoto(e,ev.target.files[0]);$("#ef").onclick=()=>entForm(e);$("#dep").onclick=()=>$("#depf").click();$("#depf").onchange=ev=>deposer(e,ev.target.files[0])}
   if(adm){$("#vgpN").onclick=()=>openVGP(e);$("#ac").onclick=()=>access(e);$("#qr").onclick=()=>etiquettes(e)}
-  $("#xp").onclick=()=>exportPDF(e);$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
+  $("#duB").onclick=()=>{V.tab="duerp";V.dutour=false;renderEnt();document.querySelector(".tabs")?.scrollIntoView({behavior:"smooth",block:"start"})};$("#xp").onclick=()=>exportPDF(e);$("#vw").onclick=()=>apercu(e);if($("#ml"))$("#ml").onclick=()=>mailForm(e);$("#xx").onclick=()=>exportXLS(e);
   if(!S.photos[e.id]&&e.photoId){const pc=store.get("reg3aim_ph_"+e.id+"_"+e.photoId);if(pc)S.photos[e.id]=pc}
   if(!S.photos[e.id]&&e.photoId&&!S.photos["_"+e.id]){S.photos["_"+e.id]=1;api("photo",{entId:e.id}).then(r=>{if(r.data){S.photos[e.id]=r.data;store.set("reg3aim_ph_"+e.id+"_"+e.photoId,r.data);if(V.ent===e.id)renderEnt()}}).catch(()=>{})}
   const pn=$("#pn");
@@ -2261,14 +2261,53 @@ async function vgValider() {
 
 </script>
 <script>
-/* ============ LIEN LAKAZ → REGISTRE (préparer le DUERP depuis la fiche société de Lakaz) ============
-   Lakaz ouvre registre.3aim.fr/?lakaz=… avec les infos de l'entreprise et le métier proposé (code NAF).
-   Le registre retrouve l'entreprise (SIRET ou nom) ou la crée, montre la fiche pré-remplie à valider,
-   puis ouvre l'onglet DUERP avec le métier déjà choisi. Rien n'est enregistré sans « Enregistrer ». */
+/* ============ DUERP AUTOMATIQUE (lien Lakaz → registre) + DOCUMENT UNIQUE EN ÉVIDENCE + COMPTEUR DE TEMPS ============
+   1. Lakaz ouvre registre.3aim.fr/?lakaz=… avec la fiche de l'entreprise, le code NAF et le métier proposé.
+   2. Après « Enregistrer », le registre crée tout seul le DUERP version 1 et l'ouvre.
+   3. Ordre de recherche du type : appris pour ce code NAF › métier proposé par Lakaz › code NAF exact › famille du code › mots-clés de l'activité.
+   4. Rien trouvé : socle général + bandeau orange « Type non reconnu ». Trouvé : bandeau vert + « Changer ».
+   5. Chaque type choisi ou changé est retenu pour ce code NAF (sur cet ordinateur + dans le moteur si NAF.gs est installé). */
+const NAF_EX={"47.30Z":"Station-service","46.73A":"Négoce de matériaux","46.73B":"Négoce de matériaux","25.11Z":"Métallerie / chaudronnerie","25.12Z":"Métallerie / chaudronnerie","25.29Z":"Métallerie / chaudronnerie","25.62B":"Métallerie / chaudronnerie","33.11Z":"Métallerie / chaudronnerie",
+ "42.11Z":"BTP – VRD / terrassement","42.21Z":"BTP – VRD / terrassement","42.99Z":"BTP – VRD / terrassement","43.11Z":"BTP – VRD / terrassement","43.12A":"BTP – VRD / terrassement","43.12B":"BTP – VRD / terrassement","43.13Z":"BTP – VRD / terrassement",
+ "41.20A":"BTP – gros œuvre / maçonnerie","41.20B":"BTP – gros œuvre / maçonnerie","43.99C":"BTP – gros œuvre / maçonnerie","43.91A":"BTP – gros œuvre / maçonnerie","43.91B":"BTP – gros œuvre / maçonnerie","43.99A":"BTP – gros œuvre / maçonnerie","43.99B":"Métallerie / chaudronnerie",
+ "43.21A":"Électricité du bâtiment","43.21B":"Électricité du bâtiment","43.22A":"Plomberie / climatisation","43.22B":"Plomberie / climatisation",
+ "43.31Z":"BTP – second œuvre (plâtrerie, peinture, carrelage)","43.33Z":"BTP – second œuvre (plâtrerie, peinture, carrelage)","43.34Z":"BTP – second œuvre (plâtrerie, peinture, carrelage)","43.39Z":"BTP – second œuvre (plâtrerie, peinture, carrelage)",
+ "43.32A":"Menuiserie / ébénisterie","43.32B":"Métallerie / chaudronnerie","16.23Z":"Menuiserie / ébénisterie","31.09B":"Menuiserie / ébénisterie","31.01Z":"Menuiserie / ébénisterie",
+ "45.20A":"Garage / mécanique automobile","45.20B":"Garage / mécanique automobile","45.11Z":"Garage / mécanique automobile","45.32Z":"Commerce de détail / boutique",
+ "49.41A":"Transport routier de marchandises","49.41B":"Transport routier de marchandises","49.41C":"Transport routier de marchandises","49.42Z":"Transport routier de marchandises","52.10B":"Logistique / entrepôt","52.29A":"Logistique / entrepôt","52.29B":"Logistique / entrepôt",
+ "47.11B":"Supermarché / supérette","47.11C":"Supermarché / supérette","47.11D":"Supermarché / supérette","47.11F":"Supermarché / supérette","10.71C":"Boulangerie / pâtisserie","10.71D":"Boulangerie / pâtisserie","47.24Z":"Boulangerie / pâtisserie","47.73Z":"Pharmacie / commerce de santé",
+ "56.10A":"Restauration traditionnelle","56.10B":"Restauration rapide / snack","56.10C":"Restauration rapide / snack","56.21Z":"Restauration traditionnelle","56.29A":"Restauration traditionnelle","56.29B":"Restauration traditionnelle","55.10Z":"Hôtellerie","55.20Z":"Hôtellerie",
+ "85.59A":"Organisme de formation","85.59B":"Organisme de formation","85.32Z":"Organisme de formation","85.53Z":"Organisme de formation","81.21Z":"Nettoyage / propreté","81.22Z":"Nettoyage / propreté","81.29A":"Nettoyage / propreté","81.29B":"Nettoyage / propreté","81.30Z":"Espaces verts / paysagiste",
+ "88.10A":"Aide à domicile","88.10B":"Aide à domicile","88.10C":"Aide à domicile","87.10A":"EHPAD / établissement de soins","87.10B":"EHPAD / établissement de soins","86.10Z":"EHPAD / établissement de soins","88.91A":"Crèche / petite enfance","96.02A":"Coiffure / esthétique","96.02B":"Coiffure / esthétique",
+ "80.10Z":"Sécurité / gardiennage","93.13Z":"Association / salle de sport","93.12Z":"Association / salle de sport","94.99Z":"Association / salle de sport","70.10Z":"Bureaux / services administratifs","70.22Z":"Bureaux / services administratifs","69.20Z":"Bureaux / services administratifs","69.10Z":"Bureaux / services administratifs","68.31Z":"Bureaux / services administratifs","62.01Z":"Bureaux / services administratifs","82.11Z":"Bureaux / services administratifs","71.12B":"Bureaux / services administratifs"};
+const NAF_FAM=[[/^47\.30/,"Station-service"],[/^46\.73/,"Négoce de matériaux"],[/^(25\.[1-9]|33\.11|24\.)/,"Métallerie / chaudronnerie"],[/^(42\.|43\.1)/,"BTP – VRD / terrassement"],[/^(41\.|43\.99)/,"BTP – gros œuvre / maçonnerie"],[/^43\.21/,"Électricité du bâtiment"],[/^43\.22/,"Plomberie / climatisation"],[/^(16\.|31\.0|43\.32)/,"Menuiserie / ébénisterie"],[/^43\.3/,"BTP – second œuvre (plâtrerie, peinture, carrelage)"],[/^45\./,"Garage / mécanique automobile"],[/^49\.4/,"Transport routier de marchandises"],[/^52\./,"Logistique / entrepôt"],[/^47\.11/,"Supermarché / supérette"],[/^(10\.71|47\.24)/,"Boulangerie / pâtisserie"],[/^47\.73/,"Pharmacie / commerce de santé"],[/^47\./,"Commerce de détail / boutique"],[/^56\.10A/,"Restauration traditionnelle"],[/^56\./,"Restauration rapide / snack"],[/^55\./,"Hôtellerie"],[/^85\./,"Organisme de formation"],[/^81\.2/,"Nettoyage / propreté"],[/^81\.3/,"Espaces verts / paysagiste"],[/^88\.10/,"Aide à domicile"],[/^(87\.|86\.)/,"EHPAD / établissement de soins"],[/^88\.91/,"Crèche / petite enfance"],[/^96\.02/,"Coiffure / esthétique"],[/^0[1-3]\./,"Exploitation agricole"],[/^1[01]\./,"Industrie agroalimentaire"],[/^80\./,"Sécurité / gardiennage"],[/^(93\.1|94\.)/,"Association / salle de sport"],[/^(6[2-9]\.|7[0-4]\.|82\.)/,"Bureaux / services administratifs"]];
+const NAF_KW=[[/station.?service/i,"Station-service"],[/n[ée]goce|mat[ée]riaux/i,"Négoce de matériaux"],[/m[ée]tall|chaudron|soud/i,"Métallerie / chaudronnerie"],[/vrd|terrassement|travaux publics/i,"BTP – VRD / terrassement"],[/ma[çc]onn|gros.?[oœ]uvre|b[âa]timent|construction/i,"BTP – gros œuvre / maçonnerie"],[/pl[âa]tr|peintur|carrel/i,"BTP – second œuvre (plâtrerie, peinture, carrelage)"],[/[ée]lectric/i,"Électricité du bâtiment"],[/plomb|climati/i,"Plomberie / climatisation"],[/menuis|[ée]b[ée]nist/i,"Menuiserie / ébénisterie"],[/carross/i,"Carrosserie / peinture automobile"],[/garage|m[ée]canique/i,"Garage / mécanique automobile"],[/transport/i,"Transport routier de marchandises"],[/logisti|entrep[ôo]t/i,"Logistique / entrepôt"],[/restaura/i,"Restauration traditionnelle"],[/snack/i,"Restauration rapide / snack"],[/boulang|p[âa]tiss/i,"Boulangerie / pâtisserie"],[/h[ôo]tel/i,"Hôtellerie"],[/formation|\bcfa\b/i,"Organisme de formation"],[/nettoyage|propret[ée]/i,"Nettoyage / propreté"],[/espaces? verts|paysag/i,"Espaces verts / paysagiste"],[/domicile/i,"Aide à domicile"],[/ehpad|soins/i,"EHPAD / établissement de soins"],[/cr[èe]che/i,"Crèche / petite enfance"],[/coiff|esth[ée]ti/i,"Coiffure / esthétique"],[/agricol|[ée]levage|plantation/i,"Exploitation agricole"],[/s[ée]curit[ée]|gardiennage/i,"Sécurité / gardiennage"],[/pharmac/i,"Pharmacie / commerce de santé"],[/supermarch|sup[ée]rette/i,"Supermarché / supérette"],[/commerce|boutique|magasin/i,"Commerce de détail / boutique"]];
+const DU_SOCLE=["admin","stock","nettoyage"];
+const NAF_SRC={appris:"retenu lors d’un choix précédent pour ce code NAF",lakaz:"proposé par Lakaz",exact:"d’après le code NAF",famille:"d’après la famille du code NAF",activite:"d’après l’activité",choisi:"choisi par toi"};
+const nafNorm=x=>{const m=String(x||"").toUpperCase().replace(/\s/g,"").match(/(\d{2})\.?(\d{2})([A-Z])/);return m?m[1]+"."+m[2]+m[3]:""};
+const nafOf=t=>nafNorm((String(t||"").match(/\b\d{2}\.?\d{2}\s?[A-Z]\b/)||[""])[0]);
+const dmOk=m=>DM.some(x=>x[0]===m);
+const NAFS={map:{},ent:{},srv:false};
+try{NAFS.map=JSON.parse(store.get("reg3aim_naf")||"{}")||{};NAFS.ent=JSON.parse(store.get("reg3aim_nafent")||"{}")||{}}catch(e){}
+function nafSaveLocal(){store.set("reg3aim_naf",JSON.stringify(NAFS.map));store.set("reg3aim_nafent",JSON.stringify(NAFS.ent))}
+function nafLearn(naf,m){naf=nafNorm(naf);if(!naf||!dmOk(m))return;NAFS.map[naf]=m;nafSaveLocal();if(!DEMO)api("nafLearn",{naf,metier:m}).catch(()=>{})}
+function nafSetEnt(id,naf){naf=nafNorm(naf);if(!id||!naf||NAFS.ent[id]===naf)return;NAFS.ent[id]=naf;nafSaveLocal();if(!DEMO)api("nafEnt",{entId:id,naf}).catch(()=>{})}
+const nafEnt=e=>e?(NAFS.ent[e.id]||nafOf(e.activite)):"";
+function nafDetect(naf,lk,act){naf=nafNorm(naf);
+  if(naf&&dmOk(NAFS.map[naf]))return{m:NAFS.map[naf],src:"appris",naf};
+  if(dmOk(lk))return{m:lk,src:"lakaz",naf};
+  if(naf&&dmOk(NAF_EX[naf]))return{m:NAF_EX[naf],src:"exact",naf};
+  const f=naf&&NAF_FAM.find(([re])=>re.test(naf));if(f&&dmOk(f[1]))return{m:f[1],src:"famille",naf};
+  const k=NAF_KW.find(([re])=>re.test(String(act||"")));if(k&&dmOk(k[1]))return{m:k[1],src:"activite",naf};
+  return{m:"",src:"",naf}}
+const duUnits=keys=>keys.filter(k=>DU[k]).map(k=>({id:uid("u"),nom:DU[k][0],eff:"",desc:"",risks:DU[k][1].map(newRisk)}));
+async function duAuto(e,det,eff){const i=DM.findIndex(x=>x[0]===det.m),ok=i>=0;
+  const d={entId:e.id,version:1,metier:ok?DM[i][0]:"Socle général (type non reconnu)",date:"",redacteur:"Rachad MOHAMED – IPRP, 3AIM CFA",effectif:eff||e.effectif||"",statut:"brouillon",
+    _o:{units:duUnits(ok?DM[i][1]:DU_SOCLE),det:{naf:det.naf||"",m:ok?DM[i][0]:"",src:ok?det.src:"",ok}}};
+  return saveDu(d)}
+
+/* ---------- lien Lakaz ---------- */
 (function(){
-  const raw=new URLSearchParams(location.search).get("lakaz");
-  if(raw){try{sessionStorage.setItem("lakaz_imp",raw)}catch(e){}
-    try{const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}catch(e){}}
   const dig=x=>String(x||"").replace(/\D/g,""),nrm=x=>String(x||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z0-9]/g,"");
   let LK=null,tries=0;
   function decode(r){const b=atob(String(r).replace(/-/g,"+").replace(/_/g,"/"));return JSON.parse(decodeURIComponent(escape(b)))}
@@ -2280,18 +2319,96 @@ async function vgValider() {
     const ex=(dig(d.siret).length>=9&&S.ents.find(e=>dig(e.siret).slice(0,9)===dig(d.siret).slice(0,9)))||S.ents.find(e=>nrm(e.nom)&&nrm(e.nom)===nrm(d.nom));
     const base=ex?{...ex}:{relances:"oui",verificateur:"RUNIXO CONTRÔLE"};
     ["nom","forme","siret","adresse","cp","ville","activite","effectif","contact","email","tel"].forEach(k=>{if(d[k]&&!String(base[k]||"").trim())base[k]=d[k]});
-    LK={metier:d.metier||"",ent:ex?ex.id:null};
+    LK={metier:d.metier||"",naf:nafNorm(d.naf)||nafOf(d.activite),activite:d.activite||"",effectif:d.effectif||""};
     entForm(base);
-    toast(ex?"Entreprise déjà dans le registre : vérifie la fiche puis « Enregistrer »":"Fiche pré-remplie depuis Lakaz : vérifie puis « Enregistrer »");
+    toast(ex?"Entreprise déjà dans le registre : vérifie la fiche puis « Enregistrer »":"Fiche pré-remplie depuis Lakaz : vérifie puis « Enregistrer » – le DUERP sera créé tout seul");
     return true}
   const _api=api;
   api=async function(action,p){const res=await _api(action,p);
-    if(action==="saveEnt"&&LK){const id=res&&res.ent&&res.ent.id;const m=LK.metier;LK=null;
-      if(id)setTimeout(()=>{V={view:"ent",ent:id,tab:"duerp"};render();
-        setTimeout(()=>{const sel=document.getElementById("du_m");if(sel&&m){const i=DM.findIndex(x=>x[0]===m);if(i>=0){sel.value=String(i);sel.dispatchEvent(new Event("change"));toast("Métier proposé d'après le code NAF : "+m+" (modifiable)")}}},150)},150)}
+    if(action==="saveEnt"&&LK&&res&&res.ent&&res.ent.id){const L=LK;LK=null;const id=res.ent.id;
+      if(L.naf)nafSetEnt(id,L.naf);
+      setTimeout(async()=>{const e=S.ents.find(x=>x.id===id)||res.ent;
+        if(duList(id).length){V={view:"ent",ent:id,tab:"duerp"};V.duv=null;V.duu=0;render();toast("Cette entreprise a déjà un DUERP : il est ouvert.");return}
+        const det=nafDetect(L.naf,L.metier,L.activite||e.activite);
+        V={view:"ent",ent:id,tab:"duerp"};render();toast("Création du DUERP version 1…");
+        try{await duAuto(e,det,L.effectif);V.duv=null;V.duu=0;renderEnt();
+          toast(det.m?"DUERP v1 créé – type : "+det.m:"DUERP v1 créé avec un socle général : choisis le type")}
+        catch(z){toast("Création du DUERP impossible : "+z.message);renderEnt()}},200)}
     return res};
   const t=setInterval(()=>{tries++;if(run()||tries>80)clearInterval(t)},400);
+  const t2=setInterval(()=>{if(S.role!=="admin"||DEMO){if(DEMO)clearInterval(t2);return}clearInterval(t2);
+    api("nafMaps").then(r=>{if(r&&r.map){NAFS.map=Object.assign({},r.map,NAFS.map);NAFS.ent=Object.assign({},r.ent||{},NAFS.ent);NAFS.srv=true;nafSaveLocal()}}).catch(()=>{})},1500);
 })();
+
+/* ---------- bandeaux du DUERP ---------- */
+const _panelDuerp=panelDuerp;
+panelDuerp=function(e,pn){_panelDuerp(e,pn);if(V.dutour||S.role==="lecture")return;try{duBandeau(e,pn)}catch(z){console.warn(z)}};
+const BAN=(c,bg,h)=>`<div class="card" id="du_ban" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;margin-bottom:12px;border:1px solid ${c};border-left:6px solid ${c};background:${bg};border-radius:0 10px 10px 0">${h}</div>`;
+function duBandeau(e,pn){const L=duList(e.id);
+  if(!L.length){/* formulaire de création : on propose le type */
+    const naf=nafEnt(e),det=nafDetect(naf,"",e.activite),sel=pn.querySelector("#du_m");
+    pn.insertAdjacentHTML("afterbegin",BAN(det.m?"#2E7D32":"#C2410C",det.m?"#EEF7EF":"#FFF4E5",`<div style="flex:1;min-width:220px">${det.m?`<b style="color:#1B5E20">Type proposé : ${esc(det.m)}${naf?` (NAF ${esc(naf)})`:""}</b><div class="hint">${esc(NAF_SRC[det.src]||"")}</div>`:`<b style="color:#9A3412">Type non reconnu${naf?` pour le code NAF ${esc(naf)}`:""}</b><div class="hint">Choisis le métier ci-dessous : il sera retenu pour ce code NAF.</div>`}</div>
+      <label class="f" style="width:150px;margin:0">Code NAF<input id="du_naf" value="${esc(naf)}" placeholder="41.20A"></label>`));
+    if(sel&&det.m){const i=DM.findIndex(x=>x[0]===det.m);if(i>=0&&sel.value===""){sel.value=String(i);sel.dispatchEvent(new Event("change"))}}
+    const c=pn.querySelector("#du_c");if(c)c.addEventListener("click",()=>{const v=sel&&sel.value,n=nafNorm(pn.querySelector("#du_naf").value);if(n){nafSetEnt(e.id,n);if(v!==""&&Number(v)>=0&&DM[v][0]!==det.m)nafLearn(n,DM[v][0])}},true);
+    return}
+  const d=L.find(x=>x.id===V.duv)||L[0];if(d.statut==="validé")return;
+  const o=duObj(d),naf=(o.det&&o.det.naf)||nafEnt(e),ok=o.det?o.det.ok:dmOk(d.metier),m=(o.det&&o.det.m)||d.metier,src=o.det?o.det.src:"";
+  pn.insertAdjacentHTML("afterbegin",ok?BAN("#2E7D32","#EEF7EF",`<div style="flex:1;min-width:220px"><b style="color:#1B5E20">✅ Type détecté : ${esc(m)}${naf?` (NAF ${esc(naf)})`:""}</b><div class="hint">${esc(NAF_SRC[src]||"Version "+d.version+" en brouillon")}</div></div><button class="btn sm" id="du_chg">Changer</button>`)
+    :BAN("#C2410C","#FFF4E5",`<div style="flex:1;min-width:220px"><b style="color:#9A3412">⚠️ Type non reconnu${naf?` pour le code NAF ${esc(naf)}`:""}</b><div class="hint">Un socle général a été créé (bureaux, stockage, nettoyage). Choisis le bon type : il sera retenu pour la prochaine fois.</div></div><button class="btn pri sm" id="du_chg" style="background:#C2410C;border-color:#C2410C">Choisir un type</button>`));
+  pn.querySelector("#du_chg").onclick=()=>duChanger(e,d,naf,ok?m:"")}
+async function duChanger(e,d,naf,cur){const o=duObj(d);let n=0;try{n=(await loadPhotos(d)).length}catch(z){n=(PH[d.id]||[]).length}
+  const mm=modal(cur?"Changer le type d’entreprise":"Choisir le type d’entreprise",DG,`<label class="f">Type d’entreprise<select id="t_m"><option value="">Choisir…</option>${DM.map((x,i)=>`<option value="${i}" ${x[0]===cur?"selected":""}>${esc(x[0])}</option>`).join("")}</select></label>
+    <div class="hint" id="t_p"></div><label class="f">Code NAF de l’entreprise<input id="t_n" value="${esc(naf||"")}" placeholder="41.20A"></label>
+    <div class="hint">${n?`<b>${n} photo(s) déjà ajoutée(s)</b> : les unités de travail et tes réglages sont <b>conservés</b>, seul le type change.`:`Aucune photo encore : les unités de travail seront <b>remplacées</b> par celles de ce type.`} Le choix est retenu pour ce code NAF.</div><div class="err" id="t_x"></div>`,
+    `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="t_s">Enregistrer</button>`);
+  mm.ov.querySelector("[data-x2]").onclick=mm.close;
+  const pv=()=>{const v=mm.q("#t_m").value;mm.q("#t_p").innerHTML=v!==""?"Unités : <b>"+DM[v][1].map(k=>esc(DU[k][0])).join(", ")+"</b>":""};mm.q("#t_m").onchange=pv;pv();
+  mm.q("#t_s").onclick=async()=>{const v=mm.q("#t_m").value,nf=nafNorm(mm.q("#t_n").value);if(v===""){mm.q("#t_x").textContent="Choisis un type.";return}
+    if(mm.q("#t_n").value.trim()&&!nf){mm.q("#t_x").textContent="Code NAF au format 41.20A.";return}
+    const t=DM[v];if(!n)o.units=duUnits(t[1]);d.metier=t[0];o.det={naf:nf,m:t[0],src:"choisi",ok:true};
+    if(nf){nafLearn(nf,t[0]);nafSetEnt(e.id,nf)}
+    mm.q("#t_s").disabled=true;mm.q("#t_s").textContent="Enregistrement…";
+    try{await saveDu(d);mm.close();V.duu=0;toast("Type enregistré"+(nf?" et retenu pour le NAF "+nf:""));renderEnt()}catch(z){mm.q("#t_x").textContent=z.message;mm.q("#t_s").disabled=false;mm.q("#t_s").textContent="Enregistrer"}}}
+
+/* ---------- état du DUERP sur le tableau de bord ---------- */
+function duPill(id){const L=duList(id),P=(c,b,t)=>`<span class="pill" style="background:${b};color:${c}">📋 ${t}</span>`;
+  if(!L.length)return P("#9A3412","#FFF4E5","DUERP à créer");
+  const d=L[0],v=L.find(x=>x.statut==="validé");
+  if(d.statut==="validé")return d.date&&jours(addM(d.date,12))<0?P("#B42318","#FCE8E6","DUERP à mettre à jour"):P("#1B5E20","#E5F3EB","DUERP validé le "+fr(d.date));
+  return P("#1F5FA8","#E8F0FB","DUERP brouillon v"+d.version+(v?" (v"+v.version+" validée)":""))}
+
+/* ---------- compteur de temps (gardé sur cet ordinateur) ---------- */
+const TPS={k:"reg3aim_temps",d:null,last:Date.now(),tick:Date.now(),dirty:0};
+try{TPS.d=JSON.parse(store.get(TPS.k)||"null")}catch(e){}if(!TPS.d||!TPS.d.j)TPS.d={j:{}};
+["mousemove","keydown","click","scroll","touchstart","wheel"].forEach(ev=>addEventListener(ev,()=>{TPS.last=Date.now()},{passive:true,capture:true}));
+const tpsFmt=s=>{s=Math.round(s/60);return s<60?s+" min":Math.floor(s/60)+" h "+String(s%60).padStart(2,"0")};
+const tpsEnt=()=>V.view==="ent"?V.ent:V.view==="machine"?(S.els.find(x=>x.id===V.el)||{}).entId:null;
+const tpsActif=()=>S.role==="admin"&&Date.now()-TPS.last<30*60e3;
+function tpsSave(){const j=TPS.d.j,K=Object.keys(j).sort();K.slice(0,Math.max(0,K.length-400)).forEach(k=>delete j[k]);store.set(TPS.k,JSON.stringify(TPS.d));TPS.dirty=0}
+setInterval(()=>{const now=Date.now(),dt=Math.min(now-TPS.tick,15000)/1000;TPS.tick=now;
+  if(tpsActif()){const j=TPS.d.j[today()]=TPS.d.j[today()]||{t:0,e:{}};j.t+=dt;const id=tpsEnt();if(id)j.e[id]=(j.e[id]||0)+dt;if(++TPS.dirty>=6)tpsSave()}
+  tpsPaint()},5000);
+addEventListener("pagehide",()=>{if(TPS.dirty)tpsSave()});
+function tpsPaint(){if(S.role!=="admin")return;const top=document.querySelector(".top .in");if(!top)return;let b=document.getElementById("tmr");
+  if(!b){b=document.createElement("button");b.id="tmr";b.className="btn dk sm";b.title="Temps passé dans le registre (pause après 30 min sans activité) – clic pour le détail";b.onclick=tpsDetail;const w=top.querySelector(".who");w?top.insertBefore(b,w):top.appendChild(b)}
+  const j=TPS.d.j[today()]||{t:0,e:{}},id=tpsEnt(),e=id&&S.ents.find(x=>x.id===id),a=tpsActif();
+  b.textContent=(a?"⏱ ":"⏸ en pause · ")+"aujourd’hui "+tpsFmt(j.t)+(e?" · "+e.nom+" "+tpsFmt(j.e[id]||0):"");b.style.opacity=a?"1":".75"}
+function tpsDetail(){const per={jour:"Aujourd’hui",sem:"Cette semaine",mois:"Ce mois-ci"};let cur="jour";
+  const keys=p=>{const t=today(),d=new Date(t+"T00:00:00");if(p==="jour")return[t];
+    if(p==="mois")return Object.keys(TPS.d.j).filter(k=>k.slice(0,7)===t.slice(0,7));
+    const lu=new Date(d);lu.setDate(d.getDate()-((d.getDay()+6)%7));const s=lu.getFullYear()+"-"+String(lu.getMonth()+1).padStart(2,"0")+"-"+String(lu.getDate()).padStart(2,"0");return Object.keys(TPS.d.j).filter(k=>k>=s&&k<=t)};
+  const m=modal("⏱ Temps passé dans le registre","#12213F",`<div class="quick" id="tp_p" style="margin:0 0 10px"></div><div id="tp_b"></div><p class="hint" style="margin:10px 0 0">Compté sur cet ordinateur uniquement, avec une pause automatique après 30 minutes sans activité.</p>`,`<button class="btn" data-x2>Fermer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  const draw=()=>{m.q("#tp_p").innerHTML=Object.entries(per).map(([k,l])=>`<button class="chip" data-p="${k}" style="${k===cur?"border-style:solid;font-weight:600;color:var(--ink)":""}">${l}</button>`).join("");
+    m.q("#tp_p").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{cur=b.dataset.p;draw()});
+    const K=keys(cur),tot={},T=K.reduce((a,k)=>{const j=TPS.d.j[k];Object.entries(j.e||{}).forEach(([i,s])=>tot[i]=(tot[i]||0)+s);return a+(j.t||0)},0);
+    const sum=Object.values(tot).reduce((a,b)=>a+b,0),rows=Object.entries(tot).sort((a,b)=>b[1]-a[1]).map(([i,s])=>[(S.ents.find(e=>e.id===i)||{}).nom||"Entreprise supprimée",s]);
+    if(T-sum>=60)rows.push(["Tableau de bord et autres écrans",T-sum]);
+    m.q("#tp_b").innerHTML=`<div style="font-size:22px;font-weight:600;margin-bottom:8px">Total : ${tpsFmt(T)}</div>`+(rows.length?`<div class="tbl-wrap" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px">${rows.map(([n,s])=>`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">${esc(n)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap"><b>${tpsFmt(s)}</b></td></tr>`).join("")}</table></div>`:`<p class="hint">Rien de compté sur cette période.</p>`)};
+  draw()}
+const _render=render;render=function(){_render.apply(this,arguments);try{tpsPaint()}catch(z){}};
+
 </script>
 
 </body>
