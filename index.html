@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-f";
+const APP_VER="2026-11-13-g";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2659,11 +2659,11 @@ function epS0(M){M.innerHTML=`<div class="ep-card"><h2>Contrôle</h2><div class=
     const vide=EP.kits.find(x=>!x.nom.trim()&&!x.photos.length&&!x.items.length);if(vide)EP.kits.splice(EP.kits.indexOf(vide),1,kit);else EP.kits.push(kit);epSave();toast(kit.items.length+" équipement(s) repris pour "+k.salarie);b.disabled=true})}
 
 /* ---------- étape 2 : salariés et photos ---------- */
-function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rapport. Ajoute toutes les photos de son kit (vues générales et étiquettes), puis lance l’analyse : Claude prépare le pré-rapport, que tu vérifies à l’étape suivante.</p>`+
+function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rapport. Ajoute toutes les photos de son kit (vues générales et étiquettes) avec le bouton, ou glisse-les directement sur sa carte depuis ton PC, puis lance l’analyse : Claude prépare le pré-rapport, que tu vérifies à l’étape suivante.</p>`+
   EP.kits.map((k,i)=>`<div class="ep-card" data-k="${k.id}"><div class="ep-kh"><input data-nom placeholder="NOM Prénom du salarié" value="${esc(k.nom)}" aria-label="Nom du salarié ${i+1}"><button class="btn sm danger ghost" data-kdel>Retirer</button></div>
    <div class="ep-strip">${k.photos.map((p,j)=>`<div class="ep-th" title="Photo ${j+1}"><img src="${p.d}" alt="Photo ${j+1}"><span>${j+1}</span><button class="del" data-pdel="${p.id}" aria-label="Supprimer la photo ${j+1}">✕</button></div>`).join("")||`<span class="hint">Aucune photo pour l’instant.</span>`}</div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-add1>+ Ajouter des photos</button><button class="btn" data-add2>📷 Prendre une photo</button>
-   <button class="btn pri" data-an ${k.photos.length&&k.nom.trim()?"":"disabled"}>Analyser avec Claude (${k.photos.length} photo${k.photos.length>1?"s":""})</button><span class="ep-busy" data-st>${k.an?esc(k.an):""}</span></div>
+   <button class="btn pri" data-an ${k.photos.length&&k.nom.trim()?"":"disabled"}>Analyser avec Claude (${k.photos.length} photo${k.photos.length>1?"s":""})</button><span class="ep-busy" data-st>${epBusy[k.id]?`<b style="color:var(--orange)">${esc(epBusy[k.id])}</b>`:k.an?esc(k.an):""}</span></div>
    ${k.items.length?`<p class="hint" style="margin:8px 0 0">${k.items.length} équipement(s) dans le pré-rapport.</p>`:""}</div>`).join("")+
   `<button class="btn" id="ep_ak">+ Ajouter un salarié</button>`;
   M.querySelector("#ep_ak").onclick=()=>{EP.kits.push(epKit(""));epSave();epRender();setTimeout(()=>{const l=[...M.querySelectorAll("[data-nom]")].pop();l&&l.focus()},50)};
@@ -2671,14 +2671,23 @@ function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rappo
     c.querySelector("[data-nom]").oninput=ev=>{k.nom=ev.target.value.toUpperCase().replace(/^\s+/,"");epSave();const b=c.querySelector("[data-an]");b.disabled=!(k.photos.length&&k.nom.trim())};
     c.querySelector("[data-nom]").onblur=ev=>{ev.target.value=k.nom.trim();k.nom=k.nom.trim();epSave()};
     c.querySelector("[data-kdel]").onclick=()=>{if((k.photos.length||k.items.length)&&!confirm("Retirer "+(k.nom||"ce salarié")+" et ses photos ?"))return;EP.kits=EP.kits.filter(x=>x!==k);if(!EP.kits.length)EP.kits.push(epKit(""));epSave();epRender()};
-    c.querySelector("[data-add1]").onclick=()=>{epKitPh=k.id;ep$("#epf1").click()};c.querySelector("[data-add2]").onclick=()=>{epKitPh=k.id;ep$("#epf2").click()};
+    c.querySelector("[data-add1]").onclick=()=>{epKitPh=k.id;epDB.set("e_"+EPE.id,EP);ep$("#epf1").click()};c.querySelector("[data-add2]").onclick=()=>{epKitPh=k.id;epDB.set("e_"+EPE.id,EP);ep$("#epf2").click()};
     c.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=()=>{k.photos=k.photos.filter(p=>p.id!==b.dataset.pdel);k.items.forEach(it=>it.ph=it.ph.filter(x=>x!==b.dataset.pdel));epSave();epRender()});
-    c.querySelector("[data-an]").onclick=()=>epAnalyse(k,c)})}
-async function epShrink(src,max,q){const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>ko(new Error("photo illisible"));i.src=src});
-  const k=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);return c.toDataURL("image/jpeg",q)}
-async function epPhotos(ev){const F=[...ev.target.files];ev.target.value="";const k=EP.kits.find(x=>x.id===epKitPh);if(!k||!F.length)return;let ko=0;toast("Ajout de "+F.length+" photo(s)…");
-  for(const f of F){const u=URL.createObjectURL(f);try{k.photos.push({id:epId("p"),d:await epShrink(u,1600,.88)})}catch(z){ko++}URL.revokeObjectURL(u)}
-  epSave();epRender();if(ko)toast(ko+" photo(s) n’ont pas pu être lues (format non accepté)")}
+    c.querySelector("[data-an]").onclick=()=>epAnalyse(k,c);
+    c.ondragover=ev=>{ev.preventDefault();c.style.outline="3px dashed var(--orange)"};c.ondragleave=()=>{c.style.outline=""};
+    c.ondrop=ev=>{ev.preventDefault();c.style.outline="";epAddFiles(k,[...(ev.dataTransfer.files||[])])}})}
+async function epShrink(src,max,q){let img;
+  if(src instanceof Blob&&window.createImageBitmap){try{img=await createImageBitmap(src)}catch(z){img=null}}
+  if(!img){const u=src instanceof Blob?URL.createObjectURL(src):src;try{img=await new Promise((ok,ko)=>{const i=new Image(),t=setTimeout(()=>ko(new Error("délai dépassé")),20000);i.onload=()=>{clearTimeout(t);ok(i)};i.onerror=()=>{clearTimeout(t);ko(new Error("format non lu"))};i.src=u})}finally{if(src instanceof Blob)setTimeout(()=>URL.revokeObjectURL(u),1000)}}
+  const W=img.width,H=img.height;if(!W||!H)throw new Error("photo vide");const k=Math.min(1,max/Math.max(W,H)),c=document.createElement("canvas");c.width=Math.round(W*k);c.height=Math.round(H*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);if(img.close)img.close();return c.toDataURL("image/jpeg",q)}
+let epBusy={};
+async function epPhotos(ev){const F=[...ev.target.files];ev.target.value="";const k=EP.kits.find(x=>x.id===epKitPh);if(!k||!F.length)return;epAddFiles(k,F)}
+async function epAddFiles(k,F){F=F.filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));if(!F.length)return toast("Aucune photo dans ce que tu as choisi");
+  const ko=[];for(let i=0;i<F.length;i++){epBusy[k.id]=`Ajout des photos : ${i+1} / ${F.length}…`;if(epStep===1)epRender();
+    try{k.photos.push({id:epId("p"),d:await epShrink(F[i],1600,.88)})}catch(z){ko.push(F[i].name+" ("+z.message+")")}}
+  delete epBusy[k.id];epSave();if(epStep===1)epRender();
+  if(ko.length){const m=modal("Photos non ajoutées","#E87722",`<p style="margin:0">${ko.length} photo(s) n’ont pas pu être lues :</p><ul style="margin:6px 0;padding-left:18px">${ko.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><p class="hint" style="margin:0">Souvent des photos iPhone au format HEIC, ou des photos du Drive pas encore téléchargées sur le PC. Sur iPhone : Réglages › Appareil photo › Formats › « Le plus compatible ».</p>`,`<button class="btn pri" data-x2>Compris</button>`);m.ov.querySelector("[data-x2]").onclick=m.close}
+  else toast(F.length+" photo(s) ajoutée(s) pour "+(k.nom||"ce salarié"))}
 
 /* ---------- analyse par Claude, par paquets de 8 photos ---------- */
 async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySelector("[data-an]");if(k.items.some(x=>x.ia)&&!confirm("Relancer l’analyse ? Le pré-rapport de "+k.nom+" proposé par Claude sera remplacé (les équipements ajoutés à la main sont gardés)."))return;
