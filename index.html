@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-j";
+const APP_VER="2026-11-13-k";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -621,7 +621,7 @@ function renderDash(){
   <div class="layout"><section><div class="sec-h"><h2>Entreprises</h2><input id="q" placeholder="Rechercher une entreprise" style="border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:var(--card);max-width:240px;width:100%"></div>
    <div class="ents" id="el">${all.length?"":`<div class="card empty"><h3 style="font-size:20px">Ajoute ta première entreprise</h3><p>Commence par 3AIM CFA, puis tes clients.</p>${!DEMO?`<button class="btn" id="sd">Charger 3AIM CFA, KAZ PILOTE et l’exemple</button>`:""}</div>`}</div></section>
   <aside class="grid"><div class="card opp"><h2 style="font-size:21px">Opportunités</h2><p class="hint" style="margin:2px 0 6px">Ce que les registres font apparaître</p>
-   ${op.length?`<ul style="padding-left:18px;margin:0">${op.slice(0,12).map(o=>`<li><b>${esc(o.nom)}</b> : ${esc(o.t)}<br><span class="to">→ ${o.qui}</span></li>`).join("")}</ul>${op.length>12?`<p class="hint">+ ${op.length-12} autre(s), résumé envoyé chaque lundi</p>`:""}`:`<p class="hint">Rien pour l’instant.</p>`}</div>
+   ${op.length?`<ul style="padding-left:18px;margin:0">${op.slice(0,12).map(o=>`<li><b>${esc(o.nom)}</b> : ${esc(o.t)}<br><span class="to">→ ${o.qui}</span>${/3AIM CFA/.test(o.qui)?` <button class="btn sm" data-dv="${o.id}" data-dvt="${esc(o.t)}" style="padding:2px 8px;font-size:12.5px">Créer le devis</button>`:""}</li>`).join("")}</ul>${op.length>12?`<p class="hint">+ ${op.length-12} autre(s), résumé envoyé chaque lundi</p>`:""}`:`<p class="hint">Rien pour l’instant.</p>`}</div>
    <div class="card"><h2 style="font-size:21px;padding:14px 14px 0">Dernières activités</h2><div class="feed">${S.jr.slice(0,25).map(j=>`<div>${esc(j.action)}<small>${esc(nom(j.entId))} · ${j.qui==="client"?"saisi par le client":j.qui==="admin"?"3AIM CFA":j.qui} · ${esc(j.date)}</small></div>`).join("")||`<div class="hint">Aucune activité.</div>`}</div></div></aside></div>`;
   const list=f=>{$("#el").innerHTML=all.filter(a=>!f||a.e.nom.toLowerCase().includes(f)).sort((a,b)=>a.s-b.s).map(a=>{const first=els(a.e.id).filter(x=>["retard","nc"].includes(statut(x)))[0]||els(a.e.id).filter(x=>statut(x)==="bientot").sort((x,y)=>x.prochain.localeCompare(y.prochain))[0];
    return `<button class="card ent" data-e="${a.e.id}"><div class="gauge" style="--v:${a.s};--gc:${scol(a.s)}"><span>${a.s}</span></div><div><div class="nm">${esc(a.e.nom)}</div><div class="hint">${esc([a.e.activite,a.e.ville].filter(Boolean).join(" · "))}</div>
@@ -685,7 +685,7 @@ function panelId(e,pn){
     ${["ok","bientot","retard","nc","vide"].map(k=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span class="pill p-${k}">${ST[k]}</span><b>${c(k)}</b></div>`).join("")}
     <div style="display:flex;justify-content:space-between;padding:7px 0"><span class="pill p-vide">Réserves ouvertes</span><b>${ress(e.id).filter(r=>!r.levee).length}</b></div>
     ${S.role!=="lecture"?`<p class="hint">Relances automatiques : <b>${e.relances==="non"?"désactivées":e.email?"actives (J-60, J-30, J-7 puis retard)":"inactives, ajoute un mail"}</b></p>`:""}</div>
-   ${S.role==="admin"&&opps(e.id).length?`<div class="card opp"><h2 style="font-size:21px">Opportunités</h2><ul style="padding-left:18px;margin:6px 0 0">${opps(e.id).map(o=>`<li>${esc(o.t)}<br><span class="to">→ ${o.qui}</span></li>`).join("")}</ul></div>`:""}</div><div id="ctc" style="margin-top:22px"></div>`;
+   ${S.role==="admin"&&opps(e.id).length?`<div class="card opp"><h2 style="font-size:21px">Opportunités</h2><ul style="padding-left:18px;margin:6px 0 0">${opps(e.id).map(o=>`<li>${esc(o.t)}<br><span class="to">→ ${o.qui}</span>${/3AIM CFA/.test(o.qui)?` <button class="btn sm" data-dv="${e.id}" data-dvt="${esc(o.t)}" style="padding:2px 8px;font-size:12.5px">Créer le devis</button>`:""}</li>`).join("")}</ul></div>`:""}</div><div id="ctc" style="margin-top:22px"></div>`;
   listeFiches(e,"contact",$("#ctc"));
 }
 function panelRub(e,k,pn){
@@ -2626,6 +2626,26 @@ renderDash=function(){_renderDash.apply(this,arguments);try{const q=document.get
     <span class="hint" style="margin-left:auto">${n} abonné${n>1?"s":""} · ${n} × 99 € = <b style="color:#1B5E20">${ca.toLocaleString("fr-FR")} € HT / mois</b> (${(ca*12).toLocaleString("fr-FR")} € HT / an)</span></div>`);
   document.querySelectorAll("[data-abf]").forEach(b=>b.onclick=()=>{ABF=b.dataset.abf;document.getElementById("abof").remove();renderDash()});
   q.addEventListener("input",()=>setTimeout(aboFiltre,0));aboFiltre()}catch(z){console.warn(z)}};
+
+/* ---------- « Créer le devis » : opportunité du registre -> devis dans la Case (copier-coller) ---------- */
+const LAKAZ_URL="https://claude.ai/artifact/SGrEECRea8SLwJptM4bNzt";
+function fo2cat(t){t=String(t||"").toLowerCase();const rec=/maintien|recycl|actualis|\bmac\b/.test(t);
+  if(/sst|secour/.test(t))return rec?"mac-sst":"sst";if(/prap/.test(t))return"prap";if(/habilitation|h0b0|électri|electri/.test(t))return"h0b0";if(/chariot|cariste/.test(t))return"chariot";
+  if(/nacelle|pemp/.test(t))return"nacelle";if(/grue/.test(t))return"grue";if(/engin/.test(t))return"engins";if(/hauteur|harnais/.test(t))return"harnais";if(/aipr/.test(t))return"aipr";return"autre"}
+async function devisDepuisRegistre(entId,t){const e=S.ents.find(x=>x.id===entId);if(!e)return;
+  const brut=String(t).replace(/\s*\((DUERP|Issu)[^)]*\)\s*$/,"").trim(),nb=(String(t).match(/(\d+)\s*(salari|cariste|personne)/i)||[])[1]||"";
+  const o={nom:e.nom,adresse:e.adresse||"",cpVille:[e.cp,e.ville].filter(Boolean).join(" "),siret:e.siret||"",contact:e.contact||"",email:e.email&&e.email!=="contact@3aim.fr"?e.email:"",tel:e.tel||"",activite:e.activite||"",effectif:e.effectif||"",
+    origine:t,formations:[{cat:fo2cat(brut),t:brut,type:/maintien|recycl|actualis/i.test(brut)?"recyclage":"",nb:Number(nb)||0}]};
+  const code="REGISTRE3AIM:"+btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  let copie=false;try{await navigator.clipboard.writeText(code);copie=true}catch(z){}
+  const m=modal("Créer le devis dans la Case","#C2410C",`<p style="margin:0"><b>${esc(e.nom)}</b> – ${esc(brut)}</p>
+    <p class="hint" style="margin:0">${copie?"✅ La demande est copiée.":"Copie la demande ci-dessous (Ctrl+C) :"}</p>
+    <textarea readonly id="dvcode" rows="3" style="width:100%;font-size:11px;border:1px solid var(--line);border-radius:7px;padding:6px">${esc(code)}</textarea>
+    <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.6"><li>Clique sur « Ouvrir la Case ».</li><li>Va dans <b>Devis › ✏️ Nouveau devis</b>.</li><li>Clique dans le cadre « … ou colle le texte d’un mail » et fais <b>Ctrl+V</b> : le devis se pré-remplit tout seul.</li></ol>`,
+    `<button class="btn" id="dvcp">Copier de nouveau</button><a class="btn pri" href="${LAKAZ_URL}" target="_blank" rel="noopener" style="text-decoration:none;background:#C2410C;border-color:#C2410C">Ouvrir la Case</a>`);
+  const ta=m.q("#dvcode");m.q("#dvcp").onclick=async()=>{ta.select();try{await navigator.clipboard.writeText(code);toast("Demande copiée")}catch(z){document.execCommand("copy");toast("Demande copiée")}};
+  if(!copie){ta.focus();ta.select()}}
+document.addEventListener("click",ev=>{const b=ev.target.closest("[data-dv]");if(b){ev.preventDefault();ev.stopPropagation();devisDepuisRegistre(b.dataset.dv,b.dataset.dvt)}},true);
 
 /* ---------- compteur de temps (gardé sur cet ordinateur) ---------- */
 const TPS={k:"reg3aim_temps",d:null,last:Date.now(),tick:Date.now(),dirty:0};
