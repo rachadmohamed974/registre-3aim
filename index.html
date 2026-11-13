@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-o";
+const APP_VER="2026-11-13-p";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -340,7 +340,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);borde
 #ep .ep-th img{width:100%;height:100%;object-fit:cover;display:block}
 #ep .ep-th span{position:absolute;left:3px;top:3px;background:rgba(18,33,63,.8);color:#fff;font-size:11px;border-radius:4px;padding:0 5px}
 #ep .ep-th.sel{border-color:var(--orange);box-shadow:0 0 0 2px var(--orange)}
-#ep .ep-th .del{position:absolute;right:3px;top:3px;background:rgba(180,35,24,.9);color:#fff;border:0;border-radius:4px;font-size:11px;padding:0 5px;cursor:pointer}
+#ep .ep-th .del{position:absolute;right:2px;bottom:2px;background:rgba(18,33,63,.55);color:#fff;border:0;border-radius:4px;font-size:10px;line-height:1;padding:3px 4px;cursor:pointer;opacity:.8}
 #ep .ep-it{border:1px solid var(--line);border-left:6px solid var(--c,#8A93A3);border-radius:0 10px 10px 0;padding:12px;margin-bottom:12px;background:var(--card)}
 #ep .ep-it.ok{--c:#1E7F4F}#ep .ep-it.surv{--c:#C76A00}#ep .ep-it.rebut{--c:#B42318}
 #ep .ep-ih{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
@@ -2752,7 +2752,7 @@ function epGo(i){epStep=Math.max(0,Math.min(3,i));ep$("#epsteps").innerHTML=EP_S
   ep$("#epprev").style.visibility=epStep?"visible":"hidden";ep$("#epnext").textContent=epStep===3?"Valider et classer":epStep===2?"Voir le rapport":"Suivant";epRender();document.getElementById("ep").scrollTop=0}
 function epProg(){const A=epAll(),d=A.filter(epItemOk).length,r=A.filter(x=>x.etat==="rebut").length,s=A.filter(x=>x.etat==="surv").length;
   ep$("#epprog").textContent=`${EP.kits.filter(k=>k.nom.trim()).length} salarié(s) · ${A.length} équipement(s) · ${d} vérifié(s)`+(s?` · ${s} à surveiller`:"")+(r?` · ${r} rebut`:"")}
-function epRender(){const M=ep$("#epmain");[epS0,epS1,epS2,epS3][epStep](M);epProg()}
+function epRender(){const M=ep$("#epmain");[epS0,epS1,epS2,epS3][epStep](M);epProg();M.querySelectorAll("[data-rest]").forEach(b=>b.onclick=()=>{const [kid,tid]=b.dataset.rest.split("|");const k=EP.kits.find(x=>x.id===kid);if(k)epRemettre(k,tid)})}
 
 /* ---------- étape 1 : le contrôle ---------- */
 function epS0(M){M.innerHTML=`<div class="ep-card"><h2>Contrôle</h2><div class="ep-grid">
@@ -2774,7 +2774,7 @@ function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rappo
    <div class="ep-strip">${k.photos.map((p,j)=>`<div class="ep-th" title="Photo ${j+1}"><img src="${p.d}" alt="Photo ${j+1}"><span>${j+1}</span><button class="del" data-pdel="${p.id}" aria-label="Supprimer la photo ${j+1}">✕</button></div>`).join("")||`<span class="hint">Aucune photo pour l’instant.</span>`}</div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-add1>+ Ajouter des photos</button><button class="btn" data-add2>📷 Prendre une photo</button>
    <button class="btn pri" data-an ${k.photos.length&&k.nom.trim()&&!epBusy[k.id]?"":"disabled"}>Analyser avec Claude (${k.photos.length} photo${k.photos.length>1?"s":""})</button><span class="ep-busy" data-st>${epBusy[k.id]?`<b style="color:var(--orange)">${esc(epBusy[k.id])}</b>`:k.an?esc(k.an):""}</span></div>
-   ${k.items.length?`<p class="hint" style="margin:8px 0 0">${k.items.length} équipement(s) dans le pré-rapport.</p>`:""}</div>`).join("")+
+   ${k.items.length?`<p class="hint" style="margin:8px 0 0">${k.items.length} équipement(s) dans le pré-rapport.</p>`:""}${epTrashH(k)}</div>`).join("")+
   `<button class="btn" id="ep_ak">+ Ajouter un salarié</button>`;
   M.querySelector("#ep_ak").onclick=()=>{EP.kits.push(epKit(""));epSave();epRender();setTimeout(()=>{const l=[...M.querySelectorAll("[data-nom]")].pop();l&&l.focus()},50)};
   M.querySelectorAll("[data-k]").forEach(c=>{const k=EP.kits.find(x=>x.id===c.dataset.k);
@@ -2782,7 +2782,7 @@ function epS1(M){M.innerHTML=`<p class="ep-lead">Un salarié = un kit = un rappo
     c.querySelector("[data-nom]").onblur=ev=>{ev.target.value=k.nom.trim();k.nom=k.nom.trim();epSave()};
     c.querySelector("[data-kdel]").onclick=()=>{if((k.photos.length||k.items.length)&&!confirm("Retirer "+(k.nom||"ce salarié")+" et ses photos ?"))return;EP.kits=EP.kits.filter(x=>x!==k);if(!EP.kits.length)EP.kits.push(epKit(""));epSave();epRender()};
     c.querySelector("[data-add1]").onclick=()=>{epKitPh=k.id;epDB.set("e_"+EPE.id,EP);ep$("#epf1").click()};c.querySelector("[data-add2]").onclick=()=>{epKitPh=k.id;epDB.set("e_"+EPE.id,EP);ep$("#epf2").click()};
-    c.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=()=>{k.photos=k.photos.filter(p=>p.id!==b.dataset.pdel);k.items.forEach(it=>it.ph=it.ph.filter(x=>x!==b.dataset.pdel));epSave();epRender()});
+    c.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();epSupprPhoto(k,b.dataset.pdel)});
     c.querySelector("[data-an]").onclick=()=>epAnalyse(k,c);
     c.ondragover=ev=>{ev.preventDefault();c.style.outline="3px dashed var(--orange)"};c.ondragleave=()=>{c.style.outline=""};
     c.ondrop=ev=>{ev.preventDefault();c.style.outline="";epAddFiles(k,[...(ev.dataTransfer.files||[])])}})}
@@ -2822,7 +2822,7 @@ async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySel
 function epS2(M){const K=EP.kits.filter(k=>k.nom.trim()||k.items.length);
   M.innerHTML=(K.length?"":`<div class="ep-card"><p class="ep-lead" style="margin:0">Ajoute d’abord un salarié et ses photos.</p></div>`)+K.map(k=>{const ok=k.items.filter(epItemOk).length;
    return `<div class="ep-card" data-k="${k.id}"><div class="ep-kh"><h2 style="margin:0;flex:1">${esc(k.nom||"Salarié sans nom")}</h2><span class="hint">${ok} / ${k.items.length} vérifié(s)</span><button class="btn sm" data-ia>+ Équipement</button></div>
-   ${k.items.map((it,i)=>epItemH(k,it,i)).join("")||`<p class="hint">Aucun équipement : lance l’analyse à l’étape 2 ou ajoute-les à la main.</p>`}</div>`}).join("");
+   ${k.items.map((it,i)=>epItemH(k,it,i)).join("")||`<p class="hint">Aucun équipement : lance l’analyse à l’étape 2 ou ajoute-les à la main.</p>`}${epTrashH(k)}</div>`}).join("");
   M.querySelectorAll("[data-k]").forEach(c=>{const k=EP.kits.find(x=>x.id===c.dataset.k);
     c.querySelector("[data-ia]").onclick=()=>{k.items.push(epNewItem());epSave();epRender()};
     c.querySelectorAll("[data-it]").forEach(box=>epItemBind(k,k.items.find(x=>x.id===box.dataset.it),box))})}
@@ -2840,12 +2840,32 @@ function epItemH(k,it,i){const t=EP_T[it.type]||null,age=epAge(it),M=EP_M[it.typ
    ${t&&it.etat!=="rebut"?`<div class="ep-chk ${t.man.every((x,j)=>it.man[j])?"done":""}"><b style="font-size:13px">À confirmer par toi (non visible sur photo) :</b>${t.man.map((x,j)=>`<label><input type="checkbox" data-m="${j}" ${it.man[j]?"checked":""}> ${esc(x)}</label>`).join("")}</div>`:""}</div>`}
 function epItemBind(k,it,box){const re=()=>{epSave();const i=k.items.indexOf(it);box.outerHTML=epItemH(k,it,i);const nb=ep$(`[data-it="${it.id}"]`);epItemBind(k,it,nb);epProg();const h=nb.closest("[data-k]").querySelector(".ep-kh .hint");if(h)h.textContent=k.items.filter(epItemOk).length+" / "+k.items.length+" vérifié(s)"};
   box.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{it.etat=b.dataset.e;const t=EP_T[it.type];if(it.etat==="ok"&&!it.obs&&t)it.obs=t.ok;re()});
-  box.querySelector("[data-del]").onclick=()=>{if(!confirm("Supprimer cet équipement du rapport ?"))return;k.items=k.items.filter(x=>x!==it);epSave();epRender()};
+  box.querySelector("[data-del]").onclick=()=>epSupprItem(k,it);
   box.querySelectorAll("[data-f]").forEach(el=>{el.oninput=()=>{it[el.dataset.f]=el.value;if(el.dataset.f==="fab")it.fabD=false;epSave()};if(el.tagName==="SELECT")el.onchange=()=>{it.type=el.value;it.man={};if(!it.obs&&EP_T[it.type]&&it.etat==="ok")it.obs=EP_T[it.type].ok;re()};if(el.dataset.f==="fab"||el.dataset.f==="serie")el.onchange=re});
   box.querySelectorAll("[data-m]").forEach(c=>c.onchange=()=>{it.man[c.dataset.m]=c.checked;re()});
   box.querySelector("[data-phs]").onclick=()=>{const sel=new Set(it.ph);const m=modal("Photos de l’équipement","#E87722",`<p class="hint" style="margin:0">Touche les photos qui montrent cet équipement.</p><div class="ep-strip" id="epps" style="display:flex;gap:8px;flex-wrap:wrap">${k.photos.map((p,j)=>`<button class="ep-th ${sel.has(p.id)?"sel":""}" data-p="${p.id}" style="position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;border:2px solid ${sel.has(p.id)?"#E87722":"var(--line)"};padding:0"><img src="${p.d}" alt="Photo ${j+1}" style="width:100%;height:100%;object-fit:cover"></button>`).join("")||"Aucune photo pour ce salarié."}</div>`,`<button class="btn" data-x2>Annuler</button><button class="btn pri" id="epps_ok">Valider</button>`);
     m.ov.querySelector("[data-x2]").onclick=m.close;m.ov.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const id=b.dataset.p;sel.has(id)?sel.delete(id):sel.add(id);b.style.borderColor=sel.has(id)?"#E87722":"var(--line)"});
     m.q("#epps_ok").onclick=()=>{it.ph=k.photos.filter(p=>sel.has(p.id)).map(p=>p.id);m.close();re()}}}
+
+/* ---------- suppression avec confirmation, « Annuler » 10 s et corbeille par salarié ---------- */
+const epNomIt=it=>((EP_T[it.type]||{}).n||"Équipement")+([it.marque,it.modele].filter(Boolean).length?" – "+[it.marque,it.modele].filter(Boolean).join(" "):"");
+function epSupprPhoto(k,pid){const i=k.photos.findIndex(p=>p.id===pid);if(i<0)return;const lies=k.items.filter(it=>it.ph.includes(pid));
+  if(!confirm(`Supprimer la photo n° ${i+1} de ${k.nom||"ce salarié"} ?`+(lies.length?`\nElle est rattachée à : ${lies.map(epNomIt).join(", ")}.`:"")))return;
+  const t={id:epId("t"),t:"photo",obj:k.photos[i],idx:i,lies:lies.map(it=>it.id),at:Date.now()};
+  k.photos.splice(i,1);lies.forEach(it=>it.ph=it.ph.filter(x=>x!==pid));(k.trash=k.trash||[]).push(t);epSave();epRender();epUndo(k,t,`Photo n° ${i+1} supprimée`)}
+function epSupprItem(k,it){if(!confirm(`Supprimer cet équipement du rapport ?\n${epNomIt(it)}${it.serie?" (n° "+it.serie+")":""}`))return;
+  const i=k.items.indexOf(it),t={id:epId("t"),t:"item",obj:it,idx:i,at:Date.now()};k.items.splice(i,1);(k.trash=k.trash||[]).push(t);epSave();epRender();epUndo(k,t,`${epNomIt(it)} supprimé`)}
+function epRemettre(k,tid){const T=k.trash||[],t=T.find(x=>x.id===tid);if(!t)return;
+  if(t.t==="photo"){k.photos.splice(Math.min(t.idx,k.photos.length),0,t.obj);k.items.filter(it=>t.lies.includes(it.id)).forEach(it=>{if(!it.ph.includes(t.obj.id))it.ph.push(t.obj.id)})}
+  else k.items.splice(Math.min(t.idx,k.items.length),0,t.obj);
+  k.trash=T.filter(x=>x!==t);epSave();epRender();document.getElementById("epundo")?.remove();toast(t.t==="photo"?"Photo remise à sa place":"Équipement remis dans le rapport")}
+function epUndo(k,t,txt){document.getElementById("epundo")?.remove();const b=document.createElement("div");b.id="epundo";b.setAttribute("role","status");
+  b.style.cssText="position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:62;background:#12213F;color:#fff;border-radius:10px;padding:10px 12px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:calc(100% - 24px)";
+  b.innerHTML=`<span>${esc(txt)}</span><button style="background:#E87722;color:#fff;border:0;border-radius:7px;padding:7px 12px;font-weight:700;cursor:pointer">Annuler</button>`;
+  b.querySelector("button").onclick=()=>epRemettre(k,t.id);document.body.appendChild(b);setTimeout(()=>{if(b.isConnected)b.remove()},10000)}
+function epTrashH(k){const T=k.trash||[];if(!T.length)return"";
+  return `<details style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px"><summary style="cursor:pointer;color:var(--ink2);font-size:14px">🗑 Corbeille (${T.length}) – éléments supprimés pendant ce contrôle</summary>
+   <div style="display:grid;gap:6px;margin-top:8px">${T.slice().reverse().map(t=>`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${t.t==="photo"?`<img src="${t.obj.d}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:6px">`:""}<span style="flex:1;min-width:160px;font-size:14px">${t.t==="photo"?"Photo n° "+(t.idx+1):esc(epNomIt(t.obj))+(t.obj.serie?" (n° "+esc(t.obj.serie)+")":"")}</span><button class="btn sm" data-rest="${k.id}|${t.id}">↩ Remettre</button></div>`).join("")}</div></details>`}
 
 /* ---------- résultats ---------- */
 function epKitRes(k){const I=k.items,r=I.filter(x=>x.etat==="rebut").length,s=I.filter(x=>x.etat==="surv").length;
