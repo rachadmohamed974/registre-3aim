@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-x";
+const APP_VER="2026-11-13-y";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2817,9 +2817,14 @@ async function epAddFiles(k,F){F=F.filter(f=>/^image\//.test(f.type)||/\.(jpe?g|
 async function epAnalyse(k,c){const st=c.querySelector("[data-st]"),b=c.querySelector("[data-an]");if(k.items.some(x=>x.ia)&&!confirm("Relancer l’analyse ? Le pré-rapport de "+k.nom+" proposé par Claude sera remplacé (les équipements ajoutés à la main sont gardés)."))return;
   b.disabled=true;const types=Object.entries(EP_T).map(([c,t])=>c+" = "+t.n).join(" ; "),N=k.photos.length,res=[];
   const TA="Analyse par Claude – "+k.nom;epPrg(TA,0,N);
-  try{for(let i=0;i<N;i+=8){st.textContent=`Analyse des photos ${i+1} à ${Math.min(N,i+8)} sur ${N}…`;epPrg(TA+` · photos ${i+1} à ${Math.min(N,i+8)} en cours`,i,N);
-      const P=[];for(let j=i;j<Math.min(N,i+8);j++)P.push({n:j+1,data:await epShrink(k.photos[j].d,1150,.8)});
-      const r=await api("analyseEPI",{entId:EPE.id,salarie:k.nom,entreprise:EPE.nom,date:fr(EP.date),types,photos:P});res.push(...(r.items||[]))}
+  try{/* paquets de 4 photos envoyés en parallèle (4 à la fois) : 3 à 4 fois plus rapide qu'un paquet après l'autre */
+    const TAILLE=4,PAR=4,lots=[];for(let i=0;i<N;i+=TAILLE)lots.push(i);const out=new Array(lots.length);let faits=0,suiv=0;
+    st.textContent=`Analyse de ${N} photo(s) en cours…`;epPrg(TA+` · analyse en parallèle`,0,N);
+    const ouvrier=async()=>{while(suiv<lots.length){const li=suiv++,i=lots[li],P=[];
+        for(let j=i;j<Math.min(N,i+TAILLE);j++)P.push({n:j+1,data:await epShrink(k.photos[j].d,1150,.8)});
+        let r,essai=0;while(true){try{r=await api("analyseEPI",{entId:EPE.id,salarie:k.nom,entreprise:EPE.nom,date:fr(EP.date),types,photos:P});break}catch(z){if(++essai>=2)throw z;await new Promise(o=>setTimeout(o,1500))}}
+        out[li]=r.items||[];faits+=P.length;st.textContent=`Analyse : ${faits} photo(s) sur ${N}…`;epPrg(TA+` · ${faits} photo(s) analysée(s)`,faits,N)}};
+    await Promise.all(Array.from({length:Math.min(PAR,lots.length)},ouvrier));out.forEach(L=>res.push(...L));
     const norm=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""),L=[];
     res.forEach(x=>{const s=norm(x.serie),d=s.length>=5&&s!=="ILLISIBLE"&&L.find(y=>norm(y.serie)===s&&y.type===x.type);if(d){d.photos=[...new Set([...(d.photos||[]),...(x.photos||[])])];return}L.push(x)});
     k.items=k.items.filter(x=>!x.ia).concat(L.map(x=>epNewItem({type:EP_T[x.type]?x.type:"autre",marque:x.marque||"",modele:x.modele||"",serie:x.serie||"",fab:x.fab||"",fabD:!!x.fabDeduite,etat:["ok","surv","rebut"].includes(x.etat)?x.etat:"",obs:x.obs||"",motif:x.motif||"",
