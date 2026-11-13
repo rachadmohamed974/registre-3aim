@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-13-b";
+const APP_VER="2026-11-13-c";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -2378,9 +2378,11 @@ async function duAuto(e,det,eff){const i=DM.findIndex(x=>x[0]===det.m),ok=i>=0;
     toast(ex?"Entreprise déjà dans le registre : vérifie la fiche puis « Enregistrer »":"Fiche pré-remplie depuis Lakaz : vérifie puis « Enregistrer » – le DUERP sera créé tout seul");
     return true}
   const _api=api;
-  api=async function(action,p){const res=await _api(action,p);
+  api=async function(action,p){const isNew=action==="saveEnt"&&!!(p&&p.ent&&!p.ent.id);const res=await _api(action,p);
     if(action==="saveEnt"&&res&&res.ent&&res.ent.id&&NAF_FORM.pending!==null){const n=NAF_FORM.pending;NAF_FORM.pending=null;if(n)nafSetEnt(res.ent.id,n);else if(NAFS.ent[res.ent.id]){delete NAFS.ent[res.ent.id];nafSaveLocal()}if(LK&&n)LK.naf=n}
-    if(action==="saveEnt"&&LK&&res&&res.ent&&res.ent.id){const L=LK;LK=null;const id=res.ent.id;
+    let L0=null;
+    if(action==="saveEnt"&&res&&res.ent&&res.ent.id){if(LK){L0=LK;LK=null}else if(isNew&&S.role==="admin")L0={metier:"",naf:NAFS.ent[res.ent.id]||"",activite:res.ent.activite||"",effectif:res.ent.effectif||""}}
+    if(L0){const L=L0;const id=res.ent.id;
       if(L.naf)nafSetEnt(id,L.naf);
       setTimeout(async()=>{const e=S.ents.find(x=>x.id===id)||res.ent;
         if(duList(id).length){V={view:"ent",ent:id,tab:"duerp"};V.duv=null;V.duu=0;render();toast("Cette entreprise a déjà un DUERP : il est ouvert.");return}
