@@ -3515,7 +3515,7 @@ async function envoiDoc(f,kind,relance){const e=S.ents.find(x=>x.id===f.entId),o
 let RXFA="tous";
 RXMODS.facts=M=>{const L=rxDocs("fact").slice().sort((a,b)=>String(b.a).localeCompare(String(a.a)));const ht=f=>rxTot(rxO(f).l,rxO(f).tva).ht,ttc=f=>rxTot(rxO(f).l,rxO(f).tva).ttc;const y=String(today()).slice(0,4);
   const fe=rxFiltreEnt("facts"),K=fe?L.filter(f=>f.entId===fe):L,sfx=fe?" – "+esc(rxNom(fe)):"";
-  const ret=K.filter(f=>faEtat(f)==="retard"),att=K.filter(f=>f.b==="emise"),aem=K.filter(f=>f.b==="a_emettre");
+  const ret=K.filter(f=>faEtat(f)==="retard"),att=K.filter(f=>f.b==="emise"&&faEtat(f)!=="annulee"),aem=K.filter(f=>f.b==="a_emettre");
   M.innerHTML=rxHead("💶 Factures",`${L.length} facture(s) · préparées ici, émises dans Qonto`,`<button class="btn pri" id="rxnf">+ Nouvelle facture</button>`)+
    `<div class="rxk"><div class="card"><span class="hint">À émettre dans Qonto${sfx}</span><b style="color:#9A3412">${aem.length}</b><span class="hint">${eur(aem.reduce((a,f)=>a+ttc(f),0))} TTC</span></div><div class="card"><span class="hint">En attente de paiement${sfx}</span><b>${att.length}</b><span class="hint">${eur(att.reduce((a,f)=>a+ttc(f),0))} TTC</span></div><div class="card"><span class="hint">En retard${sfx}</span><b style="color:var(--bad)">${ret.length}</b><span class="hint">${eur(ret.reduce((a,f)=>a+ttc(f),0))} TTC</span></div><div class="card"><span class="hint">Facturé en ${y} (HT)${sfx}</span><b style="color:var(--ok)">${eur(K.filter(f=>(f.b==="emise"||f.b==="payee")&&String(f.date).startsWith(y)).reduce((a,f)=>a+ht(f),0))}</b></div></div>
    <div class="rxbar">${[["tous","Toutes"],["a_emettre","À émettre"],["emise","Émises"],["retard","En retard"],["payee","Payées"],["annulee","Annulées"]].map(([k,l])=>`<button class="chip" data-faf="${k}" style="${RXFA===k?"border-style:solid;border-color:#E87722;font-weight:700":""}">${l}</button>`).join("")}</div>
@@ -3832,7 +3832,7 @@ api=async function(a,p){if(a==="saveFiche"&&p&&p.fic&&(p.fic.type==="devis"||p.f
 function rxDoublons(type){const L=rxDocs(type),out=[],vu={};
   L.forEach(f=>{const k=String(f.a);(vu[k]=vu[k]||[]).push(f)});Object.values(vu).filter(g=>g.length>1).forEach(g=>out.push({t:`N° ${g[0].a} utilisé ${g.length} fois`,ids:g.map(f=>f.id)}));
   if(type==="fact"){const sig=f=>{const o=rxO(f),dts=[...new Set((o.l||[]).map(x=>(String(x.lib).match(/\d{2}\/\d{2}\/\d{4}/g)||[])).flat())].sort().join(","),q=(o.l||[]).reduce((a,x)=>a+(Number(x.q)>0?Number(x.q):0),0);return dts?f.entId+"|"+dts+"|"+q:""};
-    const g={};L.filter(f=>f.b!=="annulee").forEach(f=>{const s=sig(f);if(s)(g[s]=g[s]||[]).push(f)});Object.values(g).filter(x=>x.length>1).forEach(x=>out.push({t:`Même contrôle facturé ${x.length} fois : n° ${x.map(f=>f.a).join(" et ")} (${rxNom(x[0].entId)})`,ids:x.map(f=>f.id)}))}
+    const g={};L.filter(f=>f.b!=="annulee"&&!rxO(f).avoir&&!rxO(f).annule).forEach(f=>{const s=sig(f);if(s)(g[s]=g[s]||[]).push(f)});Object.values(g).filter(x=>x.length>1).forEach(x=>out.push({t:`Même contrôle facturé ${x.length} fois : n° ${x.map(f=>f.a).join(" et ")} (${rxNom(x[0].entId)})`,ids:x.map(f=>f.id)}))}
   return out}
 
 /* --- Listes Devis / Factures : cases à cocher, actions par ligne, barre d'actions groupées --- */
@@ -3924,7 +3924,7 @@ renderEnt=function(){const surFa=V.tab==="fact";if(surFa)V.tab="id";_renderEntFa
     nav.querySelector("[data-tfa]").onclick=()=>{V.tab="fact";renderEnt()};
     if(!surFa)return;nav.querySelectorAll("[data-t]").forEach(b=>{b.classList.remove("on");b.setAttribute("aria-selected","false")});
     const pn=document.getElementById("pn");rxPanelFa(e,pn,F,D)}catch(z){console.warn(z)}};
-function rxPanelFa(e,pn,F,D){const adm=S.role==="admin",ht=f=>rxTot(rxO(f).l,rxO(f).tva).ht,ttc=f=>rxTot(rxO(f).l,rxO(f).tva).ttc,ok=F.filter(f=>f.b==="emise"||f.b==="payee"),du=F.filter(f=>f.b==="emise");
+function rxPanelFa(e,pn,F,D){const adm=S.role==="admin",ht=f=>rxTot(rxO(f).l,rxO(f).tva).ht,ttc=f=>rxTot(rxO(f).l,rxO(f).tva).ttc,ok=F.filter(f=>f.b==="emise"||f.b==="payee"),du=F.filter(f=>f.b==="emise"&&faEtat(f)!=="annulee");
   const L=F.map(f=>({f,k:"Facture"})).concat(D.map(f=>({f,k:"Devis"}))).sort((a,b)=>String(b.f.date).localeCompare(String(a.f.date)));
   pn.innerHTML=`<div class="rxk"><div class="card"><span class="hint">Total facturé (HT, depuis le début)</span><b style="color:var(--ok)">${eur(ok.reduce((a,f)=>a+ht(f),0))}</b><span class="hint">${ok.length} facture(s)</span></div><div class="card"><span class="hint">Reste à payer</span><b style="color:${du.length?"var(--bad)":"inherit"}">${eur(du.reduce((a,f)=>a+ttc(f),0))}</b><span class="hint">${du.length} facture(s) émise(s) non payée(s)</span></div><div class="card"><span class="hint">Devis en attente</span><b>${D.filter(d=>d.b==="envoye").length}</b><span class="hint">${D.filter(d=>d.b==="accepte").length} accepté(s)</span></div></div>
    ${adm?`<div style="display:flex;gap:8px;justify-content:flex-end;margin:10px 0"><button class="btn" id="pfa_d">+ Nouveau devis</button><button class="btn pri" id="pfa_f">+ Nouvelle facture</button></div>`:""}
@@ -3933,6 +3933,95 @@ function rxPanelFa(e,pn,F,D){const adm=S.role==="admin",ht=f=>rxTot(rxO(f).l,rxO
   pn.querySelectorAll("[data-pfa]").forEach(tr=>tr.onclick=ev=>{const f=S.fic.find(x=>x.id===tr.dataset.pfa);if(!f)return;const b=ev.target.closest("[data-pa]");
     if(b){ev.stopPropagation();const a=b.dataset.pa;if(a==="ap")rxApercu(f);else if(a==="dl")rxTelecharge(f).catch(z=>toast(z.message));else rxSupprime([f]).then(x=>{if(x)renderEnt()}).catch(z=>toast(z.message));return}
     if(!adm)return rxApercu(f);if(f.type==="fact")factForm(f);else devisForm(f)})}
+</script>
+<script>
+/* ============ RUNIXO CONTRÔLE : devis → facture, facture → avoir ============ */
+const rxEstAvoir=f=>!!(f&&f.type==="fact"&&rxO(f).avoir);
+const rxAnnuleeParAvoir=f=>!!(f&&f.type==="fact"&&rxO(f).annule&&S.fic.some(a=>a.id===rxO(f).annule));
+const _faEtatAv=faEtat;faEtat=function(f){return rxEstAvoir(f)?"avoir":rxAnnuleeParAvoir(f)?"annulee":_faEtatAv.apply(this,arguments)};
+function rxNumAvoir(){const y=String(today()).slice(0,4),re=new RegExp("^AV-"+y+"-(\\d+)$");const n=rxDocs("fact").map(f=>{const m=String(f.a||"").match(re);return m?Number(m[1]):0}).reduce((a,b)=>Math.max(a,b),0);return `AV-${y}-${String(n+1).padStart(3,"0")}`}
+const rxFactDuDevis=d=>rxDocs("fact").filter(f=>!rxEstAvoir(f)&&f.b!=="annulee"&&rxO(f).devis===d.id);
+const rxAvoirsDe=f=>rxDocs("fact").filter(a=>rxO(a).avoir===f.id);
+const rxHT=f=>rxTot(rxO(f).l,rxO(f).tva).ht;
+
+/* --- Devis → facture --- */
+const _devisFormAv=devisForm;
+devisForm=function(src){_devisFormAv.apply(this,arguments);try{const ex=src&&src.id?S.fic.find(x=>x.id===src.id):null;if(!ex||S.role!=="admin")return;const ov=[...document.querySelectorAll(".ov")].pop();if(!ov)return;
+  const F=rxFactDuDevis(ex),fait=F.reduce((a,f)=>a+rxHT(f),0),reste=Math.round((rxHT(ex)-fait)*100)/100,ft=ov.querySelector("footer");
+  if(F.length)ov.querySelector(".bd").insertAdjacentHTML("afterbegin",`<div class="card" style="padding:8px 12px;margin-bottom:8px;border-left:4px solid var(--ok)">💶 Facturé : ${F.map(f=>`<b>n° ${esc(f.a)}</b> (${eur(rxHT(f))} HT)`).join(", ")}${reste>0.009?` · <span style="color:#9A3412">reste à facturer : <b>${eur(reste)} HT</b></span>`:" · <b>entièrement facturé</b>"}</div>`);
+  ft.insertAdjacentHTML("afterbegin",`<button class="btn" id="dv_tf" style="margin-right:auto;${F.length&&reste<=0.009?"opacity:.55":""}">💶 Transformer en facture</button>`);
+  ov.querySelector("#dv_tf").onclick=async()=>{if(F.length&&!confirm(reste>0.009?`Ce devis est déjà facturé en partie (n° ${F.map(f=>f.a).join(", ")}).\nReste à facturer : ${eur(reste)} HT.\n\nFaire une facture complémentaire ?`:`⚠️ Ce devis est déjà entièrement facturé (n° ${F.map(f=>f.a).join(", ")}).\n\nFaire quand même une nouvelle facture ?`))return;
+    const o=rxO(ex);try{if(ex.b!=="accepte"){const r=await api("saveFiche",{fic:{...ex,b:"accepte"}});const i=S.fic.findIndex(x=>x.id===r.fic.id);if(i>=0)S.fic[i]=r.fic}}catch(z){toast(z.message);return}
+    ov.remove();factForm({entId:ex.entId,l:(o.l||[]).map(x=>({...x})),tva:o.tva,objet:o.objet,devis:ex.id});
+    if(F.length&&reste>0.009){const f2=[...document.querySelectorAll(".ov")].pop();f2&&f2.querySelector(".bd").insertAdjacentHTML("afterbegin",`<div class="hint" style="color:#9A3412">Facture complémentaire : reste à facturer sur ce devis ${eur(reste)} HT. Ajuste les quantités avant d’enregistrer.</div>`)}}}catch(z){console.warn(z)}};
+
+/* --- Facture → avoir --- */
+function rxAvoirForm(f){const o=rxO(f),e=S.ents.find(x=>x.id===f.entId)||{},deja=rxAvoirsDe(f),dejaHT=-deja.reduce((a,x)=>a+rxHT(x),0);
+  const L=(o.l||[]).filter(x=>Number(x.pu)>0).map(x=>({...x,c:Number(x.q)||0}));
+  const m=modal(`↩️ Avoir sur la facture ${esc(f.a)}`,"#6B21A8",`
+   <div class="hint">${esc(e.nom||"")} · facture du ${fr(f.date)} · ${eur(rxTot(o.l,o.tva).ttc)} TTC${deja.length?` · <span style="color:var(--bad)">avoir(s) déjà fait(s) : ${deja.map(a=>esc(a.a)).join(", ")} (${eur(dejaHT)} HT)</span>`:""}</div>
+   <div style="display:flex;gap:16px;margin:8px 0"><label><input type="radio" name="av_t" value="tot" checked> Avoir total (annule la facture)</label><label><input type="radio" name="av_t" value="par"> Avoir partiel</label></div>
+   <div id="av_l"></div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="width:170px">Date de l’avoir<input type="date" id="av_d" value="${today()}"></label><label class="f" style="flex:1;min-width:240px">Motif<input id="av_m" placeholder="ex. erreur de tarif, contrôle non réalisé…"></label></div>
+   <label class="f" style="width:200px">N° de l’avoir<input id="av_n" value="${rxNumAvoir()}"></label><div class="err" id="av_x"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="av_go" style="background:#6B21A8;border-color:#6B21A8">↩️ Créer l’avoir</button>`);
+  m.ov.querySelector(".modal").style.maxWidth="900px";m.ov.querySelector("[data-x2]").onclick=m.close;
+  const typ=()=>m.ov.querySelector("[name=av_t]:checked").value;
+  const draw=()=>{const par=typ()==="par";const ht=L.reduce((a,x)=>a+(par?x.c:Number(x.q))*Number(x.pu),0),tv=Math.round(ht*Number(o.tva||0))/100;
+    m.q("#av_l").innerHTML=`<table class="rxt" style="width:100%"><tr><th>Désignation</th><th style="width:90px">Qté facturée</th><th style="width:110px">Qté à rembourser</th><th style="width:90px;text-align:right">PU HT</th><th style="width:110px;text-align:right">Avoir HT</th></tr>${L.map((x,i)=>`<tr><td>${esc(x.lib)}</td><td style="text-align:center">${esc(x.q)}</td><td>${par?`<input type="number" min="0" max="${esc(x.q)}" step="any" data-avq="${i}" value="${esc(x.c)}" style="width:80px">`:esc(x.q)}</td><td style="text-align:right">${eur(x.pu)}</td><td style="text-align:right;color:var(--bad)">${eur(-(par?x.c:Number(x.q))*Number(x.pu))}</td></tr>`).join("")}</table>
+     <div style="text-align:right;line-height:1.7;margin-top:6px">Avoir HT : <b style="color:var(--bad)">${eur(-ht)}</b> · TVA ${o.tva} % : ${eur(-tv)} · <span style="font-size:17px">Avoir TTC : <b style="color:var(--bad)">${eur(-(ht+tv))}</b></span></div>`;
+    m.ov.querySelectorAll("[data-avq]").forEach(inp=>inp.onchange=()=>{const x=L[inp.dataset.avq];x.c=Math.max(0,Math.min(Number(x.q)||0,Number(inp.value)||0));draw()})};
+  m.ov.querySelectorAll("[name=av_t]").forEach(r=>r.onchange=draw);draw();
+  m.q("#av_go").onclick=async()=>{const par=typ()==="par",num=m.q("#av_n").value.trim(),mot=m.q("#av_m").value.trim(),d=m.q("#av_d").value||today();
+    const lignes=L.map(x=>({lib:"Avoir – "+x.lib,q:par?x.c:Number(x.q),pu:-Number(x.pu)})).filter(x=>x.q>0);
+    if(!num){m.q("#av_x").textContent="Indique le numéro de l’avoir.";return}if(!lignes.length){m.q("#av_x").textContent="Indique au moins une quantité à rembourser.";return}
+    const oa={l:lignes,tva:o.tva,objet:`Avoir sur la facture n° ${f.a} du ${fr(f.date)}${mot?" – "+mot:""}`,avoir:f.id,devis:"",qonto:"",note:mot};
+    const b=m.q("#av_go");b.disabled=true;
+    try{const r=await api("saveFiche",{fic:{type:"fact",entId:f.entId,date:d,a:num,b:"a_emettre",c:String(rxTot(lignes,o.tva).ttc),e:JSON.stringify(oa),echeance:d}});S.fic.push(r.fic);
+      if(!par){const of=rxO(f);of.avoirs=(of.avoirs||[]).concat(r.fic.id);of.annule=r.fic.id;const r2=await api("saveFiche",{fic:{...f,e:JSON.stringify(of)}});const i=S.fic.findIndex(x=>x.id===r2.fic.id);if(i>=0)S.fic[i]=r2.fic}
+      setTimeout(saveCache,0);m.close();document.querySelectorAll(".ov").forEach(x=>x.remove());toast(`Avoir ${num} créé${par?"":" – facture "+f.a+" annulée"}`);render()}
+    catch(z){m.q("#av_x").textContent=z.message;b.disabled=false}}}
+
+/* --- Fiche facture / avoir : boutons et liens --- */
+const _factFormAv=factForm;
+factForm=function(src){_factFormAv.apply(this,arguments);try{const ex=src&&src.id?S.fic.find(x=>x.id===src.id):null;if(!ex)return;const ov=[...document.querySelectorAll(".ov")].pop();if(!ov)return;const o=rxO(ex),bd=ov.querySelector(".bd"),ft=ov.querySelector("footer");
+  if(rxEstAvoir(ex)){const orig=S.fic.find(x=>x.id===o.avoir);ov.querySelector("header h2").textContent="↩️ Avoir "+ex.a;
+    bd.insertAdjacentHTML("afterbegin",`<div class="card" style="padding:8px 12px;margin-bottom:8px;border-left:4px solid #6B21A8">↩️ Avoir sur la facture ${orig?`<button class="btn sm" id="av_or">n° ${esc(orig.a)} du ${fr(orig.date)}</button>`:"d’origine (supprimée)"}</div>`);
+    if(orig)ov.querySelector("#av_or").onclick=()=>{ov.remove();factForm(orig)};
+    const acq=ov.querySelector("#ff_acq");if(acq)acq.remove();const env=ov.querySelector("#ff_env");if(env)env.textContent="✉️ Envoyer l’avoir au client";return}
+  const A=rxAvoirsDe(ex);
+  if(A.length){bd.insertAdjacentHTML("afterbegin",`<div class="card" style="padding:8px 12px;margin-bottom:8px;border-left:4px solid #6B21A8">↩️ Avoir(s) sur cette facture : ${A.map(a=>`<button class="btn sm" data-avo="${a.id}">${esc(a.a)} (${eur(rxTot(rxO(a).l,rxO(a).tva).ttc)} TTC)</button>`).join(" ")}</div>`);
+    bd.querySelectorAll("[data-avo]").forEach(b=>b.onclick=()=>{ov.remove();factForm(S.fic.find(x=>x.id===b.dataset.avo))})}
+  if(S.role==="admin"&&faEtat(ex)!=="annulee"){ft.insertAdjacentHTML("afterbegin",`<button class="btn" id="ff_av" style="color:#6B21A8;border-color:#6B21A8">↩️ Faire un avoir</button>`);ov.querySelector("#ff_av").onclick=()=>rxAvoirForm(ex)}}catch(z){console.warn(z)}};
+
+/* --- PDF : un avoir sort en « AVOIR », sans RIB --- */
+const _rxFactPdfAv=rxFactPdf;
+rxFactPdf=async function(f,acq){if(!rxEstAvoir(f))return _rxFactPdfAv.apply(this,arguments);
+  await need("autotable");const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4"}),o=rxO(f),e=S.ents.find(x=>x.id===f.entId)||{},t=rxTot(o.l,o.tva),W=210,NAV=[18,33,63],PU=[107,33,168],orig=S.fic.find(x=>x.id===o.avoir);
+  doc.setFillColor(...NAV);doc.rect(0,0,W,30,"F");doc.setFillColor(...PU);doc.rect(0,30,W,1.6,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("RUNIXO CONTRÔLE",14,14);
+  doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text("Vérifications périodiques – VGP, EPI antichute – Prévention (DUERP, registre de sécurité)",14,20);doc.text(`${RX_ORG.adr} · ${RX_ORG.tel} · ${RX_ORG.mail}`,14,25);
+  doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("AVOIR",W-14,13,{align:"right"});doc.setFontSize(11);doc.text("N° "+f.a,W-14,20,{align:"right"});doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Date : "+fr(f.date),W-14,25,{align:"right"});
+  doc.setTextColor(20,33,61);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("Client",120,42);doc.setFont("helvetica","normal");
+  const cl=[e.nom,e.adresse,[e.cp,e.ville].filter(Boolean).join(" "),e.siret?"SIRET "+e.siret:""].filter(Boolean);doc.setDrawColor(220);doc.roundedRect(116,37,80,8+cl.length*5,2,2);cl.forEach((l,i)=>doc.text(String(l),120,48+i*5));
+  doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(doc.splitTextToSize(orig?`Avoir sur la facture n° ${orig.a} du ${fr(orig.date)}`:(o.objet||"Avoir"),95),14,48);
+  if(o.note){doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(doc.splitTextToSize("Motif : "+o.note,95),14,56)}
+  doc.autoTable({startY:Math.max(66,50+cl.length*5),head:[["Désignation","Qté","PU HT","Total HT"]],body:o.l.map(x=>[x.lib,String(x.q),eur(x.pu),eur((Number(x.q)||0)*(Number(x.pu)||0))]),theme:"grid",styles:{fontSize:9,cellPadding:2.2,textColor:[20,33,61]},headStyles:{fillColor:PU,textColor:255},columnStyles:{1:{halign:"center",cellWidth:16},2:{halign:"right",cellWidth:26},3:{halign:"right",cellWidth:28}},margin:{left:14,right:14}});
+  let y=doc.lastAutoTable.finalY+6;doc.setFontSize(10);[["Total HT",eur(t.ht)],[`TVA ${o.tva} %`,eur(t.tv)],["Total avoir TTC",eur(t.ttc)]].forEach(([a,b],i)=>{doc.setFont("helvetica",i===2?"bold":"normal");doc.text(a,150,y+i*6,{align:"right"});doc.text(b,W-14,y+i*6,{align:"right"})});
+  y+=26;doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(doc.splitTextToSize("Montant à déduire de la facture d’origine ou à rembourser au client.",W-28),14,y);
+  doc.setFontSize(7.5);doc.setTextColor(120);doc.text(`${RX_ORG.nom} – ${RX_ORG.forme} – ${RX_ORG.adr} – ${RX_ORG.rcs} – TVA FR68 988 171 740`,W/2,290,{align:"center"});
+  const name=rxCourt(`Avoir_${f.a}_${e.nom||""}`,56)+".pdf";return{blob:doc.output("blob"),b64:doc.output("datauristring").split(",")[1],name}};
+const _rxNomFichierAv=rxNomFichier;rxNomFichier=function(f){return rxEstAvoir(f)?rxCourt(`Avoir_${f.a}_${(S.ents.find(x=>x.id===f.entId)||{}).nom||""}`,56)+".pdf":_rxNomFichierAv.apply(this,arguments)};
+
+/* --- Liste des factures : avoirs en violet/rouge + filtre « Avoirs » --- */
+function rxMarqueAvoirs(M){const bar=M.querySelector(".rxbar");if(bar&&!bar.querySelector("[data-faav]")){const lst=[...bar.querySelectorAll("[data-faf]")].pop();
+    (lst||bar).insertAdjacentHTML(lst?"afterend":"beforeend",`<button class="chip" data-faav style="${RXFA==="avoir"?"border-style:solid;border-color:#E87722;font-weight:700":""}">↩️ Avoirs</button>`);bar.querySelector("[data-faav]").onclick=()=>{RXFA="avoir";render()}}
+  M.querySelectorAll("tr[data-fa]").forEach(tr=>{const f=S.fic.find(x=>x.id===tr.dataset.fa);if(!rxEstAvoir(f))return;
+    const p=tr.querySelector(".pill");if(p&&!p.dataset.av){p.dataset.av="1";p.textContent=f.b==="a_emettre"?"↩️ Avoir à émettre":"↩️ Avoir";p.style.color="#6B21A8";p.style.background="#F3E8FF"}
+    return});
+  M.querySelectorAll("tr[data-fa]").forEach(tr=>{const f=S.fic.find(x=>x.id===tr.dataset.fa);if(rxAnnuleeParAvoir(f)){const p=tr.querySelector(".pill");if(p&&!p.dataset.av){p.dataset.av="1";const a=S.fic.find(x=>x.id===rxO(f).annule);p.textContent="Annulée (avoir "+(a?a.a:"")+")";p.style.color="#6B7280";p.style.background="#EEF0F3"}}
+    if(!rxEstAvoir(f))return;const td=[...tr.children].reverse().find(c=>/€/.test(c.textContent)&&!c.querySelector("button"));if(td)td.style.color="var(--bad)"})}
+const _renderAv=render;
+render=function(){_renderAv.apply(this,arguments);try{if(S.role==="admin"&&V.view==="facts")rxMarqueAvoirs(document.getElementById("main"))}catch(z){console.warn(z)}};
 </script>
 </body>
 </html>
