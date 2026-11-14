@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-14-g";
+const APP_VER="2026-11-14-h";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -3385,16 +3385,29 @@ RXMODS.ents=M=>{const L=S.ents.slice().sort((a,b)=>a.nom.localeCompare(b.nom,"fr
   M.querySelector("#rxne").onclick=()=>entForm();draw()};
 
 /* ---------- 🏗️ Parc ---------- */
+const TYPES_ENG={chariot:["🏭","Chariot élévateur"],nacelle:["🧺","Nacelle / PEMP"],grue:["🏗️","Grue auxiliaire"],bras:["🚛","Bras de levage / ampliroll"],hayon:["🚚","Hayon élévateur"],engin:["🚜","Engin de chantier"],pont:["⛓️","Pont roulant / palan"],acc:["🪝","Accessoires de levage"],epi:["🦺","Kit EPI antichute"],autre:["🔧","Autre"]};
+function typeEng(x){const m=metaGet(x.id).ty;if(m&&TYPES_ENG[m])return m;if(x.rub==="epi")return"epi";
+  const t=(x.libelle+" "+(x.detail||"")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  if(/nacelle|pemp|genie|haulotte|jlg|skyjack|ciseau|elevatrice de personne/.test(t))return"nacelle";
+  if(/ampliroll|bras de levage|polybenne|multibenne/.test(t))return"bras";
+  if(/grue|hmf|palfinger|fassi|hiab|effer|atlas/.test(t))return"grue";
+  if(/hayon/.test(t))return"hayon";
+  if(/pont roulant|portique|palan|potence/.test(t))return"pont";
+  if(/chariot|fenwick|linde|toyota|nissan|manitou|cariste|frontal|retract|gerbeur|transpalette|kaup|still|jungheinrich|caterpillar dp|heli|hyster|yale/.test(t))return"chariot";
+  if(/pelle|chargeuse|tractopelle|mini.?pelle|dumper|bulldozer|niveleuse|compacteur|engin/.test(t))return"engin";
+  if(/elingue|manille|crochet|palonnier|accessoire|sangle de levage|chaine/.test(t))return"acc";
+  return"autre"}
 let RXP={q:"",f:"tous"};
-RXMODS.parc=M=>{const fe=(RXT.parc||{}).ent;const E=S.els.filter(x=>(x.rub==="lev"||x.rub==="epi")&&S.ents.some(e=>e.id===x.entId)&&(!fe||x.entId===fe));
+RXMODS.parc=M=>{const fe=(RXT.parc||{}).ent,ft=(RXT.parc||{}).ty;const E0=S.els.filter(x=>(x.rub==="lev"||x.rub==="epi")&&S.ents.some(e=>e.id===x.entId)&&(!fe||x.entId===fe)),E=E0.filter(x=>!ft||typeEng(x)===ft);
   const F={tous:["Tout",()=>1],lev:["🏗️ VGP",x=>x.rub==="lev"],epi:["🦺 EPI",x=>x.rub==="epi"],retard:["En retard",x=>statut(x)==="retard"],mois:["À faire sous 30 j",x=>statut(x)==="bientot"],nc:["Contre-visite",x=>statut(x)==="nc"]};
   M.innerHTML=rxHead("🏗️ Parc",`${E.filter(x=>x.rub==="lev").length} engin(s) et ${E.filter(x=>x.rub==="epi").length} kit(s) EPI chez vos clients`)+
-   `<div class="rxbar"><input id="rxq" placeholder="N° de série, immatriculation, marque, client…" value="${esc(RXP.q)}" style="flex:1;min-width:240px">${Object.entries(F).map(([k,[l]])=>`<button class="chip" data-pf="${k}" style="${RXP.f===k?"border-style:solid;border-color:#E87722;font-weight:700":""}">${l} (${E.filter(F[k][1]).length})</button>`).join("")}</div><div class="card" style="padding:4px 8px;overflow-x:auto"><table class="rxt" id="rxtab"></table></div>`;
+   `<div class="rxbar"><select id="rxty" aria-label="Filtrer par type d’engin" style="min-width:200px;font-weight:600"><option value="">🚜 Tous les types (${E0.length})</option>${Object.entries(TYPES_ENG).filter(([k])=>E0.some(x=>typeEng(x)===k)).map(([k,[i,l]])=>`<option value="${k}" ${ft===k?"selected":""}>${i} ${l} (${E0.filter(x=>typeEng(x)===k).length})</option>`).join("")}</select><input id="rxq" placeholder="N° de série, immatriculation, marque, client…" value="${esc(RXP.q)}" style="flex:1;min-width:240px">${Object.entries(F).map(([k,[l]])=>`<button class="chip" data-pf="${k}" style="${RXP.f===k?"border-style:solid;border-color:#E87722;font-weight:700":""}">${l} (${E.filter(F[k][1]).length})</button>`).join("")}</div><div class="card" style="padding:4px 8px;overflow-x:auto"><table class="rxt" id="rxtab"></table></div>`;
   const draw=()=>{const f=RXP.q.toLowerCase();const R=E.filter(F[RXP.f][1]).filter(x=>!f||(x.libelle+" "+(x.detail||"")+" "+(x.ref||"")+" "+rxNom(x.entId)).toLowerCase().includes(f)).sort((a,b)=>String(a.prochain||"9").localeCompare(String(b.prochain||"9")));
-    M.querySelector("#rxtab").innerHTML=`<tr><th>Client</th><th>Équipement</th><th>Détail (marque, n°, immat.)</th><th>Dernière</th><th>Prochaine</th><th>État</th><th></th></tr>`+(R.map(x=>{const s=statut(x),j=x.prochain?jours(x.prochain):null;return `<tr class="cl" data-ent="${x.entId}" data-go="${x.entId}|${x.rub}"><td><b>${esc(rxNom(x.entId))}</b></td><td>${x.rub==="lev"?"🏗️":"🦺"} ${esc(x.libelle)}</td><td>${esc(x.detail||"")}<div class="hint">${esc(x.ref||"")}</div></td><td>${x.dernier?fr(x.dernier):"—"}</td><td><b>${x.prochain?fr(x.prochain):"—"}</b></td>
-      <td><span class="pill p-${s}">${s==="nc"?"Contre-visite":s==="retard"?"Retard "+(-j)+" j":s==="bientot"?"Dans "+j+" j":ST[s]}</span></td><td><button class="btn sm" data-dvx="${x.id}" title="Faire un devis pour cet équipement">📝 Devis</button></td></tr>`}).join("")||`<tr><td colspan="7" class="hint">Rien à afficher.</td></tr>`);
+    M.querySelector("#rxtab").innerHTML=`<tr><th>Client</th><th>Type</th><th>Équipement</th><th>Détail (marque, n°, immat.)</th><th>Dernière</th><th>Prochaine</th><th>État</th><th></th></tr>`+(R.map(x=>{const s=statut(x),j=x.prochain?jours(x.prochain):null;return `<tr class="cl" data-ent="${x.entId}" data-go="${x.entId}|${x.rub}"><td><b>${esc(rxNom(x.entId))}</b></td><td style="white-space:nowrap">${TYPES_ENG[typeEng(x)][0]} ${TYPES_ENG[typeEng(x)][1]}</td><td>${esc(x.libelle)}</td><td>${esc(x.detail||"")}<div class="hint">${esc(x.ref||"")}</div></td><td>${x.dernier?fr(x.dernier):"—"}</td><td><b>${x.prochain?fr(x.prochain):"—"}</b></td>
+      <td><span class="pill p-${s}">${s==="nc"?"Contre-visite":s==="retard"?"Retard "+(-j)+" j":s==="bientot"?"Dans "+j+" j":ST[s]}</span></td><td><button class="btn sm" data-dvx="${x.id}" title="Faire un devis pour cet équipement">📝 Devis</button></td></tr>`}).join("")||`<tr><td colspan="8" class="hint">Rien à afficher.</td></tr>`);
     M.querySelectorAll("[data-go]").forEach(r=>r.onclick=ev=>{if(ev.target.closest("[data-dvx]"))return;const [id,t]=r.dataset.go.split("|");goEnt(id,t)});
     M.querySelectorAll("[data-dvx]").forEach(b=>b.onclick=()=>{const x=S.els.find(z=>z.id===b.dataset.dvx);devisForm({entId:x.entId,els:[x.id]})})};
+  M.querySelector("#rxty").onchange=ev=>{(RXT.parc=RXT.parc||{ent:"",col:-1,dir:1,grp:false}).ty=ev.target.value;rxTSave();render()};
   M.querySelector("#rxq").oninput=ev=>{RXP.q=ev.target.value;draw()};M.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{RXP.f=b.dataset.pf;render()});draw()};
 
 /* ---------- 📒 Registres / 📋 Documents uniques ---------- */
@@ -3621,6 +3634,13 @@ function rxEnhance(M){const tab=M.querySelector("table.rxt");if(!tab||tab.datase
   appliquer()}
 const _rxRenderT=render;
 render=function(){_rxRenderT.apply(this,arguments);try{if(S.role==="admin"&&RXMODS[V.view])rxEnhance(document.getElementById("main"))}catch(z){console.warn(z)}};
+</script>
+<script>
+/* ---------- type d'engin modifiable dans « Modifier » ---------- */
+const _elFormTy=elForm;
+elForm=function(e,x,renew){const r=_elFormTy.apply(this,arguments);try{if(S.role!=="admin"||!x||!x.id||(x.rub!=="lev"&&x.rub!=="epi"))return r;const ov=[...document.querySelectorAll(".ov")].pop(),c=ov&&ov.querySelector("#f_c");if(!c)return r;
+  const cur=metaGet(x.id).ty||"";c.insertAdjacentHTML("beforebegin",`<label class="f">Type d’engin (pour le filtre du Parc)<select id="f_ty"><option value="">Automatique : ${TYPES_ENG[typeEng({...x,id:"_"})][1]}</option>${Object.entries(TYPES_ENG).map(([k,[i,l]])=>`<option value="${k}" ${cur===k?"selected":""}>${i} ${l}</option>`).join("")}</select></label>`);
+  ov.querySelector("#f_s").addEventListener("click",()=>{const v=ov.querySelector("#f_ty").value;if(v!==cur)metaSet(x.id,{ty:v})},true)}catch(z){console.warn(z)}return r};
 </script>
 </body>
 </html>
