@@ -4365,7 +4365,7 @@ function rxBonDepuisDevis(d){const od=rxO(d),bo=od.bon&&S.fic.find(x=>x.id===od.
   ov.querySelector("#dv_ens").onclick=()=>{ov.remove();rxEnsDepuisDevis(ex)};ov.querySelector("#dv_bon").onclick=()=>{ov.remove();rxBonDepuisDevis(ex)}}catch(z){console.warn(z)}}}
 /* à l'enregistrement d'un NOUVEAU devis de contrôle EPI : « est-ce pour un ensemble ? » */
 {const _api2=api;api=async function(a,p){const neuf=a==="saveFiche"&&p&&p.fic&&p.fic.type==="devis"&&!p.fic.id;const r=await _api2.apply(this,arguments);
-  try{if(neuf&&r&&r.fic&&rxDevisEPI(r.fic))setTimeout(()=>{const d=S.fic.find(x=>x.id===r.fic.id)||r.fic,m=modal("📦 Devis "+esc(d.a)+" – contrôle EPI","#12213F",`<p style="margin:0">Ce devis est-il pour un <b>ensemble d’EPI</b> (une équipe, un lot confié par le client) ?</p><p class="hint" style="margin:0">Tu pourras ensuite préparer le bon de récupération.</p>`,`<button class="btn" data-x2>Non</button><button class="btn pri" id="dq_ok">Oui, créer l’ensemble</button>`);m.ov.querySelector("[data-x2]").onclick=m.close;m.q("#dq_ok").onclick=()=>{m.close();rxEnsDepuisDevis(d)}},600)}catch(z){}return r}}
+  try{if(neuf&&r&&r.fic&&rxDevisEPI(r.fic)&&!(Number(rxO(r.fic).ensPrevu)||(rxO(r.fic).ensNoms||[]).length))setTimeout(()=>{const d=S.fic.find(x=>x.id===r.fic.id)||r.fic,m=modal("📦 Devis "+esc(d.a)+" – contrôle EPI","#12213F",`<p style="margin:0">Ce devis est-il pour un <b>ensemble d’EPI</b> (une équipe, un lot confié par le client) ?</p><p class="hint" style="margin:0">Tu pourras ensuite préparer le bon de récupération.</p>`,`<button class="btn" data-x2>Non</button><button class="btn pri" id="dq_ok">Oui, créer l’ensemble</button>`);m.ov.querySelector("[data-x2]").onclick=m.close;m.q("#dq_ok").onclick=()=>{m.close();rxEnsDepuisDevis(d)}},600)}catch(z){}return r}}
 
 /* ---------- 9. Page 🦺 EPI : « Par salarié » · « Par ensemble » · « Bons » ---------- */
 let RXEPI_MODE="sal";
@@ -4433,6 +4433,74 @@ const rxEpiOccupe=()=>!!document.querySelector(".ov,#ep,#vg");
     const ld=box.querySelector("[data-ldel]");if(ld)ld.onclick=()=>{const ids=[...t.querySelectorAll("[data-lc]:checked")].map(c=>Number(c.dataset.lc));if(!ids.length)return toast("Coche d’abord les lignes à retirer");o.l=o.l.filter((x,i)=>!ids.includes(i));lignesEditeur(box,o);toast(ids.length+" ligne(s) retirée(s)")};
     const lv=box.querySelector("[data-lvide]");if(lv)lv.onclick=()=>{if(!o.l.length)return;if(!confirm(`Retirer les ${o.l.length} lignes ?`))return;o.l.length=0;lignesEditeur(box,o);toast("Toutes les lignes ont été retirées")}};
   pare();if(!box.dataset.rxlo){box.dataset.rxlo="1";new MutationObserver(()=>pare()).observe(box,{childList:true})}}}
+</script>
+<script>
+/* ===== rxgarde : ne pas quitter une saisie non enregistrée · abandonner un devis depuis l'envoi · EPI plusieurs salariés ===== */
+/* ---------- 1. Garde-fou ---------- */
+function rxEtat(ov){const md=ov.querySelector(".modal");if(!md)return"";
+  const v=[...md.querySelectorAll("input,select,textarea")].filter(x=>!x.matches("[data-lc],[data-lall]")&&x.type!=="checkbox"&&x.type!=="file").map(x=>x.value);
+  const c=[...md.querySelectorAll("canvas")].map(x=>{try{return x.toDataURL().length}catch(z){return 0}});return JSON.stringify([v,c])}
+const rxSale=ov=>ov&&ov.isConnected&&ov._garde&&!ov._libre&&ov._garde.ref!==undefined&&rxEtat(ov)!==ov._garde.ref;
+function rxGarde(ov,saveSel,quoi){if(!ov||ov._garde)return;ov._garde={saveSel,quoi};setTimeout(()=>{if(ov.isConnected)ov._garde.ref=rxEtat(ov)},500);
+  ov.addEventListener("click",ev=>{const cible=ev.target===ov?ov:ev.target.closest("[data-x],[data-x2],#dv_ens,#dv_bon");if(!cible||!rxSale(ov))return;
+    if(cible!==ov&&!ov.querySelector(".modal").contains(cible))return;ev.stopImmediatePropagation();ev.preventDefault();rxDemande(ov,cible)},true)}
+function rxDemande(ov,cible){const g=ov._garde,m=modal("⚠️ "+g.quoi,"#B42318",`<p style="margin:0">Tu as fait des changements qui ne sont <b>pas encore enregistrés</b>.</p><p class="hint" style="margin:0">Si tu quittes sans enregistrer, ils seront perdus.</p>`,
+   `<button class="btn danger ghost" id="gd_q" style="margin-right:auto">Quitter sans enregistrer</button><button class="btn" data-x2>Rester</button><button class="btn pri" id="gd_s">💾 Enregistrer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.q("#gd_q").onclick=()=>{m.close();ov._libre=true;cible===ov?ov.click():cible.click()};
+  m.q("#gd_s").onclick=()=>{m.close();const b=ov.querySelector(g.saveSel);if(b)b.click();else toast("Bouton Enregistrer introuvable")}}
+document.addEventListener("keydown",ev=>{if(ev.key!=="Escape")return;const L=[...document.querySelectorAll(".ov")],ov=L[L.length-1];if(!ov)return;
+  if(rxSale(ov)){ev.stopImmediatePropagation();ev.preventDefault();rxDemande(ov,ov.querySelector("[data-x]"));return}
+  if(L.some(rxSale)){ev.stopImmediatePropagation();ev.preventDefault();const x=ov.querySelector("[data-x]");if(x)x.click();else ov.remove()}},true);
+window.addEventListener("beforeunload",ev=>{if([...document.querySelectorAll(".ov")].some(rxSale)){ev.preventDefault();ev.returnValue=""}});
+const rxDernierOv=()=>[...document.querySelectorAll(".ov")].pop();
+[["devisForm","#d_ok","Ce devis n’est pas enregistré"],["factForm","#f_ok","Cette facture n’est pas enregistrée"],["rxAvoirForm","#av_go","Cet avoir n’est pas enregistré"],["rxBonForm","#bo_ok","Ce bon n’est pas enregistré"],["rxEnsForm","#en_ok","Cet ensemble n’est pas enregistré"]].forEach(([fn,sel,quoi])=>{
+  const orig=window[fn];if(typeof orig!=="function")return;window[fn]=function(){const avant=rxDernierOv();const r=orig.apply(this,arguments);try{const ov=rxDernierOv();if(ov&&ov!==avant&&ov.querySelector(sel))rxGarde(ov,sel,quoi)}catch(z){console.warn(z)}return r}});
+try{devisForm=window.devisForm;factForm=window.factForm;rxAvoirForm=window.rxAvoirForm;rxBonForm=window.rxBonForm;rxEnsForm=window.rxEnsForm}catch(z){}
+
+/* ---------- 2. Fenêtre d'envoi : revenir au devis / abandonner le devis ---------- */
+{const _env=envoiDoc;envoiDoc=function(f,kind,relance){const avant=rxDernierOv();const r=_env.apply(this,arguments);
+  try{const ov=rxDernierOv();if(kind!=="devis"||!ov||ov===avant)return r;const ft=ov.querySelector("footer"),x2=ov.querySelector("[data-x2]");
+    if(x2){x2.textContent="↩ Revenir au devis";x2.onclick=()=>{ov.querySelector("[data-x]").click();devisForm(S.fic.find(x=>x.id===f.id)||f)}}
+    ft.insertAdjacentHTML("afterbegin",`<button class="btn danger ghost" id="m_ab" style="margin-right:auto">🗑 Abandonner ce devis</button>`);
+    ov.querySelector("#m_ab").onclick=async()=>{const d=S.fic.find(x=>x.id===f.id)||f,o=rxO(d);
+      const txt=o.env?`Le devis ${d.a} a déjà été envoyé au client le ${fr(o.env)}.\n\nLe supprimer quand même ?`:`Abandonner le devis ${d.a} ?\n\nIl ne sera pas envoyé et sera supprimé.`;if(!confirm(txt))return;
+      const b=ov.querySelector("#m_ab");b.disabled=true;b.textContent="Suppression…";
+      try{if(d.id)await api("delFiche",{id:d.id});S.fic=S.fic.filter(x=>x.id!==d.id);setTimeout(saveCache,0);ov.querySelector("[data-x]").click();toast("Devis "+d.a+" abandonné et supprimé");render()}
+      catch(z){b.disabled=false;b.textContent="🗑 Abandonner ce devis";toast(z.message)}}}catch(z){console.warn(z)}return r}}
+
+/* ---------- 3. Devis : « 👷 EPI – plusieurs salariés » ---------- */
+{const _le3=lignesEditeur;lignesEditeur=function(box,o){box.__o=o;return _le3.apply(this,arguments)}}
+const rxNomsTxt=t=>String(t||"").split("\n").map(s=>s.trim()).filter(Boolean);
+function rxEpiInfo(ov){const o=ov.querySelector("#d_l").__o,z=ov.querySelector("#dv_epiinfo");if(!z||!o)return;const n=Number(o.ensPrevu)||0,N=o.ensNoms||[];
+  z.innerHTML=n||N.length?`👷 <b>${Math.max(n,N.length)} salarié(s)</b> prévu(s)${N.length?" : "+esc(N.slice(0,6).join(", "))+(N.length>6?"…":""):""} – l’ensemble sera créé à l’enregistrement.`:""}
+function rxEpiSalaries(ov){const box=ov.querySelector("#d_l"),o=box&&box.__o;if(!o)return;const cat=rxCfg().cat||[];
+  const iE=cat.findIndex(c=>/EPI|antichute|harnais/i.test(c.l)),ligne=o.l.find(x=>x.__epi)||o.l.find(x=>/EPI|antichute|harnais/i.test(x.lib));
+  const m=modal("👷 Contrôle EPI – plusieurs salariés","#12213F",`<p class="hint" style="margin:0">Tape le nombre de salariés, ou leurs noms (un par ligne). La ligne de contrôle EPI est ajoutée au devis, et l’ensemble est créé avec ces noms quand tu enregistres le devis.</p>
+    <label class="f">Prestation<select id="es_c">${cat.map((c,i)=>`<option value="${i}" ${i===iE?"selected":""}>${esc(c.l)} – ${eur(c.p)}</option>`).join("")}<option value="-1" ${iE<0?"selected":""}>Autre (ligne libre)</option></select></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><label class="f" style="flex:2;min-width:220px">Libellé<input id="es_l"></label><label class="f" style="width:120px">PU HT<input id="es_p" type="number" step="0.01"></label><label class="f" style="width:150px">Nombre de salariés<input id="es_n" type="number" min="0" value="${esc(o.ensPrevu||(ligne?ligne.q:"")||"")}"></label></div>
+    <label class="f">Noms des salariés (facultatif, un par ligne)<textarea id="es_t" rows="7" placeholder="DUPONT Jean&#10;MARTIN Paul">${esc((o.ensNoms||[]).join("\n"))}</textarea></label><div class="err" id="es_x"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn pri" id="es_ok">Ajouter au devis</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  const pre=()=>{const i=Number(m.q("#es_c").value),c=cat[i];if(c){m.q("#es_l").value=c.l;m.q("#es_p").value=c.p}else if(!m.q("#es_l").value){m.q("#es_l").value="Vérification périodique EPI antichute (par salarié)";m.q("#es_p").value=0}};
+  if(ligne){m.q("#es_l").value=ligne.lib;m.q("#es_p").value=ligne.pu}else pre();m.q("#es_c").onchange=pre;
+  m.q("#es_t").oninput=()=>{const n=rxNomsTxt(m.q("#es_t").value).length;if(n>(Number(m.q("#es_n").value)||0))m.q("#es_n").value=n};
+  m.q("#es_ok").onclick=()=>{const noms=rxNomsTxt(m.q("#es_t").value),n=Math.max(Number(m.q("#es_n").value)||0,noms.length),lib=m.q("#es_l").value.trim();
+    if(!n){m.q("#es_x").textContent="Indique le nombre de salariés ou leurs noms.";return}if(!lib){m.q("#es_x").textContent="Indique le libellé.";return}
+    const pu=Number(m.q("#es_p").value)||0;if(ligne){ligne.lib=lib;ligne.q=n;ligne.pu=pu;ligne.__epi=1}else o.l.push({lib,q:n,pu,__epi:1});
+    o.ensNoms=noms;o.ensPrevu=n;lignesEditeur(box,o);rxEpiInfo(ov);m.close();toast(`${n} salarié(s) ajouté(s) au devis`)}}
+{const _dF3=devisForm;devisForm=function(src){const avant=rxDernierOv();const r=_dF3.apply(this,arguments);
+  try{const ov=rxDernierOv();if(!ov||ov===avant||!ov.querySelector("#d_due"))return r;
+    ov.querySelector("#d_due").insertAdjacentHTML("afterend",`<button class="btn sm" id="dv_epi" style="border-color:#E87722">👷 EPI – plusieurs salariés</button>`);
+    ov.querySelector("#d_due").parentElement.insertAdjacentHTML("afterend",`<div class="hint" id="dv_epiinfo" style="margin-top:-4px"></div>`);
+    ov.querySelector("#dv_epi").onclick=()=>rxEpiSalaries(ov);rxEpiInfo(ov)}catch(z){console.warn(z)}return r}}
+/* à l'enregistrement : l'ensemble se crée avec les noms saisis */
+function rxEnsAuto(d){const od=rxO(d);if(od.ens||!(Number(od.ensPrevu)||(od.ensNoms||[]).length))return;
+  rxEnsForm({entId:d.entId,nom:(od.objet||"Ensemble EPI").slice(0,60),prevu:od.ensPrevu||(od.ensNoms||[]).length,noms:od.ensNoms||[],devis:d.id,date:today()},async f=>{const cur=S.fic.find(x=>x.id===d.id)||d,o2=rxO(cur);o2.ens=f.id;await rxSaveFic({...cur,e:JSON.stringify(o2)});rxEnsVue(f)})}
+{const _api3=api;api=async function(a,p){const r=await _api3.apply(this,arguments);
+  try{if(a==="saveFiche"&&p&&p.fic&&p.fic.type==="devis"&&r&&r.fic){const id=r.fic.id,od=rxO(r.fic);if(!od.ens&&(Number(od.ensPrevu)||(od.ensNoms||[]).length)){let n=0;const t=setInterval(()=>{n++;if(n>400){clearInterval(t);return}
+      if(document.querySelector(".ov"))return;clearInterval(t);const d=S.fic.find(x=>x.id===id);if(d)rxEnsAuto(d)},500)}}}catch(z){}return r}}
+
 </script>
 </body>
 </html>
