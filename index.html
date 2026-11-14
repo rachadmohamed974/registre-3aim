@@ -4023,5 +4023,38 @@ function rxMarqueAvoirs(M){const bar=M.querySelector(".rxbar");if(bar&&!bar.quer
 const _renderAv=render;
 render=function(){_renderAv.apply(this,arguments);try{if(S.role==="admin"&&V.view==="facts")rxMarqueAvoirs(document.getElementById("main"))}catch(z){console.warn(z)}};
 </script>
+<script>
+/* ============ RUNIXO CONTRÔLE : le menu passe dans la barre latérale (repliable avec ✕) ============ */
+(function(){
+  const css=document.createElement("style");css.textContent=`
+  body.rx-menu-lat #rxnav{display:none!important}
+  #sbar .sb-menu{display:flex;flex-direction:column;padding:6px 0;border-bottom:1px solid var(--line)}
+  #sbar .sb-menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:9px 16px;font:inherit;font-weight:600;font-size:15px;color:var(--ink2);cursor:pointer}
+  #sbar .sb-menu button:hover,#sbar .sb-menu button:focus-visible{background:var(--bg);color:var(--ink)}
+  #sbar .sb-menu button.on{background:#FFF4E5;color:var(--ink);box-shadow:inset 4px 0 #E87722}
+  #sbar .sb-menu .ic{width:22px;text-align:center}
+  #sbar .sb-fd{font-size:11.5px;font-weight:700;color:#12213F;padding:10px 14px 2px}`;document.head.appendChild(css);
+  const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  function trouveFD(q){const f=norm(q).trim();if(!f)return[];return S.fic.filter(x=>(x.type==="fact"||x.type==="devis")&&norm([x.a,rxO(x).objet,rxNom(x.entId)].join(" ")).includes(f)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,30)}
+  function ajouteFD(L,q){if(!L||L.querySelector(".sb-fd"))return;const R=trouveFD(q);if(!R.length)return;
+    L.insertAdjacentHTML("afterbegin",`<div class="sb-fd">💶 Devis et factures (${R.length})</div>`+R.map(x=>`<button class="sb-i" data-sbfd="${x.id}"><span aria-hidden="true">${x.type==="devis"?"📝":rxO(x).avoir?"↩️":"💶"}</span><div style="flex:1;min-width:0"><div class="t">${x.type==="devis"?"Devis":rxO(x).avoir?"Avoir":"Facture"} ${esc(x.a)}</div><div class="k">${esc(rxNom(x.entId))} · ${fr(x.date)} · ${eur(rxTot(rxO(x).l,rxO(x).tva).ttc)} TTC</div></div></button>`).join("")+`<div class="sb-fd">🏢 Clients et documents</div>`);
+    L.querySelectorAll("[data-sbfd]").forEach(b=>b.onclick=()=>{const x=S.fic.find(z=>z.id===b.dataset.sbfd);if(!x)return;V={view:x.type==="devis"?"devis":"facts"};render();x.type==="devis"?devisForm(x):factForm(x)})}
+  function transforme(){if(S.role!=="admin"){document.body.classList.remove("rx-menu-lat");return}
+    const t=document.getElementById("sbtog");if(t&&t.textContent!=="☰ Menu")t.textContent="☰ Menu";
+    const b=document.getElementById("sbar");document.body.classList.add("rx-menu-lat");if(!b||b.dataset.rxm)return;b.dataset.rxm="1";b.setAttribute("aria-label","Menu RUNIXO CONTRÔLE");
+    const h=b.querySelector(".sb-h b");if(h)h.textContent="☰ Menu";
+    b.querySelector(".sb-tabs")?.remove();
+    const cur=V.view==="ent"?"ents":V.view;
+    b.querySelector(".sb-h").insertAdjacentHTML("afterend",`<nav class="sb-menu" aria-label="Pages">${RX_MENU.map(([k,i,l])=>`<button data-sbm="${k}" class="${cur===k?"on":""}" ${cur===k?'aria-current="page"':""}><span class="ic" aria-hidden="true">${i}</span>${l}</button>`).join("")}</nav>`);
+    b.querySelectorAll("[data-sbm]").forEach(x=>x.onclick=()=>{V={view:x.dataset.sbm};render();scrollTo(0,0)});
+    const inp=b.querySelector("#sbq"),L=b.querySelector("#sbl");if(!inp||!L)return;
+    inp.placeholder="🔎 Client, facture, devis…";
+    const vis=()=>{L.style.display=inp.value.trim()?"":"none";if(inp.value.trim())ajouteFD(L,inp.value)};
+    inp.addEventListener("input",vis);new MutationObserver(()=>{if(inp.value.trim())ajouteFD(L,inp.value)}).observe(L,{childList:true});vis()}
+  new MutationObserver(()=>{try{transforme()}catch(z){console.warn(z)}}).observe(document.body,{childList:true});
+  const _r=render;render=function(){_r.apply(this,arguments);try{transforme()}catch(z){console.warn(z)}};
+  setTimeout(()=>{try{transforme()}catch(z){}},500);
+})();
+</script>
 </body>
 </html>
