@@ -4400,5 +4400,39 @@ RX_NOUV.epi=[["+ Nouveau bon de récupération","Nouveau bon de récupération",
     pn.querySelectorAll("[data-ensp]").forEach(b=>b.onclick=async()=>{const f=S.fic.find(x=>x.id===b.dataset.ensp);if(!EPLIST[f.entId])try{EPLIST[f.entId]=(await api("listEPI",{entId:f.entId})).rows||[]}catch(z){}pdfFlow(e,"Plan d’action – "+f.a,()=>rxPlanPdf(f))});
     if(!EPLIST[e.id])api("listEPI",{entId:e.id}).then(r=>{EPLIST[e.id]=r.rows||[];if(V.tab==="recepi"&&V.ent===e.id)renderEnt()}).catch(()=>{})}catch(z){console.warn(z)}}}
 </script>
+<script>
+/* ============ RUNIXO CONTRÔLE : EPI plus rapide (1 seule demande, mémoire sur le PC, préchargement) + lignes de devis/facture retirées en groupe ============ */
+const rxEpiDB=(()=>{let p;const open=()=>p||(p=new Promise((ok,ko)=>{const r=indexedDB.open("rx_epi",1);r.onupgradeneeded=()=>r.result.createObjectStore("d");r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)}));
+  const tx=(m,f)=>open().then(db=>new Promise((ok,ko)=>{const t=db.transaction("d",m),s=t.objectStore("d"),r=f(s);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error)}));
+  return{get:k=>tx("readonly",s=>s.get(k)).catch(()=>null),set:(k,v)=>tx("readwrite",s=>s.put(v,k)).catch(()=>null)}})();
+let RX_EPI_MAJ=0,RX_EPI_SIG="",RX_EPI_ENCOURS=null;
+function rxEpiRange(rows){const par={};S.ents.forEach(e=>par[e.id]=[]);(rows||[]).forEach(x=>{(par[x.entId]=par[x.entId]||[]).push(x)});Object.keys(par).forEach(k=>EPLIST[k]=par[k])}
+async function rxEpiDuCache(){if(S.ents.every(e=>EPLIST[e.id]))return false;const d=await rxEpiDB.get("tous");if(!d||!d.rows)return false;rxEpiRange(d.rows);RX_EPI_SIG=d.sig||"";return true}
+{const _ch=rxEpiCharge;rxEpiCharge=async function(force){if(RX_EPI_ENCOURS)return RX_EPI_ENCOURS;
+  RX_EPI_ENCOURS=(async()=>{try{const r=await api("listEPITous",{});const rows=r.rows||[],sig=rows.length+"|"+rows.map(x=>x.id+(x.pdf||"")+String(x.data||"").length).join(",");
+      const change=sig!==RX_EPI_SIG;RX_EPI_SIG=sig;rxEpiRange(rows);RX_EPI_MAJ=Date.now();rxEpiDB.set("tous",{rows,sig,le:RX_EPI_MAJ});return change}
+    catch(z){await _ch.call(this,force);RX_EPI_MAJ=Date.now();return true}finally{setTimeout(()=>{RX_EPI_ENCOURS=null},0)}})();return RX_EPI_ENCOURS}}
+const rxEpiOccupe=()=>!!document.querySelector(".ov,#ep,#vg");
+/* page EPI : affichage immédiat depuis la mémoire, mise à jour en arrière-plan */
+{const _pe=RXMODS.epi;RXMODS.epi=M=>{_pe(M);try{const sub=M.querySelector(".sec-h .hint");
+  if(Date.now()-RX_EPI_MAJ>60000&&!RX_EPI_ENCOURS){if(sub)sub.insertAdjacentHTML("beforeend",` <span id="rxepmaj" style="color:#1F5FA8">· ↻ mise à jour…</span>`);
+    rxEpiCharge(true).then(ch=>{const s=document.getElementById("rxepmaj");if(s)s.remove();if(ch&&V.view==="epi"&&!rxEpiOccupe())render()})}}catch(z){}}}
+/* au démarrage : la mémoire du PC tout de suite, puis les rapports à jour en arrière-plan */
+{let fait=false;const _r=render;render=function(){_r.apply(this,arguments);if(fait||S.role!=="admin"||!S.ents.length)return;fait=true;
+  rxEpiDuCache().then(ok=>{if(ok&&V.view==="epi"&&!rxEpiOccupe())render()}).finally(()=>setTimeout(()=>rxEpiCharge(true).then(ch=>{if(ch&&V.view==="epi"&&!rxEpiOccupe())render()}).catch(()=>{}),1500))}}
+/* après un contrôle EPI, une suppression ou un ajout : relire au prochain affichage */
+{const _a=api;api=async function(a,p){const r=await _a.apply(this,arguments);if(a==="saveEPI"||a==="delEPI"||a==="epiPdf")RX_EPI_MAJ=0;return r}}
+
+/* ---------- lignes de devis / facture : cocher et retirer plusieurs lignes, ou tout vider ---------- */
+{const _le=lignesEditeur;lignesEditeur=function(box,o){_le.apply(this,arguments);
+  const pare=()=>{const t=box.querySelector("table");if(!t||t.dataset.rxl)return;t.dataset.rxl="1";
+    const h=t.querySelector("tr");if(h&&h.firstElementChild)h.firstElementChild.insertAdjacentHTML("afterbegin",`<input type="checkbox" data-lall aria-label="Tout cocher" style="margin-right:6px;vertical-align:middle">`);
+    [...t.querySelectorAll("tr")].slice(1).forEach((tr,i)=>{const td=tr.firstElementChild;if(td){td.style.whiteSpace="nowrap";td.insertAdjacentHTML("afterbegin",`<input type="checkbox" data-lc="${i}" aria-label="Cocher la ligne" style="margin-right:6px;vertical-align:middle">`);const inp=td.querySelector("input[data-li]");if(inp)inp.style.width="calc(100% - 24px)"}});
+    const bar=box.querySelector("#l_add")?.parentNode;if(bar&&!bar.querySelector("[data-ldel]"))bar.insertAdjacentHTML("beforeend",`<button class="btn sm" data-ldel type="button">🗑 Retirer les lignes cochées</button><button class="btn sm danger ghost" data-lvide type="button">Vider toutes les lignes</button>`);
+    const all=t.querySelector("[data-lall]");if(all)all.onchange=()=>t.querySelectorAll("[data-lc]").forEach(c=>c.checked=all.checked);
+    const ld=box.querySelector("[data-ldel]");if(ld)ld.onclick=()=>{const ids=[...t.querySelectorAll("[data-lc]:checked")].map(c=>Number(c.dataset.lc));if(!ids.length)return toast("Coche d’abord les lignes à retirer");o.l=o.l.filter((x,i)=>!ids.includes(i));lignesEditeur(box,o);toast(ids.length+" ligne(s) retirée(s)")};
+    const lv=box.querySelector("[data-lvide]");if(lv)lv.onclick=()=>{if(!o.l.length)return;if(!confirm(`Retirer les ${o.l.length} lignes ?`))return;o.l.length=0;lignesEditeur(box,o);toast("Toutes les lignes ont été retirées")}};
+  pare();if(!box.dataset.rxlo){box.dataset.rxlo="1";new MutationObserver(()=>pare()).observe(box,{childList:true})}}}
+</script>
 </body>
 </html>
