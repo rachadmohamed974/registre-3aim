@@ -2671,7 +2671,7 @@ async function devisDepuisRegistre(entId,t){const e=S.ents.find(x=>x.id===entId)
     window.open(LAKAZ_URL,"_blank","noopener");
     m.q("#dvok").innerHTML=ok?`<b style="color:var(--ok)">✅ Demande copiée (${nb} personne${nb>1?"s":""}) et Case ouverte dans un nouvel onglet.</b>`:`<b style="color:var(--bad)">La copie automatique n’a pas marché : copie ce code (Ctrl+C) :</b><textarea readonly rows="3" style="width:100%;font-size:11px">${esc(code)}</textarea>`;
     m.q("#dvgo").textContent="Copier de nouveau"}}
-document.addEventListener("click",ev=>{const b=ev.target.closest("[data-dv]");if(b){ev.preventDefault();ev.stopPropagation();devisDepuisRegistre(b.dataset.dv,b.dataset.dvt)}},true);
+document.addEventListener("click",ev=>{const b=ev.target.closest("[data-dv][data-dvt]");if(b){ev.preventDefault();ev.stopPropagation();devisDepuisRegistre(b.dataset.dv,b.dataset.dvt)}},true);
 
 /* ---------- compteur de temps (gardé sur cet ordinateur) ---------- */
 const TPS={k:"reg3aim_temps",d:null,last:Date.now(),tick:Date.now(),dirty:0};
@@ -3773,6 +3773,166 @@ function fdImport(){
 }
 {const _f=RXMODS.facts;RXMODS.facts=M=>{_f(M);try{const nb=M.querySelector("#rxnf");if(nb&&!M.querySelector("#rxfd")&&S.role==="admin"){nb.insertAdjacentHTML("beforebegin",`<button class="btn" id="rxfd" style="margin-right:6px">📥 Factures et devis Drive</button>`);M.querySelector("#rxfd").onclick=fdImport}}catch(z){}}}
 {const _d=RXMODS.devis;RXMODS.devis=M=>{_d(M);try{const nb=M.querySelector("#rxnd");if(nb&&!M.querySelector("#rxfd2")&&S.role==="admin"){nb.insertAdjacentHTML("beforebegin",`<button class="btn" id="rxfd2" style="margin-right:6px">📥 Factures et devis Drive</button>`);M.querySelector("#rxfd2").onclick=fdImport}}catch(z){}}}
+</script>
+<script>
+/* ============ RUNIXO CONTRÔLE : listes de documents complètes (Aperçu, Télécharger, Supprimer, cases à cocher, .zip, anti-doublon, onglet client) ============ */
+LIBS.jszip="jszip/3.10.1/jszip.min.js";
+const RX_RIB={iban:"FR76 1695 8000 0157 5098 0379 871",bic:"QNTPFRP1XXX",banque:"Qonto",titulaire:"RUNIXO CONTRÔLE"};
+const RX_COPIE="runixocontrole@gmail.com";
+const rxDrvId=u=>{const m=String(u||"").match(/\/d\/([\w-]{15,})/)||String(u||"").match(/[?&]id=([\w-]{15,})/);return m?m[1]:""};
+const rxCourt=(s,n)=>{s=String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w.-]+/g,"_").replace(/_+/g,"_").replace(/^_|_$/g,"");return s.length>n?s.slice(0,n).replace(/_$/,""):s};
+function rxNomFichier(f){const k=f.type==="devis"?"Devis":f.type==="fact"?"Facture":"Document",e=S.ents.find(x=>x.id===f.entId)||{};return rxCourt(`${k}_${f.a||""}_${e.nom||""}`,56)+".pdf"}
+function rxDl(href,name){const a=document.createElement("a");a.href=href;if(name)a.download=name;a.rel="noopener";document.body.appendChild(a);a.click();a.remove()}
+function rxDlDrive(id){const ifr=document.createElement("iframe");ifr.style.display="none";ifr.src="https://drive.google.com/uc?export=download&id="+id;document.body.appendChild(ifr);setTimeout(()=>ifr.remove(),60000)}
+
+/* --- PDF d'une facture (duplicata, éventuellement acquittée) avec RIB en dernière page --- */
+async function rxFactPdf(f,acq){await need("autotable");const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4"}),o=rxO(f),e=S.ents.find(x=>x.id===f.entId)||{},t=rxTot(o.l,o.tva),W=210,NAV=[18,33,63],OR=[232,119,34];
+  doc.setFillColor(...NAV);doc.rect(0,0,W,30,"F");doc.setFillColor(...OR);doc.rect(0,30,W,1.6,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("RUNIXO CONTRÔLE",14,14);
+  doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text("Vérifications périodiques – VGP, EPI antichute – Prévention (DUERP, registre de sécurité)",14,20);doc.text(`${RX_ORG.adr} · ${RX_ORG.tel} · ${RX_ORG.mail}`,14,25);
+  doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text(acq?"FACTURE ACQUITTÉE":"FACTURE",W-14,13,{align:"right"});doc.setFontSize(11);doc.text("N° "+f.a,W-14,20,{align:"right"});doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("Date : "+fr(f.date)+(f.echeance?" · échéance "+fr(f.echeance):""),W-14,25,{align:"right"});
+  doc.setTextColor(20,33,61);doc.setFontSize(9);doc.setFont("helvetica","bold");doc.text("Facturé à",120,42);doc.setFont("helvetica","normal");
+  const cl=[e.nom,e.adresse,[e.cp,e.ville].filter(Boolean).join(" "),e.siret?"SIRET "+e.siret:"",e.contact?"À l’attention de "+e.contact:""].filter(Boolean);doc.setDrawColor(220);doc.roundedRect(116,37,80,8+cl.length*5,2,2);cl.forEach((l,i)=>doc.text(String(l),120,48+i*5));
+  doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(doc.splitTextToSize("Objet : "+(o.objet||""),95),14,48);
+  doc.autoTable({startY:Math.max(62,50+cl.length*5),head:[["Désignation","Qté","PU HT","Total HT"]],body:o.l.map(x=>[x.lib,String(x.q),eur(x.pu),eur((Number(x.q)||0)*(Number(x.pu)||0))]),theme:"grid",styles:{fontSize:9,cellPadding:2.2,textColor:[20,33,61]},headStyles:{fillColor:NAV,textColor:255},columnStyles:{1:{halign:"center",cellWidth:16},2:{halign:"right",cellWidth:26},3:{halign:"right",cellWidth:28}},margin:{left:14,right:14}});
+  let y=doc.lastAutoTable.finalY+6;doc.setFontSize(10);[["Total HT",eur(t.ht)],[`TVA ${o.tva} %`,eur(t.tv)],["Total TTC",eur(t.ttc)],["Net à payer",acq?eur(0):eur(t.ttc)]].forEach(([a,b],i)=>{doc.setFont("helvetica",i>=2?"bold":"normal");doc.text(a,150,y+i*6,{align:"right"});doc.text(b,W-14,y+i*6,{align:"right"})});
+  if(acq){doc.setDrawColor(27,94,32);doc.setTextColor(27,94,32);doc.setLineWidth(0.8);doc.roundedRect(14,y-4,92,22,2,2);doc.setFont("helvetica","bold");doc.setFontSize(13);doc.text("ACQUITTÉE",20,y+4);doc.setFontSize(9);doc.setFont("helvetica","normal");doc.text(`Réglée${o.paye?" le "+fr(o.paye):""} par virement – ${eur(t.ttc)} TTC`,20,y+11);doc.setLineWidth(0.2);doc.setTextColor(20,33,61)}
+  y+=30;doc.setFont("helvetica","normal");doc.setFontSize(9);
+  const nt=[o.bc?"Bon de commande : "+o.bc:"",acq?"":"Règlement par virement à réception de facture – RIB joint en dernière page. Merci d’indiquer le n° de facture en référence du virement."].filter(Boolean);
+  nt.forEach(l=>{doc.text(doc.splitTextToSize(l,W-28),14,y);y+=8});
+  doc.setFontSize(7.5);doc.setTextColor(120);doc.text("Pas d’escompte pour paiement anticipé. Pénalités de retard : trois fois le taux d’intérêt légal ; indemnité forfaitaire de recouvrement : 40 € (art. L.441-10 et D.441-5 du Code de commerce). TVA DOM 8,5 %.",14,278,{maxWidth:W-28});
+  doc.text(`${RX_ORG.nom} – ${RX_ORG.forme} – ${RX_ORG.adr} – ${RX_ORG.rcs} – TVA FR68 988 171 740`,W/2,290,{align:"center"});
+  doc.addPage();doc.setFillColor(...NAV);doc.rect(0,0,W,22,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Relevé d’identité bancaire",14,14);
+  doc.setTextColor(20,33,61);doc.setFontSize(11);[["Titulaire",RX_RIB.titulaire],["Banque",RX_RIB.banque],["IBAN",RX_RIB.iban],["BIC",RX_RIB.bic],["Référence à indiquer","Facture n° "+f.a]].forEach(([a,b],i)=>{doc.setFont("helvetica","bold");doc.text(a,20,40+i*10);doc.setFont("helvetica","normal");doc.text(b,75,40+i*10)});
+  const name=rxCourt(`Facture_${f.a}_${e.nom||""}${acq?"_acquittee":""}`,56)+".pdf";return{blob:doc.output("blob"),b64:doc.output("datauristring").split(",")[1],name}}
+const rxPdfDe=(f,acq)=>f.type==="fact"?rxFactPdf(f,acq):docPdf(f,"devis");
+
+/* --- Aperçu / Télécharger / Supprimer d'un document --- */
+function rxApercu(f){const id=rxDrvId(f.doc),e=S.ents.find(x=>x.id===f.entId)||{},tt=(f.type==="devis"?"Devis ":f.type==="fact"?"Facture ":"")+(f.a||"Document");
+  if(id&&S.role!=="client"){const m=modal("👁 "+esc(tt)+" – "+esc(e.nom||""),"#12213F",`<iframe src="https://drive.google.com/file/d/${id}/preview" style="width:100%;height:70vh;border:0;border-radius:8px;background:#EEF0F3" allow="autoplay" title="Aperçu du PDF"></iframe><div class="hint">Le PDF d’origine, rangé dans ton Drive.</div>`,`<button class="btn" data-x2>Fermer</button><a class="btn" href="https://drive.google.com/file/d/${id}/view" target="_blank" rel="noopener" style="text-decoration:none">Ouvrir dans Drive</a><button class="btn pri" id="ap_t">⬇ Télécharger</button>`);
+    m.ov.querySelector(".modal").style.width="min(1100px,100%)";m.ov.querySelector("[data-x2]").onclick=m.close;m.q("#ap_t").onclick=()=>{rxDlDrive(id);toast("Téléchargement lancé")};return}
+  if(f.type==="fact"||f.type==="devis")return pdfFlow(e,tt,()=>rxPdfDe(f,false));
+  if(f.doc)window.open(f.doc,"_blank","noopener")}
+async function rxTelecharge(f){const id=rxDrvId(f.doc);if(id&&S.role!=="client"){rxDlDrive(id);toast("Téléchargement lancé : "+(f.a||"document"));return}
+  if(f.type==="fact"||f.type==="devis"){const p=await rxPdfDe(f,false);rxDl(URL.createObjectURL(p.blob),p.name);toast("Téléchargé : "+p.name);return}
+  if(f.doc)window.open(f.doc,"_blank","noopener")}
+async function rxSupprime(L){const n=L.length,lab=n===1?`${L[0].type==="devis"?"le devis":L[0].type==="fact"?"la facture":"le document"} ${L[0].a||""}`:`ces ${n} documents`;
+  if(!confirm(`Supprimer ${lab} du registre ?\n\nLe PDF reste dans ton Drive : seule la fiche du registre est supprimée.`))return false;
+  for(const f of L){await api("delFiche",{id:f.id});S.fic=S.fic.filter(x=>x.id!==f.id)}setTimeout(saveCache,0);toast(n===1?"Supprimé":n+" documents supprimés");render();return true}
+async function rxZip(L,nom){const drive=L.filter(f=>rxDrvId(f.doc)),gen=L.filter(f=>!rxDrvId(f.doc)&&(f.type==="fact"||f.type==="devis"));
+  if(gen.length){await need("jszip");const z=new JSZip();for(const f of gen){const p=await rxPdfDe(f,false);z.file(p.name,p.blob)}const b=await z.generateAsync({type:"blob"});rxDl(URL.createObjectURL(b),rxCourt(nom,50)+".zip")}
+  drive.forEach((f,i)=>setTimeout(()=>rxDlDrive(rxDrvId(f.doc)),i*900));
+  toast(drive.length?`${drive.length} PDF Drive en téléchargement${gen.length?" + un .zip":""} (autorise les téléchargements multiples si Chrome le demande)`:"Fichier .zip téléchargé")}
+
+/* --- Anti-doublon : numéro déjà utilisé, même contrôle facturé deux fois --- */
+const _apiRx=api;
+api=async function(a,p){if(a==="saveFiche"&&p&&p.fic&&(p.fic.type==="devis"||p.fic.type==="fact")&&p.fic.a){
+    const d=S.fic.find(x=>x.type===p.fic.type&&String(x.a)===String(p.fic.a)&&x.id!==p.fic.id);
+    if(d&&!confirm(`⚠️ Doublon : ${p.fic.type==="devis"?"le devis":"la facture"} n° ${p.fic.a} existe déjà (${rxNom(d.entId)}, ${fr(d.date)}).\n\nEnregistrer quand même ?`))throw new Error("Enregistrement annulé : ce numéro existe déjà. Change le numéro ou ouvre le document existant.")}
+  return _apiRx.apply(this,arguments)};
+function rxDoublons(type){const L=rxDocs(type),out=[],vu={};
+  L.forEach(f=>{const k=String(f.a);(vu[k]=vu[k]||[]).push(f)});Object.values(vu).filter(g=>g.length>1).forEach(g=>out.push({t:`N° ${g[0].a} utilisé ${g.length} fois`,ids:g.map(f=>f.id)}));
+  if(type==="fact"){const sig=f=>{const o=rxO(f),dts=[...new Set((o.l||[]).map(x=>(String(x.lib).match(/\d{2}\/\d{2}\/\d{4}/g)||[])).flat())].sort().join(","),q=(o.l||[]).reduce((a,x)=>a+(Number(x.q)>0?Number(x.q):0),0);return dts?f.entId+"|"+dts+"|"+q:""};
+    const g={};L.filter(f=>f.b!=="annulee").forEach(f=>{const s=sig(f);if(s)(g[s]=g[s]||[]).push(f)});Object.values(g).filter(x=>x.length>1).forEach(x=>out.push({t:`Même contrôle facturé ${x.length} fois : n° ${x.map(f=>f.a).join(" et ")} (${rxNom(x[0].entId)})`,ids:x.map(f=>f.id)}))}
+  return out}
+
+/* --- Listes Devis / Factures : cases à cocher, actions par ligne, barre d'actions groupées --- */
+const RX_GRP={facts:[["payee","✅ Marquer payées"],["emise","📨 Marquer émises"],["zip","⬇ Télécharger (.zip)"],["del","🗑 Supprimer"]],devis:[["accepte","✅ Marquer acceptés"],["refuse","✖ Marquer refusés"],["zip","⬇ Télécharger (.zip)"],["del","🗑 Supprimer"]],docs:[["zip","⬇ Télécharger (.zip)"],["mail","✉️ Envoyer au client"],["del","🗑 Supprimer"]]};
+function rxPlus(M,tab){const view=V.view,attr=view==="facts"?"fa":view==="devis"?"dv":"dc";tab=tab||M.querySelector("table.rxt");if(!tab||tab.dataset.rxp)return;tab.dataset.rxp="1";
+  const lignes=()=>[...tab.querySelectorAll(`tr[data-${attr}]`)],fic=tr=>S.fic.find(f=>f.id===tr.dataset[attr]),vis=()=>lignes().filter(tr=>tr.style.display!=="none");
+  const h=tab.querySelector("tr:first-child");if(!h)return;
+  h.firstElementChild.style.whiteSpace="nowrap";h.firstElementChild.insertAdjacentHTML("afterbegin",`<input type="checkbox" id="rxall" aria-label="Tout cocher" style="margin-right:8px;vertical-align:middle">`);h.insertAdjacentHTML("beforeend",`<th style="width:1%"></th>`);
+  lignes().forEach(tr=>{const f=fic(tr);if(!f)return;tr.firstElementChild.style.whiteSpace="nowrap";tr.firstElementChild.insertAdjacentHTML("afterbegin",`<input type="checkbox" data-rxc aria-label="Sélectionner" style="margin-right:8px;vertical-align:middle">`);
+    tr.insertAdjacentHTML("beforeend",`<td style="white-space:nowrap;text-align:right"><button class="btn sm" data-rxa="ap" title="Aperçu">👁</button> <button class="btn sm" data-rxa="dl" title="Télécharger">⬇</button> <button class="btn sm danger ghost" data-rxa="del" title="Supprimer">🗑</button></td>`)});
+  const bar=document.createElement("div");bar.id="rxgb";bar.className="card";bar.style.cssText="display:none;position:sticky;top:8px;z-index:5;padding:10px 14px;margin:0 0 10px;gap:8px;align-items:center;flex-wrap:wrap;border:2px solid #E87722";
+  bar.innerHTML=`<b id="rxgn"></b><span style="flex:1"></span>${RX_GRP[view].map(([k,l])=>`<button class="btn sm ${k==="del"?"danger ghost":""}" data-rxg="${k}">${l}</button>`).join("")}<button class="btn sm ghost" data-rxg="none">Tout décocher</button>`;
+  tab.closest(".card").before(bar);
+  const coches=()=>lignes().filter(tr=>tr.querySelector("[data-rxc]")?.checked).map(fic).filter(Boolean);
+  const maj=()=>{const n=coches().length;bar.style.display=n?"flex":"none";bar.querySelector("#rxgn").textContent=n+" sélectionné(s)";const all=tab.querySelector("#rxall"),v=vis();all.checked=v.length>0&&v.every(tr=>tr.querySelector("[data-rxc]")?.checked)};
+  tab.addEventListener("click",ev=>{const c=ev.target.closest("[data-rxc],#rxall,[data-rxa]");if(!c)return;ev.stopPropagation();
+    if(c.id==="rxall"){vis().forEach(tr=>{const b=tr.querySelector("[data-rxc]");if(b)b.checked=c.checked});return maj()}
+    if(c.dataset.rxc!==undefined)return maj();
+    const f=fic(c.closest("tr"));if(!f)return;const a=c.dataset.rxa;
+    if(a==="ap")rxApercu(f);else if(a==="dl")rxTelecharge(f).catch(z=>toast(z.message));else if(a==="del")rxSupprime([f]).catch(z=>toast(z.message))},true);
+  bar.onclick=async ev=>{const b=ev.target.closest("[data-rxg]");if(!b)return;const k=b.dataset.rxg,L=coches();
+    if(k==="none"){lignes().forEach(tr=>{const x=tr.querySelector("[data-rxc]");if(x)x.checked=false});return maj()}
+    if(!L.length)return;b.disabled=true;
+    try{if(k==="del")await rxSupprime(L);
+      else if(k==="zip")await rxZip(L,(view==="facts"?"Factures":view==="devis"?"Devis":"Documents")+"_RUNIXO_"+today());
+      else if(k==="mail")await rxEnvoiGroupe(L);
+      else{for(const f of L){const o=rxO(f);if(k==="payee"&&!o.paye)o.paye=today();const r=await api("saveFiche",{fic:{...f,b:k,e:JSON.stringify(o)}});const i=S.fic.findIndex(x=>x.id===r.fic.id);if(i>=0)S.fic[i]=r.fic}
+        setTimeout(saveCache,0);toast(L.length+" document(s) mis à jour");render()}}
+    catch(z){toast(z.message)}b.disabled=false};
+  const D=view==="docs"?[]:rxDoublons(view==="facts"?"fact":"devis");
+  if(D.length)bar.insertAdjacentHTML("beforebegin",`<div class="card" id="rxdbl" style="padding:10px 14px;margin:0 0 10px;border-left:5px solid var(--bad)"><b style="color:var(--bad)">⚠️ Doublons possibles</b>${D.map(d=>`<div style="padding:4px 0">${esc(d.t)} <button class="btn sm" data-rxdb="${d.ids.join(",")}">Voir</button></div>`).join("")}</div>`);
+  M.querySelectorAll("[data-rxdb]").forEach(b=>b.onclick=()=>{const ids=b.dataset.rxdb.split(",");lignes().forEach(tr=>{const on=ids.includes(tr.dataset[attr]);tr.style.outline=on?"2px solid var(--bad)":"";if(on){const x=tr.querySelector("[data-rxc]");if(x)x.checked=true}});maj();const t=lignes().find(tr=>ids.includes(tr.dataset[attr]));if(t)t.scrollIntoView({behavior:"smooth",block:"center"})});
+  maj()}
+
+/* --- Page Documents : mêmes fonctions --- */
+const _rxDocsOld=RXMODS.docs;
+RXMODS.docs=M=>{_rxDocsOld(M);const tb=M.querySelector("#rxtab");if(!tb)return;
+  const tag=()=>[...tb.querySelectorAll("tr[data-ent]")].forEach(tr=>{const a=tr.querySelector("a[href]");if(!a)return;const u=a.getAttribute("href"),f=S.fic.find(x=>x.doc===u&&x.entId===tr.dataset.ent);if(f)tr.dataset.dc=f.id});
+  const go=()=>{delete tb.dataset.rxp;document.getElementById("rxgb")?.remove();tag();rxPlus(M,tb)};
+  go();const ob=new MutationObserver(()=>{ob.disconnect();go();ob.observe(tb,{childList:true})});ob.observe(tb,{childList:true})};
+async function rxEnvoiGroupe(L){const ok=L.filter(f=>f.type==="fact"||f.type==="devis");if(!ok.length){toast("Seuls les devis et les factures peuvent être envoyés d’ici");return}
+  const ents=[...new Set(ok.map(f=>f.entId))];if(ents.length>1){toast("Coche les documents d’un seul client à la fois");return}
+  const e=S.ents.find(x=>x.id===ents[0])||{};const to=prompt(`Envoyer ${ok.length} document(s) à ${e.nom} – adresse du client :`,e.email&&e.email!=="contact@3aim.fr"?e.email:"");if(!to)return;
+  for(const f of ok){const p=await rxPdfDe(f,false);await api("mailDoc",{entId:f.entId,to:to+","+RX_COPIE,subject:(f.type==="fact"?"Facture ":"Devis ")+f.a+" – RUNIXO CONTRÔLE",titre:(f.type==="fact"?"Facture ":"Devis ")+f.a,message:`Bonjour${e.contact?" "+e.contact:""},\n\nVeuillez trouver ci-joint ${f.type==="fact"?"notre facture":"notre devis"} n° ${f.a}${f.type==="fact"?" (RIB en dernière page)":""}.\n\nBien cordialement,\nRUNIXO CONTRÔLE – 0692 09 85 92`,name:p.name,data:p.b64,lienClient:false,journal:f.type==="fact"?"Facture envoyée":"Devis envoyé"})}
+  toast(ok.length+" document(s) envoyé(s) à "+to)}
+
+/* --- Fiche facture : PDF d'origine, envoi au client avec RIB, facture acquittée --- */
+const _factFormRx=factForm;
+factForm=function(src){_factFormRx.apply(this,arguments);try{const ex=src&&src.id?S.fic.find(x=>x.id===src.id):null;if(!ex)return;const ov=[...document.querySelectorAll(".ov")].pop();if(!ov)return;
+  const hd=ov.querySelector("header h2"),ft=ov.querySelector("footer");
+  if(rxDrvId(ex.doc))hd.insertAdjacentHTML("afterend",`<button class="btn sm" id="ff_orig" style="margin-left:auto;margin-right:8px">📄 Voir le PDF d’origine</button>`);
+  ft.insertAdjacentHTML("afterbegin",`<button class="btn" id="ff_env">✉️ Envoyer au client</button><button class="btn" id="ff_acq">🧾 Facture acquittée</button>`);
+  ov.querySelector("#ff_orig")&&(ov.querySelector("#ff_orig").onclick=()=>rxApercu(ex));
+  ov.querySelector("#ff_env").onclick=()=>rxEnvoiFacture(ex,false);
+  ov.querySelector("#ff_acq").onclick=()=>rxEnvoiFacture(ex,true)}catch(z){console.warn(z)}};
+function rxEnvoiFacture(f,acq){const e=S.ents.find(x=>x.id===f.entId)||{},o=rxO(f),t=rxTot(o.l,o.tva);
+  const m=modal(acq?`🧾 Facture acquittée ${esc(f.a)}`:`✉️ Envoyer la facture ${esc(f.a)}`,"#12213F",`
+   ${acq?`<label class="f" style="max-width:220px">Payée le<input type="date" id="fe_p" value="${esc(o.paye||today())}"></label>`:""}
+   <label class="f">À<input id="fe_to" value="${esc(e.email&&e.email!=="contact@3aim.fr"?e.email:"")}" placeholder="adresse du client"></label>
+   <div class="hint">Copie automatique à ${RX_COPIE}. Le PDF contient le RIB en dernière page.</div>
+   <label class="f">Objet du mail<input id="fe_su" value="${esc((acq?"Facture acquittée ":"Facture ")+f.a+" – RUNIXO CONTRÔLE")}"></label>
+   <label class="f">Message<textarea id="fe_me" rows="6">${esc(`Bonjour${e.contact?" "+e.contact:""},\n\n${acq?`Veuillez trouver ci-joint notre facture n° ${f.a} acquittée (${eur(t.ttc)} TTC), à transmettre le cas échéant à votre OPCO.`:`Veuillez trouver ci-joint notre facture n° ${f.a} d’un montant de ${eur(t.ttc)} TTC. Notre RIB figure en dernière page.`}\n\nBien cordialement,\nRUNIXO CONTRÔLE – 0692 09 85 92`)}</textarea></label><div class="hint" id="fe_st"></div><div class="err" id="fe_x"></div>`,
+   `<button class="btn" data-x2>Annuler</button><button class="btn" id="fe_pdf">👁 Voir le PDF</button><button class="btn pri" id="fe_go">✉️ Envoyer</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  const fiche=()=>{const o2=rxO(f);if(acq){o2.paye=m.q("#fe_p").value||today()}return{...f,b:acq?"payee":f.b,e:JSON.stringify(o2)}};
+  m.q("#fe_pdf").onclick=()=>pdfFlow(e,(acq?"Facture acquittée ":"Facture ")+f.a,()=>rxFactPdf(fiche(),acq));
+  m.q("#fe_go").onclick=async()=>{const to=m.q("#fe_to").value.trim();if(!/^\S+@\S+\.\S+/.test(to)){m.q("#fe_x").textContent="Indique l’adresse mail du client.";return}
+    const b=m.q("#fe_go");b.disabled=true;try{const fc=fiche();m.q("#fe_st").textContent="⏳ Préparation du PDF…";const p=await rxFactPdf(fc,acq);m.q("#fe_st").textContent="⏳ Envoi…";
+      const r=await api("mailDoc",{entId:f.entId,to:to+","+RX_COPIE,subject:m.q("#fe_su").value,titre:(acq?"Facture acquittée ":"Facture ")+f.a,message:m.q("#fe_me").value,name:p.name,data:p.b64,lienClient:false,journal:acq?"Facture acquittée envoyée":"Facture envoyée"});
+      const o2=rxO(fc);o2.env=today();const r2=await api("saveFiche",{fic:{...fc,b:acq?"payee":(fc.b==="a_emettre"?"emise":fc.b),e:JSON.stringify(o2)}});const i=S.fic.findIndex(x=>x.id===r2.fic.id);if(i>=0)S.fic[i]=r2.fic;setTimeout(saveCache,0);
+      m.close();document.querySelectorAll(".ov").forEach(x=>x.remove());toast("Facture envoyée à "+to);render()}catch(z){m.q("#fe_x").textContent=z.message;m.q("#fe_st").textContent="";b.disabled=false}}}
+
+/* --- Revenir au même endroit dans la liste --- */
+const RX_POS={};
+addEventListener("scroll",()=>{if(["facts","devis","docs"].includes(V.view))RX_POS[V.view]=scrollY},{passive:true});
+
+/* --- Branchement sur l'affichage --- */
+const _renderRxPlus=render;
+render=function(){const v=V.view,y=RX_POS[v];_renderRxPlus.apply(this,arguments);
+  try{if(S.role==="admin"&&(V.view==="facts"||V.view==="devis")){const M=document.getElementById("main");rxPlus(M,M.querySelector("table.rxt"))}}catch(z){console.warn(z)}
+  if(y&&V.view===v&&["facts","devis","docs"].includes(v))requestAnimationFrame(()=>scrollTo(0,y))};
+
+/* --- Fiche client : onglet « 💶 Devis et factures » --- */
+const _renderEntFa=renderEnt;
+renderEnt=function(){const surFa=V.tab==="fact";if(surFa)V.tab="id";_renderEntFa.apply(this,arguments);if(surFa)V.tab="fact";
+  try{const e=S.ents.find(x=>x.id===V.ent),nav=document.querySelector("nav.tabs");if(!e||!nav||S.role==="lecture")return;
+    const F=rxDocs("fact").filter(f=>f.entId===e.id),D=rxDocs("devis").filter(d=>d.entId===e.id);if(S.role!=="admin"&&!F.length&&!D.length)return;
+    nav.insertAdjacentHTML("beforeend",`<button class="tab ${surFa?"on":""}" style="--rc:#12213F" data-tfa role="tab" aria-selected="${surFa}"><span class="dot"></span>💶 Devis et factures <span class="ct">${F.length+D.length}</span></button>`);
+    nav.querySelector("[data-tfa]").onclick=()=>{V.tab="fact";renderEnt()};
+    if(!surFa)return;nav.querySelectorAll("[data-t]").forEach(b=>{b.classList.remove("on");b.setAttribute("aria-selected","false")});
+    const pn=document.getElementById("pn");rxPanelFa(e,pn,F,D)}catch(z){console.warn(z)}};
+function rxPanelFa(e,pn,F,D){const adm=S.role==="admin",ht=f=>rxTot(rxO(f).l,rxO(f).tva).ht,ttc=f=>rxTot(rxO(f).l,rxO(f).tva).ttc,ok=F.filter(f=>f.b==="emise"||f.b==="payee"),du=F.filter(f=>f.b==="emise");
+  const L=F.map(f=>({f,k:"Facture"})).concat(D.map(f=>({f,k:"Devis"}))).sort((a,b)=>String(b.f.date).localeCompare(String(a.f.date)));
+  pn.innerHTML=`<div class="rxk"><div class="card"><span class="hint">Total facturé (HT, depuis le début)</span><b style="color:var(--ok)">${eur(ok.reduce((a,f)=>a+ht(f),0))}</b><span class="hint">${ok.length} facture(s)</span></div><div class="card"><span class="hint">Reste à payer</span><b style="color:${du.length?"var(--bad)":"inherit"}">${eur(du.reduce((a,f)=>a+ttc(f),0))}</b><span class="hint">${du.length} facture(s) émise(s) non payée(s)</span></div><div class="card"><span class="hint">Devis en attente</span><b>${D.filter(d=>d.b==="envoye").length}</b><span class="hint">${D.filter(d=>d.b==="accepte").length} accepté(s)</span></div></div>
+   ${adm?`<div style="display:flex;gap:8px;justify-content:flex-end;margin:10px 0"><button class="btn" id="pfa_d">+ Nouveau devis</button><button class="btn pri" id="pfa_f">+ Nouvelle facture</button></div>`:""}
+   <div class="card" style="padding:4px 8px;overflow-x:auto;margin-top:10px"><table class="rxt"><tr><th>Type</th><th>N°</th><th>Objet</th><th>Date</th><th>État</th><th style="text-align:right">Montant</th><th></th></tr>${L.map(({f,k})=>`<tr data-pfa="${f.id}" class="cl"><td>${k==="Devis"?"📝":"💶"} ${k}</td><td><b>${esc(f.a)}</b></td><td>${esc(rxO(f).objet||"")}</td><td>${fr(f.date)}</td><td>${k==="Devis"?pillRx(DV_ST,f.b):faEtat(f)==="retard"?pillRx({retard:["En retard","#B42318","#FDECEA"]},"retard"):pillRx(FA_ST,f.b)}</td><td style="text-align:right;font-weight:600">${eur(k==="Devis"?ht(f):ttc(f))} ${k==="Devis"?"HT":"TTC"}</td><td style="white-space:nowrap;text-align:right"><button class="btn sm" data-pa="ap" title="Aperçu">👁</button> <button class="btn sm" data-pa="dl" title="Télécharger">⬇</button>${adm?` <button class="btn sm danger ghost" data-pa="del" title="Supprimer">🗑</button>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="hint">Aucun devis ni facture pour ce client.</td></tr>`}</table></div>`;
+  if(adm){pn.querySelector("#pfa_d").onclick=()=>devisForm({entId:e.id});pn.querySelector("#pfa_f").onclick=()=>factForm({entId:e.id})}
+  pn.querySelectorAll("[data-pfa]").forEach(tr=>tr.onclick=ev=>{const f=S.fic.find(x=>x.id===tr.dataset.pfa);if(!f)return;const b=ev.target.closest("[data-pa]");
+    if(b){ev.stopPropagation();const a=b.dataset.pa;if(a==="ap")rxApercu(f);else if(a==="dl")rxTelecharge(f).catch(z=>toast(z.message));else rxSupprime([f]).then(x=>{if(x)renderEnt()}).catch(z=>toast(z.message));return}
+    if(!adm)return rxApercu(f);if(f.type==="fact")factForm(f);else devisForm(f)})}
 </script>
 </body>
 </html>
