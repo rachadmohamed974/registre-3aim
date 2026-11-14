@@ -4715,7 +4715,7 @@ function esDraw(M){const r=ESP.ac,ents=S.ents.slice().sort((a,b)=>String(a.nom).
   const acces=`<div style="overflow-x:auto"><table class="rxt" style="width:100%"><tr><th>Entreprise</th><th>Identifiant</th><th>Mot de passe</th><th style="text-align:right">Actions</th></tr>
     ${ents.map(e=>`<tr><td><b>${esc(e.nom)}</b><br><span class="hint">${esc(e.email||"pas d’adresse mail")}</span></td><td><span class="mono">${esc(r.idents[e.id]||e.nom)}</span></td>
      <td style="white-space:nowrap"><span class="mono" data-pw="${esc(e.code||"")}">••••••••</span> <button class="btn ghost sm" data-see title="Afficher / masquer">👁</button></td>
-     <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-ed="${e.id}">✏️ Modifier</button> <button class="btn sm" data-ml="${e.id}" ${e.email?"":"disabled"}>✉️ Envoyer</button> <button class="btn sm" data-vc="${e.id}">👁 Voir comme le client</button></td></tr>`).join("")||`<tr><td class="hint">Aucune entreprise.</td></tr>`}</table></div>
+     <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-ed="${e.id}">✏️ Modifier</button> <button class="btn sm" data-ml="${e.id}" ${e.email?"":"disabled"}>✉️ Envoyer</button> <button class="btn sm" data-cp="${e.id}" title="Copier un message prêt à coller (WhatsApp, SMS…) avec le lien, l’identifiant et le mot de passe">📋 Copier</button> <button class="btn sm" data-lk title="Copier seulement le lien de l’espace">🔗 Lien</button> <button class="btn sm" data-vc="${e.id}">👁 Voir comme le client</button></td></tr>`).join("")||`<tr><td class="hint">Aucune entreprise.</td></tr>`}</table></div>
     <h3 style="margin:16px 0 6px;font-size:17px">Journal des connexions</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px"><select id="j_e"><option value="">Toutes les connexions</option><option value="__admin">Mes connexions</option>${noms.map(n=>`<option>${esc(n)}</option>`).join("")}</select>
      <select id="j_r"><option value="">Tous les résultats</option><option value="ok">Connexions réussies</option><option value="ko">Essais ratés et blocages</option></select></div><div id="j_l" style="max-height:320px;overflow-y:auto"></div>
@@ -4730,6 +4730,11 @@ function esDraw(M){const r=ESP.ac,ents=S.ents.slice().sort((a,b)=>String(a.nom).
   M.querySelectorAll("[data-ed]").forEach(b=>b.onclick=()=>{const x=S.ents.find(y=>y.id===b.dataset.ed);accesForm(x,r.idents[x.id],()=>{V={view:"esp"};render()})});
   M.querySelectorAll("[data-ml]").forEach(b=>b.onclick=async()=>{const x=S.ents.find(y=>y.id===b.dataset.ml);if(!confirm("Envoyer l’identifiant et le mot de passe à "+x.email+" ?"))return;try{await api("sendAccess",{id:x.id});toast("Accès envoyés à "+x.email)}catch(z){toast(z.message)}});
   M.querySelectorAll("[data-vc]").forEach(b=>b.onclick=()=>esVoir(b.dataset.vc));
+  /* 📋 Copier l'accès / 🔗 Lien (14/11/2026) : pour les clients sans adresse mail (WhatsApp, SMS…) */
+  M.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{const x=S.ents.find(y=>y.id===b.dataset.cp);if(!x)return;
+    if(!x.code){toast("Pas encore de mot de passe pour ce client : cliquez d’abord sur ✏️ Modifier.");return}
+    esCopie(`Bonjour,\nVoici votre accès à l’espace RUNIXO CONTRÔLE (registre de sécurité, VGP, EPI antichute, document unique) :\n🔗 ${esLien()}\nIdentifiant : ${r.idents[x.id]||x.nom}\nMot de passe : ${x.code}\n\nRUNIXO CONTRÔLE – 0692 09 85 92 – controle@3aim.fr`,"Accès de "+x.nom+" copié ✓ : collez-le avec Ctrl + V")});
+  M.querySelectorAll("[data-lk]").forEach(b=>b.onclick=()=>esCopie(esLien(),"Lien copié ✓ : "+esLien()));
   const jdraw=()=>{const fe=M.querySelector("#j_e").value,fr2=M.querySelector("#j_r").value;
     const L=log.filter(l=>(!fe||(fe==="__admin"?l.profil==="administrateur":l.ent===fe))&&(!fr2||(fr2==="ok"?l.res==="connecté":l.res!=="connecté")));
     M.querySelector("#j_l").innerHTML=L.length?`<div class="feed">${L.map(l=>`<div><span style="color:${l.res==="connecté"?"#1F7A4D":"#B42318"};font-weight:700">${l.res==="connecté"?"✔ Connexion":"✖ "+esc(l.res==="refusé"?"Essai raté":l.res)}</span> · ${esc(l.ent||(l.profil==="administrateur"?"Vous (administrateur)":"—"))}<small>Identifiant tapé : ${esc(l.ident)} · ${esc(l.date)}</small></div>`).join("")}</div>`:`<p class="hint">Aucune connexion pour l’instant.</p>`};
@@ -4769,6 +4774,8 @@ async function esDocs(M){const box=M.querySelector("#es_docs");if(!box||!ESP.ent
   box.querySelectorAll("[data-esa]").forEach(b=>b.onclick=()=>rdApercu(L[Number(b.dataset.esa)]).catch(z=>toast(z.message)));
   box.querySelectorAll("[data-esm]").forEach(b=>b.onclick=async()=>{const r=L[Number(b.dataset.esm)],on=!mq[r.cle];b.disabled=true;
     try{const x=await api("masquer",{cle:r.cle,on,entId:r.entId,lib:r.titre});ESP.mq=x.masques||{};toast(on?"Masqué pour le client":"Visible pour le client");esDocs(M)}catch(z){toast(z.message);b.disabled=false}})}
+const esLien=()=>location.origin+"/";
+async function esCopie(t,ok){try{await navigator.clipboard.writeText(t);toast(ok)}catch(z){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;left:-9999px";document.body.appendChild(a);a.select();let r=false;try{r=document.execCommand("copy")}catch(y){}a.remove();toast(r?ok:"Copie impossible : sélectionnez le texte à la main")}}
 async function esVoir(entId){try{const r=await api("vueClient",{entId});const w=window.open(location.origin+location.pathname+"?vue="+r.t,"_blank");if(!w)toast("Autorisez les fenêtres pour registre.3aim.fr, puis recommencez")}catch(z){toast(z.message)}}
 
 /* --- 🕓 Traçabilité --- */
