@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-14-i";
+const APP_VER="2026-11-14-acces";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -506,7 +506,9 @@ let DB=null,PEND_M=null;
 async function api(action,p={}){
   if(DEMO)return demo(action,p);
   const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,code:S.code,...p})});
-  const j=await r.json();if(!j.ok)throw new Error(j.err||"Erreur");if(/^(save|del|seed|newCode)/.test(action))setTimeout(saveCache,0);return j;
+  const j=await r.json();
+  if(!j.ok){const er=new Error(j.err||"Erreur");if(j.auth){er.auth=true;if(action!=="login"){wipeSession();S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};document.querySelectorAll(".ov").forEach(o=>o.remove());renderLogin(j.err)}}throw er}
+  if(/^(save|del|seed|newCode|setAcces)/.test(action))setTimeout(saveCache,0);return j;
 }
 function demo(a,p){
   if(!DB){DB=seedData();DB.jr=[{date:today()+" 08:12",entId:"ekaz",qui:"admin",action:"VGP enregistrées (juillet 2026)"}];DB.photos={}}
@@ -584,22 +586,85 @@ async function login(code){
     if(r.ents)applyData(r);else{S.role=r.role;S.entId=r.entId;await reload()}
     saveCache();startView();
     if(!document.querySelector(".ov"))render();showSync(false);
-  }catch(x){showSync(false);if(cached&&!/code/i.test(x.message)){toast("Hors connexion : données de ta dernière visite");return}store.set(cacheKey(S.code),null);throw x}
+  }catch(x){showSync(false);if(cached&&!x.auth&&!/code/i.test(x.message)){toast("Hors connexion : données de ta dernière visite");return}store.set(cacheKey(S.code),null);S.role=null;throw x}
 }
 function showSync(on){let d=$("#sync");if(on&&!d&&$(".top .in")){d=document.createElement("span");d.id="sync";d.className="who";d.textContent="Mise à jour…";$(".top .in .sp").after(d)}else if(!on&&d)d.remove()}
 async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,fic:r.fic||[],du:r.du||[],jr:r.jr||[]});saveCache()}
-function logout(){store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};render()}
+/* ===== Connexion : identifiant + mot de passe, 24 h (14/11/2026) ===== */
+const SESSION_H=24;
+const isTok=c=>/^[0-9a-f]{64}$/.test(String(c||""));
+function sessionExpiree(){const ts=Number(store.get("reg3aim_ts")||0);return !ts||Date.now()-ts>SESSION_H*3600e3}
+function wipeSession(){const c=store.get("reg3aim_code");if(c)store.set(cacheKey(c),null);if(S.code)store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);store.set("reg3aim_ts",null)}
+function logout(){const c=S.code;if(!DEMO&&isTok(c))fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"logout",code:c})}).catch(()=>{});
+  wipeSession();S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};render()}
+setInterval(()=>{if(S.role&&isTok(S.code)&&sessionExpiree()){logout();renderLogin("Votre connexion du jour est terminée : entrez à nouveau votre identifiant et votre mot de passe.")}},5*60e3);
+/* ===== Espace administrateur : Accès et connexions ===== */
+function genMdp(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let x="";const r=new Uint32Array(8);crypto.getRandomValues(r);r.forEach(n=>x+=A[n%A.length]);return "ENT-"+x}
+function accesForm(e,ident,after){
+  const m=modal("Identifiant et mot de passe – "+esc(e.nom),RUB.id.c,`
+   <label class="f">Identifiant<input id="x_i" value="${esc(ident||e.nom)}" autocomplete="off" spellcheck="false"></label>
+   <p class="hint" style="margin:-4px 0 6px">Par défaut, la raison sociale. Majuscules, accents et espaces ne comptent pas.</p>
+   <label class="f">Mot de passe<input id="x_m" value="${esc(e.code||"")}" autocomplete="off" spellcheck="false"></label>
+   <p class="hint" style="margin:-4px 0 6px">Au moins 6 caractères. Si vous le changez, pensez à renvoyer les accès à l’entreprise.</p><div class="err" id="x_e"></div>`,
+   `<button class="btn" id="x_g">Générer un mot de passe</button><button class="btn pri" id="x_s">Enregistrer</button>`);
+  m.q("#x_g").onclick=()=>{m.q("#x_m").value=genMdp()};
+  m.q("#x_s").onclick=async()=>{const i=m.q("#x_i").value.trim(),pw=m.q("#x_m").value.trim();m.q("#x_e").textContent="Enregistrement…";
+    try{const r=await api("setAcces",{id:e.id,ident:i,mdp:pw===e.code?null:pw});S.idents=r.idents;const k=S.ents.findIndex(x=>x.id===e.id);if(k>=0)S.ents[k]={...S.ents[k],...r.ent};saveCache();m.close();toast("Accès enregistrés");after&&after()}
+    catch(z){m.q("#x_e").textContent=z.message}};
+}
+async function accesPanel(){
+  let r;try{r=await api("acces")}catch(z){toast(z.message);return}
+  S.idents=r.idents;const log=r.log||[];
+  const ents=S.ents.slice().sort((a,b)=>String(a.nom).localeCompare(String(b.nom)));
+  const noms=[...new Set(log.map(l=>l.ent).filter(Boolean))].sort();
+  const m=modal("Accès et connexions",RUB.id.c,`<style>details[data-fold]>summary{list-style:none}details[data-fold]>summary::-webkit-details-marker{display:none}</style>
+   <details open data-fold="acx_a"><summary style="cursor:pointer;font-weight:700;font-size:17px">▾ Accès des entreprises (${ents.length})</summary>
+    <div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:14px">
+     <thead><tr style="text-align:left;border-bottom:2px solid var(--line)"><th style="padding:6px">Entreprise</th><th style="padding:6px">Identifiant</th><th style="padding:6px">Mot de passe</th><th></th></tr></thead>
+     <tbody>${ents.map(e=>`<tr style="border-bottom:1px solid var(--line)"><td style="padding:6px"><b>${esc(e.nom)}</b><br><span class="hint">${esc(e.email||"pas d’adresse mail")}</span></td>
+      <td style="padding:6px"><span class="mono">${esc(r.idents[e.id]||e.nom)}</span></td>
+      <td style="padding:6px"><span class="mono" data-pw="${esc(e.code||"")}">••••••••</span> <button class="btn ghost sm" data-see title="Afficher / masquer">👁</button></td>
+      <td style="padding:6px;white-space:nowrap"><button class="btn sm" data-ed="${e.id}">✏️ Modifier</button> <button class="btn sm" data-ml="${e.id}" ${e.email?"":"disabled"}>✉️ Envoyer</button></td></tr>`).join("")||`<tr><td class="hint" style="padding:6px">Aucune entreprise.</td></tr>`}</tbody></table></div>
+   </details>
+   <details open data-fold="acx_j" style="margin-top:14px"><summary style="cursor:pointer;font-weight:700;font-size:17px">▾ Journal des connexions</summary>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><select id="j_e" style="padding:6px;border:1px solid var(--line);border-radius:7px"><option value="">Toutes les connexions</option><option value="__admin">Mes connexions</option>${noms.map(n=>`<option>${esc(n)}</option>`).join("")}</select>
+     <select id="j_r" style="padding:6px;border:1px solid var(--line);border-radius:7px"><option value="">Tous les résultats</option><option value="ok">Connexions réussies</option><option value="ko">Essais ratés et blocages</option></select></div>
+    <div id="j_l" style="max-height:340px;overflow-y:auto"></div>
+   </details>
+   <p class="hint" style="margin-top:12px">Votre propre accès (identifiant ADMIN_ID, mot de passe ADMIN_CODE) se règle dans les propriétés du moteur du registre. Chaque connexion dure 24 heures ; après 5 essais ratés, la connexion est bloquée 15 minutes et un mail d’alerte part sur contact@3aim.fr.</p>`,
+   `<button class="btn pri" data-x>Fermer</button>`);
+  m.ov.querySelector(".modal").style.maxWidth="min(860px,96vw)";m.ov.querySelector(".modal").style.width="100%";
+  m.ov.querySelectorAll("details[data-fold]").forEach(d=>{const k="reg3aim_fold_"+d.dataset.fold;if(store.get(k)==="0")d.open=false;const sm=d.querySelector("summary");const upd=()=>{sm.textContent=sm.textContent.replace(/^[▾▸]/,d.open?"▾":"▸")};upd();d.addEventListener("toggle",()=>{store.set(k,d.open?"1":"0");upd()})});
+  m.ov.querySelector("footer [data-x]").onclick=m.close;
+  m.ov.querySelectorAll("[data-see]").forEach(b=>b.onclick=()=>{const sp=b.previousElementSibling;sp.textContent=sp.textContent.startsWith("•")?sp.dataset.pw:"••••••••"});
+  m.ov.querySelectorAll("[data-ed]").forEach(b=>b.onclick=()=>{const e=S.ents.find(x=>x.id===b.dataset.ed);m.close();accesForm(e,r.idents[e.id],accesPanel)});
+  m.ov.querySelectorAll("[data-ml]").forEach(b=>b.onclick=async()=>{const e=S.ents.find(x=>x.id===b.dataset.ml);if(!confirm("Envoyer l’identifiant et le mot de passe à "+e.email+" ?"))return;try{await api("sendAccess",{id:e.id});toast("Accès envoyés à "+e.email)}catch(z){toast(z.message)}});
+  const draw=()=>{const fe=m.q("#j_e").value,fr=m.q("#j_r").value;
+    const L=log.filter(l=>(!fe||(fe==="__admin"?l.profil==="administrateur":l.ent===fe))&&(!fr||(fr==="ok"?l.res==="connecté":l.res!=="connecté")));
+    m.q("#j_l").innerHTML=L.length?`<div class="feed">${L.map(l=>`<div><span style="color:${l.res==="connecté"?"var(--ok,#1F7A4D)":"var(--bad,#B42318)"};font-weight:700">${l.res==="connecté"?"✔ Connexion":"✖ "+esc(l.res==="refusé"?"Essai raté":l.res)}</span> · ${esc(l.ent||(l.profil==="administrateur"?"Vous (administrateur)":"—"))}<small>Identifiant tapé : ${esc(l.ident)} · ${esc(l.date)}</small></div>`).join("")}</div>`:`<p class="hint">Aucune connexion pour l’instant.</p>`};
+  m.q("#j_e").onchange=draw;m.q("#j_r").onchange=draw;draw();
+}
+document.addEventListener("click",ev=>{if(ev.target.closest&&ev.target.closest("[data-acx]")){if(DEMO){toast("Disponible une fois le registre en ligne");return}accesPanel()}});
 
 function renderLogin(msg){
   $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark rx"><svg viewBox="0 0 40 46" width="30" height="34" aria-hidden="true"><path d="M20 2 37 8v13c0 11-7.3 19.3-17 23C10.3 40.3 3 32 3 21V8z" fill="#12213F" stroke="#fff" stroke-width="2.4"/><path d="m11.5 22.5 6 6 11.5-12.5" fill="none" stroke="#E87722" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b style="color:var(--ink)">RUNIXO CONTRÔLE</b><small style="color:var(--ink2)">Registre de sécurité · VGP · EPI antichute · DUERP</small></div></div>
   <h1 style="margin-top:18px">Votre registre de sécurité, toujours à jour</h1></div>
-  <form class="bd" id="lf"><label class="f">Code d’accès<input id="lc" autocomplete="off" placeholder="ENT-XXXXXX" required></label>
+  <form class="bd" id="lf" autocomplete="on"><label class="f">Identifiant<input id="lu" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Raison sociale de votre entreprise" value="${esc(store.get("reg3aim_ident")||"")}" required></label>
+  <label class="f">Mot de passe<input id="lc" name="password" type="password" autocomplete="current-password" placeholder="Mot de passe" required></label>
   <div class="err" id="le">${esc(msg||"")}</div><button class="btn pri" style="justify-content:center">Ouvrir le registre</button>
-  ${DEMO?`<p class="hint" style="margin:0">Mode démonstration : entre le code <span class="mono">DEMO</span> pour l’espace 3AIM CFA. Les codes entreprise s’affichent dans « Accès client » de chaque fiche.</p>`:`<p class="hint" style="margin:0">Le code vous a été transmis par RUNIXO CONTRÔLE. Besoin d’aide : 0692 09 85 92 · <a href="mailto:controle@3aim.fr">controle@3aim.fr</a></p>`}
+  ${DEMO?`<p class="hint" style="margin:0">Mode démonstration : entre le code <span class="mono">DEMO</span> pour l’espace 3AIM CFA. Les codes entreprise s’affichent dans « Accès client » de chaque fiche.</p>`:`<p class="hint" style="margin:0">Vos identifiant et mot de passe vous ont été transmis par RUNIXO CONTRÔLE. Besoin d’aide : 0692 09 85 92 · <a href="mailto:controle@3aim.fr">controle@3aim.fr</a></p>`}
   </form></div></div>`;
-  $("#lf").onsubmit=async e=>{e.preventDefault();const c=$("#lc").value;if(!c.trim()){$("#le").textContent="Entre ton code d’accès.";return}
-    $("#le").textContent="Connexion…";try{await login(c)}catch(x){$("#le").textContent=x.message}};
-  $("#lc").oninput=()=>$("#le").textContent="";
+  setTimeout(()=>{const u=$("#lu");if(u)(u.value?$("#lc"):u).focus()},30);
+  $("#lf").onsubmit=async e=>{e.preventDefault();const id=$("#lu").value.trim(),c=$("#lc").value;if(!id||!c){$("#le").textContent="Entrez votre identifiant et votre mot de passe.";return}
+    $("#le").textContent="Connexion…";
+    try{
+      if(DEMO){await login(c);return}
+      const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"auth",id,mdp:c})}).then(r=>r.json());
+      if(!r.ok){$("#le").textContent=r.err||"Connexion refusée";$("#lc").select();return}
+      store.set("reg3aim_ident",id);store.set("reg3aim_ts",String(Date.now()));$("#lc").value="";
+      await login(r.t);
+    }catch(x){$("#le").textContent=x.message||"Le registre ne répond pas. Vérifiez votre connexion internet."}};
+  $("#lc").oninput=()=>$("#le").textContent="";$("#lu").oninput=()=>$("#le").textContent="";
 }
 
 /* ============ RENDU GÉNÉRAL ============ */
@@ -631,6 +696,7 @@ function renderDash(){
    <div class="ents" id="el">${all.length?"":`<div class="card empty"><h3 style="font-size:20px">Ajoute ta première entreprise</h3><p>Commence par 3AIM CFA, puis tes clients.</p>${!DEMO?`<button class="btn" id="sd">Charger 3AIM CFA, KAZ PILOTE et l’exemple</button>`:""}</div>`}</div></section>
   <aside class="grid"><div class="card opp"><h2 style="font-size:21px">Opportunités</h2><p class="hint" style="margin:2px 0 6px">Ce que les registres font apparaître</p>
    ${op.length?`<ul style="padding-left:18px;margin:0">${op.slice(0,12).map(o=>`<li><b>${esc(o.nom)}</b> : ${esc(o.t)}<br><span class="to">→ ${o.qui}</span>${/3AIM CFA/.test(o.qui)?` <button class="btn sm" data-dv="${o.id}" data-dvt="${esc(o.t)}" style="padding:2px 8px;font-size:12.5px">Créer le devis</button>`:""}</li>`).join("")}</ul>${op.length>12?`<p class="hint">+ ${op.length-12} autre(s), résumé envoyé chaque lundi</p>`:""}`:`<p class="hint">Rien pour l’instant.</p>`}</div>
+   <div class="card" style="padding:14px"><h2 style="font-size:21px">Accès et connexions</h2><p class="hint" style="margin:2px 0 8px">Identifiants et mots de passe de vos clients, journal des connexions</p><button class="btn" data-acx="1">🔐 Ouvrir</button></div>
    <div class="card"><h2 style="font-size:21px;padding:14px 14px 0">Dernières activités</h2><div class="feed">${S.jr.slice(0,25).map(j=>`<div>${esc(j.action)}<small>${esc(nom(j.entId))} · ${j.qui==="client"?"saisi par le client":j.qui==="admin"?"3AIM CFA":j.qui} · ${esc(j.date)}</small></div>`).join("")||`<div class="hint">Aucune activité.</div>`}</div></div></aside></div>`;
   const list=f=>{$("#el").innerHTML=all.filter(a=>!f||a.e.nom.toLowerCase().includes(f)).sort((a,b)=>a.s-b.s).map(a=>{const first=els(a.e.id).filter(x=>["retard","nc"].includes(statut(x)))[0]||els(a.e.id).filter(x=>statut(x)==="bientot").sort((x,y)=>x.prochain.localeCompare(y.prochain))[0];
    return `<button class="card ent" data-e="${a.e.id}"><div class="gauge" style="--v:${a.s};--gc:${scol(a.s)}"><span>${a.s}</span></div><div><div class="nm">${esc(a.e.nom)}</div><div class="hint">${esc([a.e.activite,a.e.ville].filter(Boolean).join(" · "))}</div>
@@ -1409,18 +1475,22 @@ function entForm(e){
     try{const r=await api("saveEnt",{ent:o});const i=S.ents.findIndex(x=>x.id===r.ent.id);if(i>=0)S.ents[i]=r.ent;else S.ents.push(r.ent);m.close();toast("Fiche enregistrée");V={view:"ent",ent:r.ent.id,tab:"id"};render()}catch(z){m.q("#n_e").textContent=z.message}};
 }
 async function access(e){await need("qr");
-  const lk=`${APP_URL}/?c=${e.code}`,lec=`${APP_URL}/?c=${e.lecture}`;
+  const lec=`${APP_URL}/?c=${e.lecture}`;let ident=e.nom;
+  try{if(!DEMO){const r=await api("acces");S.idents=r.idents;ident=r.idents[e.id]||e.nom}}catch(z){}
+  const lk=`${APP_URL}\nIdentifiant : ${ident}\nMot de passe : ${e.code}`;
   const m=modal("Accès client – "+esc(e.nom),RUB.id.c,`
-   <p style="margin:0">L’entreprise ouvre son registre, le complète et dépose ses documents avec ce lien :</p>
-   <div class="calc" style="word-break:break-all"><b>${lk}</b><br><span class="hint">Code : <span class="mono">${e.code}</span></span></div>
+   <p style="margin:0">L’entreprise ouvre son registre, le complète et dépose ses documents à cette adresse, avec ses identifiant et mot de passe :</p>
+   <div class="calc" style="word-break:break-all"><b>${APP_URL}</b><br><span class="hint">Identifiant : <span class="mono">${esc(ident)}</span> · Mot de passe : <span class="mono">${esc(e.code)}</span></span>
+   <br><button class="btn sm" id="a_x" style="margin-top:6px">Modifier l’identifiant ou le mot de passe</button></div>
    <p style="margin:6px 0 0"><b>QR code à afficher dans l’entreprise</b> (consultation seule, pour un auditeur ou l’inspection du travail) :</p>
    <div class="qr" id="qr"></div><div class="hint" style="text-align:center">Code de consultation : <span class="mono">${e.lecture}</span></div><div class="err" id="a_e"></div>`,
-   `<button class="btn" id="a_n">Nouveau code</button><button class="btn" id="a_c">Copier le lien</button><button class="btn" id="a_q">Télécharger le QR</button><button class="btn pri" id="a_m">Envoyer les accès par mail</button>`);
+   `<button class="btn" id="a_n">Nouveau mot de passe</button><button class="btn" id="a_c">Copier les accès</button><button class="btn" id="a_q">Télécharger le QR</button><button class="btn pri" id="a_m">Envoyer les accès par mail</button>`);
   new QRCode(m.q("#qr"),{text:lec,width:170,height:170,correctLevel:QRCode.CorrectLevel.M});
-  m.q("#a_c").onclick=()=>{navigator.clipboard?.writeText(lk).then(()=>toast("Lien copié"),()=>toast(lk))};
+  m.q("#a_c").onclick=()=>{navigator.clipboard?.writeText(lk).then(()=>toast("Accès copiés"),()=>toast(lk))};
+  m.q("#a_x").onclick=()=>{m.close();accesForm(e,ident,()=>access(S.ents.find(x=>x.id===e.id)||e))};
   m.q("#a_q").onclick=()=>{const c=m.q("#qr canvas");if(!c)return;saveFile(`QR_registre_${e.nom.replace(/\W+/g,"_")}.png`,dataBlob(qrPoster(e,c)))};
   m.q("#a_m").onclick=async()=>{try{await api("sendAccess",{id:e.id});toast(DEMO?"Mode démo : le mail partira une fois l’outil en ligne":"Accès envoyés à "+e.email)}catch(z){m.q("#a_e").textContent=z.message}};
-  m.q("#a_n").onclick=async()=>{if(!confirm("Générer un nouveau code ? L’ancien ne fonctionnera plus."))return;const r=await api("newCode",{id:e.id,kind:"code"});Object.assign(e,r.ent);m.close();access(e)};
+  m.q("#a_n").onclick=async()=>{if(!confirm("Générer un nouveau mot de passe ? L’ancien ne fonctionnera plus."))return;const r=await api("newCode",{id:e.id,kind:"code"});Object.assign(e,r.ent);m.close();access(e)};
 }
 function qrPoster(e,qr){ // affichette A5 prête à imprimer
   const c=document.createElement("canvas");c.width=1240;c.height=1748;const g=c.getContext("2d");
@@ -1964,9 +2034,17 @@ async function exportXLS(e){await need("exceljs");
 
 /* ============ DÉMARRAGE ============ */
 (async()=>{
-  const Q=new URLSearchParams(location.search),u=Q.get("c"),c=u||store.get("reg3aim_code");PEND_M=Q.get("m");
+  const Q=new URLSearchParams(location.search),u=Q.get("c");PEND_M=Q.get("m");
   if(u)history.replaceState(null,"",location.pathname);
-  if(c){try{await login(c)}catch(x){renderLogin(x.message)}}else renderLogin();
+  let c=null,msg="";
+  if(u&&(DEMO||/^LEC-/i.test(u)))c=u;                       /* étiquette QR / lien de consultation : lecture seule */
+  else{
+    if(u)msg="Pour ouvrir votre registre, entrez votre identifiant et votre mot de passe.";
+    const st=store.get("reg3aim_code");
+    if(st){if(DEMO||(isTok(st)&&!sessionExpiree()))c=st;else{if(isTok(st))msg=msg||"Votre connexion du jour est terminée : entrez à nouveau votre identifiant et votre mot de passe.";logoutSilencieux(st)}}
+  }
+  function logoutSilencieux(st){if(isTok(st))fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"logout",code:st})}).catch(()=>{});wipeSession()}
+  if(c){try{await login(c)}catch(x){renderLogin(x.message)}}else renderLogin(msg);
 })();
 </script>
 <script>
