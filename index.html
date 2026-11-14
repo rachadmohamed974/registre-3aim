@@ -4,7 +4,7 @@
 <script>/* Lien Lakaz : lire les infos envoyées avant que la page ne nettoie l'adresse */try{const r=new URLSearchParams(location.search).get("lakaz");if(r){sessionStorage.setItem("lakaz_imp",r);const u=new URL(location.href);u.searchParams.delete("lakaz");history.replaceState(null,"",u.pathname+u.search)}}catch(e){}</script>
 
 <script>/* Mise à jour automatique : à l'ouverture (puis toutes les 10 min), la page vérifie s'il existe une version plus récente sur le site et se recharge toute seule. */
-const APP_VER="2026-11-14-acces";
+const APP_VER="2026-11-14-espace";
 (function(){
   try{const u=new URL(location.href);if(u.searchParams.has("v")||u.searchParams.has("_")){u.searchParams.delete("v");u.searchParams.delete("_");history.replaceState(null,"",u.pathname+u.search+u.hash)}}catch(e){}
   const busy=()=>!!document.querySelector(".ov,#vg")||(()=>{try{return!!sessionStorage.getItem("lakaz_imp")}catch(e){return false}})();
@@ -576,13 +576,13 @@ async function need(...ks){for(const k of ks){if(k==="autotable")await loadJS("j
 /* ============ CONNEXION ============ */
 const cacheKey=c=>"reg3aim_cache_"+c;
 function applyData(r){Object.assign(S,{role:r.role,entId:r.entId,ents:r.ents||[],els:r.els||[],res:r.res||[],fic:r.fic||[],du:r.du||[],jr:r.jr||[]})}
-function saveCache(){if(DEMO)return;store.set(cacheKey(S.code),JSON.stringify({role:S.role,entId:S.entId,ents:S.ents,els:S.els,res:S.res,fic:S.fic,du:S.du.map(({_o,...x})=>x),jr:S.jr.slice(0,40)}))}
+function saveCache(){if(DEMO||VUE)return;store.set(cacheKey(S.code),JSON.stringify({role:S.role,entId:S.entId,ents:S.ents,els:S.els,res:S.res,fic:S.fic,du:S.du.map(({_o,...x})=>x),jr:S.jr.slice(0,40)}))}
 function startView(){if(S.role!=="admin"&&(V.view==="dash"||!V.ent))V={view:"ent",ent:S.entId,tab:"id"};if(PEND_M&&S.els.some(x=>x.id===PEND_M)){V={view:"machine",el:PEND_M};PEND_M=null}}
 async function login(code){
   S.code=code.trim();
   let cached=null;try{cached=JSON.parse(store.get(cacheKey(S.code))||"null")}catch(x){}
   if(cached){applyData(cached);startView();render();showSync(true)}
-  try{const r=await api("login",{code:S.code});store.set("reg3aim_code",S.code);
+  try{const r=await api("login",{code:S.code});if(!VUE)store.set("reg3aim_code",S.code);
     if(r.ents)applyData(r);else{S.role=r.role;S.entId=r.entId;await reload()}
     saveCache();startView();
     if(!document.querySelector(".ov"))render();showSync(false);
@@ -592,12 +592,15 @@ function showSync(on){let d=$("#sync");if(on&&!d&&$(".top .in")){d=document.crea
 async function reload(){const r=await api("load");Object.assign(S,{ents:r.ents,els:r.els,res:r.res,fic:r.fic||[],du:r.du||[],jr:r.jr||[]});saveCache()}
 /* ===== Connexion : identifiant + mot de passe, 24 h (14/11/2026) ===== */
 const SESSION_H=24;
+/* « Voir comme le client » : onglet à part, lecture seule, sans toucher à la connexion de l'administrateur */
+const VUE=(()=>{try{const q=new URLSearchParams(location.search).get("vue");if(q){sessionStorage.setItem("reg3aim_vue",q);history.replaceState(null,"",location.pathname)}return sessionStorage.getItem("reg3aim_vue")||""}catch(e){return""}})();
 const isTok=c=>/^[0-9a-f]{64}$/.test(String(c||""));
 function sessionExpiree(){const ts=Number(store.get("reg3aim_ts")||0);return !ts||Date.now()-ts>SESSION_H*3600e3}
-function wipeSession(){const c=store.get("reg3aim_code");if(c)store.set(cacheKey(c),null);if(S.code)store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);store.set("reg3aim_ts",null)}
-function logout(){const c=S.code;if(!DEMO&&isTok(c))fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"logout",code:c})}).catch(()=>{});
+function wipeSession(){if(VUE){try{sessionStorage.removeItem("reg3aim_vue")}catch(e){}return}const c=store.get("reg3aim_code");if(c)store.set(cacheKey(c),null);if(S.code)store.set(cacheKey(S.code),null);store.set("reg3aim_code",null);store.set("reg3aim_ts",null)}
+function logout(){if(VUE){wipeSession();S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};document.getElementById("app").innerHTML=`<div class="card empty" style="margin:40px auto;max-width:520px">La vue client est fermée. Vous pouvez fermer cet onglet.</div>`;return}
+  const c=S.code;if(!DEMO&&isTok(c))fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"logout",code:c})}).catch(()=>{});
   wipeSession();S={role:null,code:null,entId:null,ents:[],els:[],res:[],fic:[],du:[],jr:[],photos:{}};render()}
-setInterval(()=>{if(S.role&&isTok(S.code)&&sessionExpiree()){logout();renderLogin("Votre connexion du jour est terminée : entrez à nouveau votre identifiant et votre mot de passe.")}},5*60e3);
+setInterval(()=>{if(!VUE&&S.role&&isTok(S.code)&&sessionExpiree()){logout();renderLogin("Votre connexion du jour est terminée : entrez à nouveau votre identifiant et votre mot de passe.")}},5*60e3);
 /* ===== Espace administrateur : Accès et connexions ===== */
 function genMdp(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let x="";const r=new Uint32Array(8);crypto.getRandomValues(r);r.forEach(n=>x+=A[n%A.length]);return "ENT-"+x}
 function accesForm(e,ident,after){
@@ -644,7 +647,7 @@ async function accesPanel(){
     m.q("#j_l").innerHTML=L.length?`<div class="feed">${L.map(l=>`<div><span style="color:${l.res==="connecté"?"var(--ok,#1F7A4D)":"var(--bad,#B42318)"};font-weight:700">${l.res==="connecté"?"✔ Connexion":"✖ "+esc(l.res==="refusé"?"Essai raté":l.res)}</span> · ${esc(l.ent||(l.profil==="administrateur"?"Vous (administrateur)":"—"))}<small>Identifiant tapé : ${esc(l.ident)} · ${esc(l.date)}</small></div>`).join("")}</div>`:`<p class="hint">Aucune connexion pour l’instant.</p>`};
   m.q("#j_e").onchange=draw;m.q("#j_r").onchange=draw;draw();
 }
-document.addEventListener("click",ev=>{if(ev.target.closest&&ev.target.closest("[data-acx]")){if(DEMO){toast("Disponible une fois le registre en ligne");return}accesPanel()}});
+document.addEventListener("click",ev=>{if(ev.target.closest&&ev.target.closest("[data-acx]")){if(DEMO){toast("Disponible une fois le registre en ligne");return}V={view:"esp"};render();scrollTo(0,0)}});
 
 function renderLogin(msg){
   $("#app").innerHTML=`<div class="login"><div class="lbox"><div class="stripes"></div><div class="hd"><div class="brand"><div class="mark rx"><svg viewBox="0 0 40 46" width="30" height="34" aria-hidden="true"><path d="M20 2 37 8v13c0 11-7.3 19.3-17 23C10.3 40.3 3 32 3 21V8z" fill="#12213F" stroke="#fff" stroke-width="2.4"/><path d="m11.5 22.5 6 6 11.5-12.5" fill="none" stroke="#E87722" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b style="color:var(--ink)">RUNIXO CONTRÔLE</b><small style="color:var(--ink2)">Registre de sécurité · VGP · EPI antichute · DUERP</small></div></div>
@@ -696,7 +699,7 @@ function renderDash(){
    <div class="ents" id="el">${all.length?"":`<div class="card empty"><h3 style="font-size:20px">Ajoute ta première entreprise</h3><p>Commence par 3AIM CFA, puis tes clients.</p>${!DEMO?`<button class="btn" id="sd">Charger 3AIM CFA, KAZ PILOTE et l’exemple</button>`:""}</div>`}</div></section>
   <aside class="grid"><div class="card opp"><h2 style="font-size:21px">Opportunités</h2><p class="hint" style="margin:2px 0 6px">Ce que les registres font apparaître</p>
    ${op.length?`<ul style="padding-left:18px;margin:0">${op.slice(0,12).map(o=>`<li><b>${esc(o.nom)}</b> : ${esc(o.t)}<br><span class="to">→ ${o.qui}</span>${/3AIM CFA/.test(o.qui)?` <button class="btn sm" data-dv="${o.id}" data-dvt="${esc(o.t)}" style="padding:2px 8px;font-size:12.5px">Créer le devis</button>`:""}</li>`).join("")}</ul>${op.length>12?`<p class="hint">+ ${op.length-12} autre(s), résumé envoyé chaque lundi</p>`:""}`:`<p class="hint">Rien pour l’instant.</p>`}</div>
-   <div class="card" style="padding:14px"><h2 style="font-size:21px">Accès et connexions</h2><p class="hint" style="margin:2px 0 8px">Identifiants et mots de passe de vos clients, journal des connexions</p><button class="btn" data-acx="1">🔐 Ouvrir</button></div>
+   <div class="card" style="padding:14px"><h2 style="font-size:21px">Accès et connexions</h2><p class="hint" style="margin:2px 0 8px">Identifiants, documents partagés, connexions et traçabilité de vos clients</p><button class="btn" data-acx="1">🌐 Ouvrir l’espace en ligne</button></div>
    <div class="card"><h2 style="font-size:21px;padding:14px 14px 0">Dernières activités</h2><div class="feed">${S.jr.slice(0,25).map(j=>`<div>${esc(j.action)}<small>${esc(nom(j.entId))} · ${j.qui==="client"?"saisi par le client":j.qui==="admin"?"3AIM CFA":j.qui} · ${esc(j.date)}</small></div>`).join("")||`<div class="hint">Aucune activité.</div>`}</div></div></aside></div>`;
   const list=f=>{$("#el").innerHTML=all.filter(a=>!f||a.e.nom.toLowerCase().includes(f)).sort((a,b)=>a.s-b.s).map(a=>{const first=els(a.e.id).filter(x=>["retard","nc"].includes(statut(x)))[0]||els(a.e.id).filter(x=>statut(x)==="bientot").sort((x,y)=>x.prochain.localeCompare(y.prochain))[0];
    return `<button class="card ent" data-e="${a.e.id}"><div class="gauge" style="--v:${a.s};--gc:${scol(a.s)}"><span>${a.s}</span></div><div><div class="nm">${esc(a.e.nom)}</div><div class="hint">${esc([a.e.activite,a.e.ville].filter(Boolean).join(" · "))}</div>
@@ -2037,7 +2040,8 @@ async function exportXLS(e){await need("exceljs");
   const Q=new URLSearchParams(location.search),u=Q.get("c");PEND_M=Q.get("m");
   if(u)history.replaceState(null,"",location.pathname);
   let c=null,msg="";
-  if(u&&(DEMO||/^LEC-/i.test(u)))c=u;                       /* étiquette QR / lien de consultation : lecture seule */
+  if(VUE)c=VUE;
+  else if(u&&(DEMO||/^LEC-/i.test(u)))c=u;                       /* étiquette QR / lien de consultation : lecture seule */
   else{
     if(u)msg="Pour ouvrir votre registre, entrez votre identifiant et votre mot de passe.";
     const st=store.get("reg3aim_code");
@@ -4578,6 +4582,198 @@ function rxEnsAuto(d){const od=rxO(d);if(od.ens||!(Number(od.ensPrevu)||(od.ensN
 {const _api3=api;api=async function(a,p){const r=await _api3.apply(this,arguments);
   try{if(a==="saveFiche"&&p&&p.fic&&p.fic.type==="devis"&&r&&r.fic){const id=r.fic.id,od=rxO(r.fic);if(!od.ens&&(Number(od.ensPrevu)||(od.ensNoms||[]).length)){let n=0;const t=setInterval(()=>{n++;if(n>400){clearInterval(t);return}
       if(document.querySelector(".ov"))return;clearInterval(t);const d=S.fic.find(x=>x.id===id);if(d)rxEnsAuto(d)},500)}}}catch(z){}return r}}
+
+</script>
+<script>
+/* ============ RUNIXO CONTRÔLE : 📁 Documents (tout), 🌐 Espace en ligne, 🕓 Traçabilité – 14/11/2026 ============ */
+(function(){
+  if(!RX_MENU.some(m=>m[0]==="esp")){const i=RX_MENU.findIndex(m=>m[0]==="docs");RX_MENU.splice(i+1,0,["esp","🌐","Espace en ligne"],["trace","🕓","Traçabilité"])}
+})();
+
+/* --- suppression : le nom du document et du client partent avec, pour la traçabilité --- */
+{const _apiTr=api;api=async function(a,p){try{if(/^del/.test(a)&&p&&p.id&&!p._lib){const id=p.id;let lib="",ent="";
+  const f=S.fic.find(x=>x.id===id),x=S.els.find(y=>y.id===id),r=S.res.find(y=>y.id===id),d=S.du.find(y=>y.id===id),e=S.ents.find(y=>y.id===id);
+  if(f){lib=(RD_FT[f.type]||"Fiche")+(f.a?" "+f.a:"");ent=f.entId}else if(x){lib=x.libelle||"Équipement";ent=x.entId}else if(r){lib="Observation : "+String(r.texte||"").slice(0,60);ent=r.entId}
+  else if(d){lib="Document unique v"+d.version;ent=d.entId}else if(e){lib=e.nom;ent=e.id}
+  else{Object.keys(EPLIST||{}).forEach(k=>{const y=(EPLIST[k]||[]).find(z=>z.id===id);if(y){lib="Rapport EPI N° "+y.num+" – "+(y.salarie||"");ent=k}})}
+  if(lib||ent)p={...p,_lib:lib,_ent:ent}}}catch(z){}
+  return _apiTr.call(this,a,p)}}
+
+const RD_FT={devis:"Devis",fact:"Facture",bonepi:"Bon EPI",hist:"Rapport archivé",autre:"Document",perso:"Formation",dae:"Défibrillateur"};
+const RD_TY={devis:["📝","Devis"],fact:["💶","Factures"],bon:["📦","Bons EPI (récupération / restitution)"],vgp:["🏗️","Rapports VGP"],epi:["🦺","Rapports EPI"],duerp:["📋","Documents uniques"],verif:["🔧","Vérifications"],form:["🎓","Formations"],autre:["📄","Autres documents"]};
+const RD_BON={a_recuperer:"à récupérer",recupere:"récupéré",restitue:"restitué"};
+const rdFold=(k,def)=>{const v=store.get("reg3aim_fold_"+k);return v==null?def:v==="1"};
+function rdDetails(k,titre,html,def=true){return `<details class="card rdsec" data-rdf="${k}" ${rdFold(k,def)?"open":""} style="padding:12px 14px;margin-bottom:14px"><summary style="cursor:pointer;font-weight:700;font-size:19px;list-style:none">${rdFold(k,def)?"▾":"▸"} ${titre}</summary><div style="margin-top:10px">${html}</div></details>`}
+function rdFoldBind(M){M.querySelectorAll("details[data-rdf]").forEach(d=>{const sm=d.querySelector("summary");d.addEventListener("toggle",()=>{store.set("reg3aim_fold_"+d.dataset.rdf,d.open?"1":"0");sm.textContent=sm.textContent.replace(/^[▾▸]/,d.open?"▾":"▸")})})}
+(function(){const st=document.createElement("style");st.textContent=`details.rdsec>summary::-webkit-details-marker{display:none}.rdrow{cursor:pointer}.rdrow:hover td{background:#F6F8FB}.rdrow.dbl td{background:#FDECEA}.rdtag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#374151}.rdmask{background:#FDECEA;color:#B42318}.rdvis{background:#E5F3EB;color:#1B5E20}`;document.head.appendChild(st)})();
+
+/* --- tous les documents (de tous les clients ou d'un seul) --- */
+function rdTous(entId){const D=[],epDocs=new Set(),ok=id=>S.ents.some(e=>e.id===id)&&(!entId||id===entId);
+  Object.keys(EPLIST||{}).forEach(k=>{if(!ok(k))return;(EPLIST[k]||[]).forEach(x=>{let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}const d=String(x.date||"").slice(0,10);
+    if(x.pdf){epDocs.add(x.pdf);D.push({cle:"epi:"+x.id,k:"epi",t:"epi",d,titre:`Rapport EPI N° ${x.num}${o.rev?" – rév. "+o.rev:""} – ${x.salarie||""}`,entId:k,url:x.pdf,x})}
+    if(o.recap&&!D.some(z=>z.url===o.recap)){epDocs.add(o.recap);D.push({cle:"",k:"recap",t:"epi",d,titre:"Récapitulatif du contrôle EPI",entId:k,url:o.recap})}})});
+  S.els.forEach(x=>{if(!ok(x.entId)||!x.doc||x.doc==="#"||epDocs.has(x.doc))return;D.push({cle:"el:"+x.id,k:"el",t:x.rub==="lev"?"vgp":x.rub==="form"?"form":x.rub==="epi"?"epi":"verif",d:String(x.dernier||x.majLe||"").slice(0,10),titre:x.libelle+(x.ref?" – "+x.ref:""),entId:x.entId,url:x.doc,x})});
+  S.fic.forEach(f=>{if(!ok(f.entId))return;const has=f.doc&&f.doc!=="#";let t;
+    if(f.type==="devis")t="devis";else if(f.type==="fact")t="fact";else if(f.type==="bonepi")t="bon";else if(!has||["plan","cfg","ensepi","daej"].includes(f.type))return;
+    else t=f.type==="hist"?({lev:"vgp",epi:"epi",form:"form"}[f.b]||"verif"):f.type==="perso"?"form":"autre";
+    const titre=t==="devis"?"Devis "+(f.a||""):t==="fact"?"Facture "+(f.a||"")+(FA_ST[f.b]?" – "+FA_ST[f.b][0].toLowerCase():""):t==="bon"?"Bon "+(f.a||"")+(RD_BON[f.b]?" – "+RD_BON[f.b]:""):(f.a||"Document");
+    D.push({cle:"fic:"+f.id,k:"fic",t,d:String(f.date||"").slice(0,10),titre,num:(t==="devis"||t==="fact"||t==="bon")?String(f.a||""):"",entId:f.entId,url:has?f.doc:"",f})});
+  S.du.filter(d=>d.statut==="validé"&&ok(d.entId)).forEach(d=>D.push({cle:"du:"+d.id,k:"du",t:"duerp",d:String(d.date||"").slice(0,10),titre:`Document unique – version ${d.version}`,entId:d.entId,du:d}));
+  /* anti-doublon : même numéro, ou même fichier */
+  const vu={};D.forEach(r=>{const ks=[];if(r.num)ks.push(r.t+"#"+r.num);if(r.url)ks.push("u#"+r.url);ks.forEach(k=>(vu[k]=vu[k]||[]).push(r))});
+  Object.values(vu).filter(g=>g.length>1).forEach(g=>g.forEach(r=>r.dbl=true));
+  return D.sort((a,b)=>String(b.d).localeCompare(String(a.d)))}
+const rdEnt=r=>S.ents.find(e=>e.id===r.entId)||{};
+async function rdApercu(r){const e=rdEnt(r);
+  if(r.k==="du")return pdfFlow(e,"Document unique – version "+r.du.version,()=>exportDUERP(e,r.du));
+  if(r.k==="fic"){if(r.f.type==="bonepi"&&!r.url)return pdfFlow(e,"Bon "+r.f.a,()=>rxBonPdf(r.f));return rxApercu(r.f)}
+  return rxApercu({doc:r.url,entId:r.entId,a:r.titre,type:"autre"})}
+async function rdFichier(r){const e=rdEnt(r);
+  if(r.k==="du")return exportDUERP(e,r.du);
+  if(r.k==="fic"&&!rxDrvId(r.url)){if(r.f.type==="bonepi")return rxBonPdf(r.f);if(r.f.type==="fact"||r.f.type==="devis")return rxPdfDe(r.f,false)}
+  return null}
+async function rdTelecharge(r){const id=rxDrvId(r.url);if(id){rxDlDrive(id);toast("Téléchargement lancé : "+r.titre);return}
+  const p=await rdFichier(r);if(p){rxDl(URL.createObjectURL(p.blob),p.name);toast("Téléchargé : "+p.name);return}
+  if(r.url)window.open(r.url,"_blank","noopener")}
+async function rdZip(L){const gen=[],drv=[];for(const r of L){if(rxDrvId(r.url))drv.push(r);else gen.push(r)}
+  if(gen.length){await need("jszip");const z=new JSZip(),noms={};for(const r of gen){const p=await rdFichier(r);if(!p)continue;let n=p.name;while(noms[n])n=n.replace(/(\.pdf)?$/,"_2.pdf");noms[n]=1;z.file(n,p.blob)}
+    const b=await z.generateAsync({type:"blob"});rxDl(URL.createObjectURL(b),"Documents_RUNIXO_"+today()+".zip")}
+  drv.forEach((r,i)=>setTimeout(()=>rxDlDrive(rxDrvId(r.url)),i*900));
+  toast(drv.length?`${drv.length} PDF du Drive en téléchargement${gen.length?" + un fichier .zip":""} (autorisez les téléchargements multiples si Chrome le demande)`:"Fichier .zip téléchargé")}
+function rdPeutSuppr(r){return r.k!=="recap"}
+async function rdSupprime(L){L=L.filter(rdPeutSuppr);if(!L.length){toast("Ces documents ne se suppriment pas d’ici");return false}
+  const em=L.filter(r=>r.k==="fic"&&r.f.type==="fact"&&r.f.b!=="a_emettre");
+  let msg=L.length===1?`Supprimer « ${L[0].titre} » (${rdEnt(L[0]).nom||""}) ?`:`Supprimer ces ${L.length} documents ?`;
+  if(L.some(r=>r.k==="el"))msg+="\n\nPour un équipement, seul le document est retiré : l’équipement et sa date de vérification restent.";
+  if(em.length)msg+=`\n\n⚠️ ${em.length===1?"La facture "+em[0].f.a+" est déjà émise":em.length+" factures sont déjà émises"}. La loi impose une numérotation continue : pour annuler une facture émise, faites plutôt un avoir. La suppression sera notée dans la traçabilité.`;
+  msg+="\n\nLes PDF déjà rangés dans votre Drive restent dans le Drive.";
+  if(!confirm(msg))return false;
+  for(const r of L){try{
+    if(r.k==="fic"){await api("delFiche",{id:r.f.id});S.fic=S.fic.filter(x=>x.id!==r.f.id)}
+    else if(r.k==="el"){const x=S.els.find(y=>y.id===r.x.id);if(!x)continue;const r2=await api("saveEl",{el:{...x,doc:""},_lib:"Document retiré : "+r.titre});const i=S.els.findIndex(y=>y.id===x.id);if(i>=0)S.els[i]=r2.el||{...x,doc:""}}
+    else if(r.k==="du"){await api("delDuerp",{id:r.du.id});S.du=S.du.filter(x=>x.id!==r.du.id)}
+    else if(r.k==="epi"){await api("delEPI",{id:r.x.id});EPLIST[r.entId]=(EPLIST[r.entId]||[]).filter(y=>y.id!==r.x.id)}
+  }catch(z){toast("« "+r.titre+" » : "+z.message)}}
+  setTimeout(saveCache,0);toast(L.length+" document(s) supprimé(s)");return true}
+function rdOuvre(r){if(r.k==="fic"){if(r.f.type==="fact")return factForm(r.f);if(r.f.type==="devis")return devisForm(r.f);if(r.f.type==="bonepi")return rxBonForm(r.f)}
+  V={view:"ent",ent:r.entId,tab:r.t==="duerp"?"duerp":"docs"};render();scrollTo(0,0)}
+
+/* --- 📁 Documents : tout ce que vous faites --- */
+let RDF={t:"",ent:"",du:"",au:"",q:""};
+RXMODS.docs=M=>{
+  const draw=()=>{const ALL=rdTous(),f=norm2(RDF.q||"");
+    const L=ALL.filter(r=>(!RDF.t||r.t===RDF.t)&&(!RDF.ent||r.entId===RDF.ent)&&(!RDF.du||r.d>=RDF.du)&&(!RDF.au||(r.d&&r.d<=RDF.au))&&(!f||norm2(r.titre+" "+(rdEnt(r).nom||"")).includes(f)));
+    const cnt={};ALL.forEach(r=>cnt[r.t]=(cnt[r.t]||0)+1);const dbl=L.filter(r=>r.dbl).length;
+    const ents=[...new Set(ALL.map(r=>r.entId))].sort((a,b)=>rxNom(a).localeCompare(rxNom(b),"fr"));
+    M.innerHTML=rxHead("📁 Documents","Tout ce que vous faites : devis, factures, bons, rapports VGP et EPI, documents uniques, documents déposés")+
+     `<div class="quick" style="margin:0 0 10px;display:flex;flex-wrap:wrap;gap:6px">${[["","Tous ("+ALL.length+")"]].concat(Object.keys(RD_TY).filter(k=>cnt[k]).map(k=>[k,RD_TY[k][0]+" "+RD_TY[k][1]+" ("+cnt[k]+")"])).map(([k,l])=>`<button class="chip" data-rdt="${k}" style="${RDF.t===k?"border-style:solid;border-color:#1F5FA8;color:var(--ink);font-weight:600":""}">${l}</button>`).join("")}</div>
+     <div class="rxbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><select id="rd_e" style="min-width:200px"><option value="">🏢 Tous les clients</option>${ents.map(id=>`<option value="${id}" ${RDF.ent===id?"selected":""}>${esc(rxNom(id))}</option>`).join("")}</select>
+      <label style="display:flex;gap:4px;align-items:center">Du <input type="date" id="rd_du" value="${esc(RDF.du)}"></label><label style="display:flex;gap:4px;align-items:center">au <input type="date" id="rd_au" value="${esc(RDF.au)}"></label>
+      <input id="rd_q" placeholder="🔎 Rechercher un document ou un client…" value="${esc(RDF.q)}" style="flex:1;min-width:220px"></div>
+     ${dbl?`<div class="card" style="padding:10px 14px;margin:0 0 10px;border-left:5px solid var(--bad)"><b style="color:var(--bad)">⚠️ ${dbl} document(s) en double</b> (même numéro ou même fichier) : surlignés en rouge ci-dessous.</div>`:""}
+     <div class="card" id="rd_bar" style="display:none;padding:10px 14px;margin:0 0 10px;gap:8px;align-items:center;flex-wrap:wrap;border:2px solid #E87722"><b id="rd_n"></b><span style="flex:1"></span><button class="btn sm" data-rdg="zip">⬇ Télécharger (.zip)</button><button class="btn sm danger ghost" data-rdg="del">🗑 Supprimer</button><button class="btn sm ghost" data-rdg="none">Tout décocher</button></div>
+     <div class="card" style="padding:4px 8px;overflow-x:auto"><table class="rxt" id="rd_tab"><tr><th style="width:30px"><input type="checkbox" id="rd_all" aria-label="Tout cocher"></th><th>Date</th><th>Type</th><th>Document</th><th>Client</th><th style="text-align:right">Actions</th></tr>
+     ${L.slice(0,600).map((r,i)=>`<tr class="rdrow${r.dbl?" dbl":""}" data-ri="${i}"><td><input type="checkbox" data-rdc="${i}" aria-label="Cocher"></td><td style="white-space:nowrap">${r.d?fr(r.d):"—"}</td><td style="white-space:nowrap">${RD_TY[r.t][0]} ${esc(RD_TY[r.t][1].replace(/ \(.*\)/,""))}</td><td>${r.dbl?"⚠️ ":""}${esc(r.titre)}</td><td>${esc(rdEnt(r).nom||"")}</td>
+      <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-rda="ap" title="Aperçu">👁</button> <button class="btn sm" data-rda="dl" title="Télécharger">⬇</button> ${rdPeutSuppr(r)?`<button class="btn sm danger ghost" data-rda="del" title="Supprimer">🗑</button>`:""}</td></tr>`).join("")||`<tr><td colspan="6" class="hint" style="padding:14px">Aucun document${RDF.t||RDF.ent||RDF.q||RDF.du||RDF.au?" avec ces filtres":""}.</td></tr>`}</table>
+     ${L.length>600?`<p class="hint">Les 600 plus récents sont affichés : utilisez les filtres pour trouver les autres.</p>`:""}</div>
+     ${S.ents.some(e=>!EPLIST[e.id])?`<p class="hint" id="rd_ep">Chargement des rapports EPI…</p>`:""}`;
+    const tab=M.querySelector("#rd_tab"),bar=M.querySelector("#rd_bar");
+    const coches=()=>[...tab.querySelectorAll("[data-rdc]:checked")].map(c=>L[Number(c.dataset.rdc)]);
+    const maj=()=>{const n=coches().length;bar.style.display=n?"flex":"none";M.querySelector("#rd_n").textContent=n+" sélectionné(s)"};
+    M.querySelectorAll("[data-rdt]").forEach(b=>b.onclick=()=>{RDF.t=b.dataset.rdt;draw()});
+    M.querySelector("#rd_e").onchange=ev=>{RDF.ent=ev.target.value;draw()};
+    M.querySelector("#rd_du").onchange=ev=>{RDF.du=ev.target.value;draw()};M.querySelector("#rd_au").onchange=ev=>{RDF.au=ev.target.value;draw()};
+    const q=M.querySelector("#rd_q");q.oninput=()=>{RDF.q=q.value;clearTimeout(q._t);q._t=setTimeout(()=>{draw();const n=M.querySelector("#rd_q");n.focus();n.setSelectionRange(n.value.length,n.value.length)},350)};
+    M.querySelector("#rd_all").onchange=ev=>{tab.querySelectorAll("[data-rdc]").forEach(c=>c.checked=ev.target.checked);maj()};
+    tab.addEventListener("click",async ev=>{const tr=ev.target.closest("tr[data-ri]");if(!tr)return;const r=L[Number(tr.dataset.ri)];
+      if(ev.target.closest("[data-rdc]"))return maj();const b=ev.target.closest("[data-rda]");
+      try{if(!b)return rdOuvre(r);const a=b.dataset.rda;b.disabled=true;
+        if(a==="ap")await rdApercu(r);else if(a==="dl")await rdTelecharge(r);else if(a==="del"&&await rdSupprime([r]))draw();b.disabled=false}catch(z){toast(z.message);if(b)b.disabled=false}});
+    bar.onclick=async ev=>{const b=ev.target.closest("[data-rdg]");if(!b)return;const k=b.dataset.rdg;
+      if(k==="none"){tab.querySelectorAll("[data-rdc]").forEach(c=>c.checked=false);M.querySelector("#rd_all").checked=false;return maj()}
+      const C=coches();if(!C.length)return;b.disabled=true;try{if(k==="zip")await rdZip(C);else if(k==="del"&&await rdSupprime(C))draw()}catch(z){toast(z.message)}b.disabled=false};
+    rdFoldBind(M)};
+  draw();if(S.ents.some(e=>!EPLIST[e.id]))rxEpiCharge(false).then(()=>{if(V.view==="docs"&&document.body.contains(M))draw()}).catch(()=>{const p=M.querySelector("#rd_ep");if(p)p.textContent="Rapports EPI indisponibles pour l’instant."})};
+
+/* --- 🌐 Espace en ligne --- */
+let ESP={ent:"",ac:null,mq:null};
+RXMODS.esp=M=>{
+  M.innerHTML=rxHead("🌐 Espace en ligne","Ce que vos clients voient et font dans leur espace registre.3aim.fr")+`<div id="es_b"><div class="card empty">Chargement…</div></div>`;
+  (async()=>{try{const [a,m]=await Promise.all([api("acces"),api("masques")]);ESP.ac=a;ESP.mq=m.masques||{};S.idents=a.idents}catch(z){M.querySelector("#es_b").innerHTML=`<div class="card empty">${esc(z.message)}</div>`;return}
+    if(!ESP.ent||!S.ents.some(e=>e.id===ESP.ent))ESP.ent=(S.ents.slice().sort((a,b)=>String(a.nom).localeCompare(String(b.nom)))[0]||{}).id||"";
+    esDraw(M);let tr=[];try{tr=(await api("trace",{max:200})).rows||[]}catch(z){}const tb=M.querySelector("#es_tr");if(tb)tb.innerHTML=trLignes(tr.slice(0,15),true)})()};
+function esDraw(M){const r=ESP.ac,ents=S.ents.slice().sort((a,b)=>String(a.nom).localeCompare(String(b.nom))),log=r.log||[],noms=[...new Set(log.map(l=>l.ent).filter(Boolean))].sort();
+  const acces=`<div style="overflow-x:auto"><table class="rxt" style="width:100%"><tr><th>Entreprise</th><th>Identifiant</th><th>Mot de passe</th><th style="text-align:right">Actions</th></tr>
+    ${ents.map(e=>`<tr><td><b>${esc(e.nom)}</b><br><span class="hint">${esc(e.email||"pas d’adresse mail")}</span></td><td><span class="mono">${esc(r.idents[e.id]||e.nom)}</span></td>
+     <td style="white-space:nowrap"><span class="mono" data-pw="${esc(e.code||"")}">••••••••</span> <button class="btn ghost sm" data-see title="Afficher / masquer">👁</button></td>
+     <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-ed="${e.id}">✏️ Modifier</button> <button class="btn sm" data-ml="${e.id}" ${e.email?"":"disabled"}>✉️ Envoyer</button> <button class="btn sm" data-vc="${e.id}">👁 Voir comme le client</button></td></tr>`).join("")||`<tr><td class="hint">Aucune entreprise.</td></tr>`}</table></div>
+    <h3 style="margin:16px 0 6px;font-size:17px">Journal des connexions</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px"><select id="j_e"><option value="">Toutes les connexions</option><option value="__admin">Mes connexions</option>${noms.map(n=>`<option>${esc(n)}</option>`).join("")}</select>
+     <select id="j_r"><option value="">Tous les résultats</option><option value="ok">Connexions réussies</option><option value="ko">Essais ratés et blocages</option></select></div><div id="j_l" style="max-height:320px;overflow-y:auto"></div>
+    <p class="hint" style="margin-top:10px">Votre propre accès se règle dans les propriétés du moteur (ADMIN_ID, ADMIN_CODE). Connexion de 24 h ; 5 essais ratés = blocage 15 minutes + mail d’alerte sur contact@3aim.fr.</p>`;
+  const e=S.ents.find(x=>x.id===ESP.ent);
+  const partages=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><select id="es_e" style="min-width:220px;font-weight:600">${ents.map(x=>`<option value="${x.id}" ${x.id===ESP.ent?"selected":""}>${esc(x.nom)}</option>`).join("")}</select>
+     ${e?`<button class="btn sm" id="es_dep">➕ Déposer un document</button><button class="btn sm" data-vc="${e.id}">👁 Voir comme le client</button>`:""}</div><div id="es_docs"></div>`;
+  const trace=`<div id="es_tr"><p class="hint">Chargement…</p></div><button class="btn sm" id="es_trall" style="margin-top:8px">🕓 Ouvrir toute la traçabilité</button>`;
+  M.querySelector("#es_b").innerHTML=rdDetails("es1","🔐 Accès et connexions",acces)+rdDetails("es2","📂 Documents partagés avec le client",partages)+rdDetails("es3","🕓 Dernières actions",trace);
+  rdFoldBind(M);
+  M.querySelectorAll("[data-see]").forEach(b=>b.onclick=()=>{const sp=b.previousElementSibling;sp.textContent=sp.textContent.startsWith("•")?sp.dataset.pw:"••••••••"});
+  M.querySelectorAll("[data-ed]").forEach(b=>b.onclick=()=>{const x=S.ents.find(y=>y.id===b.dataset.ed);accesForm(x,r.idents[x.id],()=>{V={view:"esp"};render()})});
+  M.querySelectorAll("[data-ml]").forEach(b=>b.onclick=async()=>{const x=S.ents.find(y=>y.id===b.dataset.ml);if(!confirm("Envoyer l’identifiant et le mot de passe à "+x.email+" ?"))return;try{await api("sendAccess",{id:x.id});toast("Accès envoyés à "+x.email)}catch(z){toast(z.message)}});
+  M.querySelectorAll("[data-vc]").forEach(b=>b.onclick=()=>esVoir(b.dataset.vc));
+  const jdraw=()=>{const fe=M.querySelector("#j_e").value,fr2=M.querySelector("#j_r").value;
+    const L=log.filter(l=>(!fe||(fe==="__admin"?l.profil==="administrateur":l.ent===fe))&&(!fr2||(fr2==="ok"?l.res==="connecté":l.res!=="connecté")));
+    M.querySelector("#j_l").innerHTML=L.length?`<div class="feed">${L.map(l=>`<div><span style="color:${l.res==="connecté"?"#1F7A4D":"#B42318"};font-weight:700">${l.res==="connecté"?"✔ Connexion":"✖ "+esc(l.res==="refusé"?"Essai raté":l.res)}</span> · ${esc(l.ent||(l.profil==="administrateur"?"Vous (administrateur)":"—"))}<small>Identifiant tapé : ${esc(l.ident)} · ${esc(l.date)}</small></div>`).join("")}</div>`:`<p class="hint">Aucune connexion pour l’instant.</p>`};
+  M.querySelector("#j_e").onchange=jdraw;M.querySelector("#j_r").onchange=jdraw;jdraw();
+  const se=M.querySelector("#es_e");if(se)se.onchange=()=>{ESP.ent=se.value;esDraw(M)};
+  const dp=M.querySelector("#es_dep");if(dp)dp.onclick=()=>{V={view:"ent",ent:ESP.ent,tab:"docs"};render();scrollTo(0,0)};
+  M.querySelector("#es_trall").onclick=()=>{V={view:"trace"};render();scrollTo(0,0)};
+  esDocs(M)}
+async function esDocs(M){const box=M.querySelector("#es_docs");if(!box||!ESP.ent)return;const id=ESP.ent;
+  if(!EPLIST[id]){box.innerHTML=`<p class="hint">Chargement des documents…</p>`;try{EPLIST[id]=(await api("listEPI",{entId:id})).rows||[]}catch(z){EPLIST[id]=[]}if(ESP.ent!==id||!document.body.contains(box))return}
+  const L=rdTous(id).filter(r=>r.url||r.k==="du"),mq=ESP.mq||{};
+  box.innerHTML=L.length?`<p class="hint" style="margin:0 0 8px">${L.filter(r=>!r.cle||!mq[r.cle]).length} document(s) visible(s) par le client sur ${L.length}. Un document masqué disparaît de son espace, sans être supprimé.</p>
+    <div style="overflow-x:auto"><table class="rxt" style="width:100%"><tr><th>Date</th><th>Document</th><th>Dans l’espace du client</th><th style="text-align:right"></th></tr>
+    ${L.map((r,i)=>{const m=r.cle&&mq[r.cle];return `<tr><td style="white-space:nowrap">${r.d?fr(r.d):"—"}</td><td>${RD_TY[r.t][0]} ${esc(r.titre)}</td><td>${m?`<span class="rdtag rdmask">🚫 Masqué</span>`:`<span class="rdtag rdvis">✔ Visible</span>`}</td>
+     <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-esa="${i}">👁</button> ${r.cle?`<button class="btn sm" data-esm="${i}">${m?"Rendre visible":"Masquer"}</button>`:`<span class="hint">suit le rapport</span>`}</td></tr>`}).join("")}</table></div>`:`<p class="hint">Aucun document dans l’espace de ce client pour l’instant.</p>`;
+  box.querySelectorAll("[data-esa]").forEach(b=>b.onclick=()=>rdApercu(L[Number(b.dataset.esa)]).catch(z=>toast(z.message)));
+  box.querySelectorAll("[data-esm]").forEach(b=>b.onclick=async()=>{const r=L[Number(b.dataset.esm)],on=!mq[r.cle];b.disabled=true;
+    try{const x=await api("masquer",{cle:r.cle,on,entId:r.entId,lib:r.titre});ESP.mq=x.masques||{};toast(on?"Masqué pour le client":"Visible pour le client");esDocs(M)}catch(z){toast(z.message);b.disabled=false}})}
+async function esVoir(entId){try{const r=await api("vueClient",{entId});const w=window.open(location.origin+location.pathname+"?vue="+r.t,"_blank");if(!w)toast("Autorisez les fenêtres pour registre.3aim.fr, puis recommencez")}catch(z){toast(z.message)}}
+
+/* --- 🕓 Traçabilité --- */
+let TRF={ent:"",type:"",qui:"",du:"",au:"",q:"",n:300},TRROWS=null;
+const TR_IC={"Création":"🟢","Modification":"✏️","Suppression":"🗑","Fichier":"📎","Mail":"✉️","Signature":"✍️","Connexion":"🔑","Accès":"🔐","Analyse":"🤖","Espace en ligne":"🌐"};
+function trLignes(L,court){return L.length?`<div style="overflow-x:auto"><table class="rxt" style="width:100%"><tr><th>Date et heure</th><th>Qui</th>${court?"":"<th>Client</th>"}<th>Action</th><th>Détail</th></tr>${L.map(x=>`<tr><td style="white-space:nowrap">${esc(x.date)}</td><td>${esc(x.qui==="Administrateur"?"Vous":x.qui)}</td>${court?"":`<td>${esc(x.ent||"—")}</td>`}<td style="white-space:nowrap">${TR_IC[x.type]||"•"} ${esc(x.act)}</td><td>${esc(court&&x.ent&&x.ent!==x.qui?x.ent+(x.det?" · "+x.det:""):x.det||"")}</td></tr>`).join("")}</table></div>`:`<p class="hint">Rien pour l’instant : les actions apparaîtront ici dès maintenant.</p>`}
+RXMODS.trace=M=>{
+  M.innerHTML=rxHead("🕓 Traçabilité","Tout ce qui a été fait dans le registre, par vous et par vos clients, avec la date et l’heure",`<button class="btn" id="tr_x">📊 Export Excel</button><button class="btn" id="tr_r">🔄 Actualiser</button>`)+`<div id="tr_b"><div class="card empty">Chargement…</div></div>`;
+  const charge=async()=>{try{TRROWS=(await api("trace",{max:5000})).rows||[]}catch(z){M.querySelector("#tr_b").innerHTML=`<div class="card empty">${esc(z.message)}</div>`;return}draw()};
+  const filtre=()=>{const f=norm2(TRF.q||"");return (TRROWS||[]).filter(x=>(!TRF.ent||x.ent===TRF.ent)&&(!TRF.type||x.type===TRF.type)&&(!TRF.qui||(TRF.qui==="__moi"?x.qui==="Administrateur":x.qui!=="Administrateur"))&&(!TRF.du||x.ts.slice(0,10)>=TRF.du)&&(!TRF.au||x.ts.slice(0,10)<=TRF.au)&&(!f||norm2([x.qui,x.ent,x.act,x.det].join(" ")).includes(f)))};
+  const draw=()=>{const R=TRROWS||[],L=filtre(),ents=[...new Set(R.map(x=>x.ent).filter(Boolean))].sort(),types=[...new Set(R.map(x=>x.type).filter(Boolean))].sort();
+    M.querySelector("#tr_b").innerHTML=`<div class="rxbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <select id="tr_e"><option value="">🏢 Tous les clients</option>${ents.map(n=>`<option ${TRF.ent===n?"selected":""}>${esc(n)}</option>`).join("")}</select>
+      <select id="tr_t"><option value="">Toutes les actions</option>${types.map(t=>`<option value="${esc(t)}" ${TRF.type===t?"selected":""}>${TR_IC[t]||""} ${esc(t)}</option>`).join("")}</select>
+      <select id="tr_q"><option value="">Tout le monde</option><option value="__moi" ${TRF.qui==="__moi"?"selected":""}>Mes actions</option><option value="__cli" ${TRF.qui==="__cli"?"selected":""}>Actions des clients</option></select>
+      <label style="display:flex;gap:4px;align-items:center">Du <input type="date" id="tr_du" value="${esc(TRF.du)}"></label><label style="display:flex;gap:4px;align-items:center">au <input type="date" id="tr_au" value="${esc(TRF.au)}"></label>
+      <input id="tr_s" placeholder="🔎 Rechercher (n° de facture, fichier, client…)" value="${esc(TRF.q)}" style="flex:1;min-width:220px"></div>
+     <p class="hint" style="margin:0 0 6px">${L.length} action(s)${L.length!==R.length?" sur "+R.length:""}</p>
+     <div class="card" style="padding:4px 8px">${trLignes(L.slice(0,TRF.n),false)}</div>${L.length>TRF.n?`<button class="btn" id="tr_m" style="margin-top:8px">Afficher plus</button>`:""}`;
+    const b=M.querySelector("#tr_b");
+    b.querySelector("#tr_e").onchange=ev=>{TRF.ent=ev.target.value;draw()};b.querySelector("#tr_t").onchange=ev=>{TRF.type=ev.target.value;draw()};b.querySelector("#tr_q").onchange=ev=>{TRF.qui=ev.target.value;draw()};
+    b.querySelector("#tr_du").onchange=ev=>{TRF.du=ev.target.value;draw()};b.querySelector("#tr_au").onchange=ev=>{TRF.au=ev.target.value;draw()};
+    const s2=b.querySelector("#tr_s");s2.oninput=()=>{TRF.q=s2.value;clearTimeout(s2._t);s2._t=setTimeout(()=>{draw();const n=M.querySelector("#tr_s");n.focus();n.setSelectionRange(n.value.length,n.value.length)},350)};
+    const mo=b.querySelector("#tr_m");if(mo)mo.onclick=()=>{TRF.n+=300;draw()}};
+  M.querySelector("#tr_r").onclick=()=>{M.querySelector("#tr_b").innerHTML=`<div class="card empty">Chargement…</div>`;charge()};
+  M.querySelector("#tr_x").onclick=async()=>{if(!TRROWS)return;const L=filtre();try{await need("exceljs");const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("Traçabilité");
+    ws.columns=[{header:"Date et heure",key:"date",width:20},{header:"Qui",key:"qui",width:24},{header:"Client",key:"ent",width:28},{header:"Type",key:"type",width:16},{header:"Action",key:"act",width:38},{header:"Détail",key:"det",width:60}];
+    L.forEach(x=>ws.addRow({...x,qui:x.qui==="Administrateur"?"Vous (administrateur)":x.qui}));ws.getRow(1).font={bold:true,color:{argb:"FFFFFFFF"}};ws.getRow(1).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF12213F"}};ws.views=[{state:"frozen",ySplit:1}];ws.autoFilter={from:"A1",to:"F1"};
+    const buf=await wb.xlsx.writeBuffer();rxDl(URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})),"Tracabilite_RUNIXO_"+today()+".xlsx");toast("Export Excel téléchargé")}catch(z){toast(z.message)}};
+  charge()};
+
+/* --- bandeau « Vue client » --- */
+if(VUE){const b=document.createElement("div");b.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:70;background:#6B21A8;color:#fff;padding:9px 14px;font:600 14px var(--f-body,inherit);display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap";
+  b.innerHTML=`👁 Vue client : vous voyez l’espace exactement comme votre client (lecture seule, valable 1 heure). <button class="btn sm" id="vue_x" style="background:#fff;color:#6B21A8">Fermer la vue client</button>`;
+  const go=()=>{document.body.appendChild(b);b.querySelector("#vue_x").onclick=()=>{logout();try{window.close()}catch(e){}}};document.body?go():document.addEventListener("DOMContentLoaded",go)}
 
 </script>
 </body>
