@@ -3035,7 +3035,7 @@ async function epReviser(e,x,lst){EPE=e;const key="r_"+x.id,d=await epDB.get(key
   const P=o.photos||[];
   EP={v:1,date:String(x.date).slice(0,10),verif:"MOHAMED Rachad",contact:e.contact||"",kits:[kit],
     rev:{pid:x.id,num:x.num,rev:(o.rev||0)+1,nbAvant:kit.items.length,log:o.revLog||[],sansPhotos:!P.length,autres:(lst||[]).filter(y=>String(y.date).slice(0,10)===String(x.date).slice(0,10)&&y.id!==x.id)}};
-  for(let i=0;i<P.length;i++){epPrg("Chargement des photos – "+x.salarie,i+1,P.length);try{const r=await api("epiPhotoGet",{fid:P[i].fid});kit.photos.push({id:P[i].id,fid:P[i].fid,d:r.data})}catch(z){}}
+  {const RES=new Array(P.length);let nx=0,fini=0;epPrg("Chargement des photos – "+x.salarie,0,P.length);const un=async i=>{for(let t=0;t<2;t++){try{const r=await api("epiPhotoGet",{fid:P[i].fid});if(r&&r.data){RES[i]={id:P[i].id,fid:P[i].fid,d:r.data};return}}catch(z){}}};const w=async()=>{while(nx<P.length){const i=nx++;await un(i);fini++;epPrg("Chargement des photos – "+x.salarie,fini,P.length)}};await Promise.all(Array.from({length:Math.min(4,P.length)},w));RES.forEach(r=>{if(r)kit.photos.push(r)})}
   if(P.length)epPrgFin(kit.photos.length+" photo(s) chargée(s)",kit.photos.length<P.length);
   kit.items.forEach(it=>it.ph=it.ph.filter(id=>kit.photos.some(p=>p.id===id)));
   await epDB.set(key,EP);epOpen();epGo(1);
