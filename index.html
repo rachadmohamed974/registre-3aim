@@ -4024,37 +4024,87 @@ const _renderAv=render;
 render=function(){_renderAv.apply(this,arguments);try{if(S.role==="admin"&&V.view==="facts")rxMarqueAvoirs(document.getElementById("main"))}catch(z){console.warn(z)}};
 </script>
 <script>
-/* ============ RUNIXO CONTRÔLE : le menu passe dans la barre latérale (repliable avec ✕) ============ */
+/* ============ RUNIXO CONTRÔLE : menu dans la barre latérale + page EPI (on garde TOUT le contenu d'avant de la barre) ============ */
+if(!RX_MENU.some(m=>m[0]==="epi"))RX_MENU.splice(RX_MENU.findIndex(m=>m[0]==="parc")+1,0,["epi","🦺","EPI"]);
 (function(){
   const css=document.createElement("style");css.textContent=`
   body.rx-menu-lat #rxnav{display:none!important}
-  #sbar .sb-menu{display:flex;flex-direction:column;padding:6px 0;border-bottom:1px solid var(--line)}
-  #sbar .sb-menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:9px 16px;font:inherit;font-weight:600;font-size:15px;color:var(--ink2);cursor:pointer}
+  #sbar .sb-sec{display:flex;align-items:center;gap:6px;width:100%;background:var(--bg);border:0;border-bottom:1px solid var(--line);padding:7px 14px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.03em;cursor:pointer;text-align:left}
+  #sbar .sb-menu{display:flex;flex-direction:column;padding:4px 0;border-bottom:1px solid var(--line);flex:none}
+  #sbar .sb-menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:7px 16px;font:inherit;font-weight:600;font-size:14.5px;color:var(--ink2);cursor:pointer}
   #sbar .sb-menu button:hover,#sbar .sb-menu button:focus-visible{background:var(--bg);color:var(--ink)}
   #sbar .sb-menu button.on{background:#FFF4E5;color:var(--ink);box-shadow:inset 4px 0 #E87722}
   #sbar .sb-menu .ic{width:22px;text-align:center}
-  #sbar .sb-fd{font-size:11.5px;font-weight:700;color:#12213F;padding:10px 14px 2px}`;document.head.appendChild(css);
+  #sbar .sb-fd{font-size:11.5px;font-weight:700;color:#12213F;padding:10px 14px 2px}
+  #sbar.rx-pages-off .sb-menu{display:none}#sbar.rx-cli-off .sb-tabs,#sbar.rx-cli-off .sb-s,#sbar.rx-cli-off .sb-l{display:none}`;document.head.appendChild(css);
+  const lit=k=>{try{return localStorage.getItem(k)==="1"}catch(z){return false}},ecrit=(k,v)=>{try{localStorage.setItem(k,v?"1":"0")}catch(z){}};
   const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
-  function trouveFD(q){const f=norm(q).trim();if(!f)return[];return S.fic.filter(x=>(x.type==="fact"||x.type==="devis")&&norm([x.a,rxO(x).objet,rxNom(x.entId)].join(" ")).includes(f)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,30)}
-  function ajouteFD(L,q){if(!L||L.querySelector(".sb-fd"))return;const R=trouveFD(q);if(!R.length)return;
-    L.insertAdjacentHTML("afterbegin",`<div class="sb-fd">💶 Devis et factures (${R.length})</div>`+R.map(x=>`<button class="sb-i" data-sbfd="${x.id}"><span aria-hidden="true">${x.type==="devis"?"📝":rxO(x).avoir?"↩️":"💶"}</span><div style="flex:1;min-width:0"><div class="t">${x.type==="devis"?"Devis":rxO(x).avoir?"Avoir":"Facture"} ${esc(x.a)}</div><div class="k">${esc(rxNom(x.entId))} · ${fr(x.date)} · ${eur(rxTot(rxO(x).l,rxO(x).tva).ttc)} TTC</div></div></button>`).join("")+`<div class="sb-fd">🏢 Clients et documents</div>`);
-    L.querySelectorAll("[data-sbfd]").forEach(b=>b.onclick=()=>{const x=S.fic.find(z=>z.id===b.dataset.sbfd);if(!x)return;V={view:x.type==="devis"?"devis":"facts"};render();x.type==="devis"?devisForm(x):factForm(x)})}
+  const FDOUV=new Set();
+  const ttcDe=x=>rxTot(rxO(x).l,rxO(x).tva).ttc,typeDe=x=>x.type==="devis"?"Devis":rxO(x).avoir?"Avoir":"Facture",icDe=x=>x.type==="devis"?"📝":rxO(x).avoir?"↩️":"💶";
+  const ouvreFD=x=>{V={view:x.type==="devis"?"devis":"facts"};render();x.type==="devis"?devisForm(x):factForm(x)};
+  const btnFD=(x,pad)=>`<button class="sb-doc" data-sbfd="${x.id}" style="${pad?"padding-left:14px":""}"><span aria-hidden="true">${icDe(x)}</span><span style="flex:1;min-width:0">${typeDe(x)} ${esc(x.a)}<small>${pad?esc(rxNom(x.entId))+" · ":""}${fr(x.date)} · ${eur(ttcDe(x))} TTC</small></span></button>`;
+  /* dossier « 💶 Devis et factures » sous chaque client déplié */
+  function dossierFD(L){L.querySelectorAll("[data-sbfiche]").forEach(fi=>{const eid=fi.dataset.sbfiche;if(L.querySelector(`[data-sbfdd="${eid}"]`))return;
+      let fin=fi;while(fin.nextElementSibling&&!fin.nextElementSibling.matches("[data-sbt],.sb-d"))fin=fin.nextElementSibling;
+      const D=S.fic.filter(x=>x.entId===eid&&(x.type==="fact"||x.type==="devis")).sort((a,b)=>String(b.date).localeCompare(String(a.date))),o=FDOUV.has(eid);
+      fin.insertAdjacentHTML("afterend",`<button class="sb-f ${D.length?"":"vide"}" data-sbfdd="${eid}" aria-expanded="${o}"><span aria-hidden="true">${o?"▾":"▸"} 💶</span>Devis et factures<span class="n">${D.length}</span></button>`+(o?(D.map(x=>btnFD(x)).join("")||`<div class="sb-sub" style="color:var(--ink3);font-weight:400">Aucun devis ni facture</div>`):""));
+      L.querySelector(`[data-sbfdd="${eid}"]`).onclick=()=>{FDOUV.has(eid)?FDOUV.delete(eid):FDOUV.add(eid);window.sbRafraichir&&sbRafraichir()}});
+    L.querySelectorAll("[data-sbfd]").forEach(b=>b.onclick=()=>{const x=S.fic.find(z=>z.id===b.dataset.sbfd);if(x)ouvreFD(x)})}
+  /* devis et factures dans les résultats de recherche */
+  function rechercheFD(L,q){const f=norm(q).trim();if(!f||L.querySelector(".sb-fd"))return;
+    const R=S.fic.filter(x=>(x.type==="fact"||x.type==="devis")&&norm([x.a,rxO(x).objet,rxNom(x.entId)].join(" ")).includes(f)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,30);if(!R.length)return;
+    L.insertAdjacentHTML("afterbegin",`<div class="sb-fd">💶 Devis et factures (${R.length})</div>`+R.map(x=>btnFD(x,1)).join(""));
+    L.querySelectorAll("[data-sbfd]").forEach(b=>b.onclick=()=>{const x=S.fic.find(z=>z.id===b.dataset.sbfd);if(x)ouvreFD(x)})}
+  function enrichit(L,inp){if(L.dataset.rxbusy)return;L.dataset.rxbusy="1";try{if(inp&&inp.value.trim())rechercheFD(L,inp.value);dossierFD(L)}finally{delete L.dataset.rxbusy}}
   function transforme(){if(S.role!=="admin"){document.body.classList.remove("rx-menu-lat");return}
     const t=document.getElementById("sbtog");if(t&&t.textContent!=="☰ Menu")t.textContent="☰ Menu";
     const b=document.getElementById("sbar");document.body.classList.add("rx-menu-lat");if(!b||b.dataset.rxm)return;b.dataset.rxm="1";b.setAttribute("aria-label","Menu RUNIXO CONTRÔLE");
     const h=b.querySelector(".sb-h b");if(h)h.textContent="☰ Menu";
-    b.querySelector(".sb-tabs")?.remove();
     const cur=V.view==="ent"?"ents":V.view;
-    b.querySelector(".sb-h").insertAdjacentHTML("afterend",`<nav class="sb-menu" aria-label="Pages">${RX_MENU.map(([k,i,l])=>`<button data-sbm="${k}" class="${cur===k?"on":""}" ${cur===k?'aria-current="page"':""}><span class="ic" aria-hidden="true">${i}</span>${l}</button>`).join("")}</nav>`);
+    b.classList.toggle("rx-pages-off",lit("rx_pages_off"));b.classList.toggle("rx-cli-off",lit("rx_cli_off"));
+    b.querySelector(".sb-h").insertAdjacentHTML("afterend",`<button class="sb-sec" data-sbsec="pages">${lit("rx_pages_off")?"▸":"▾"} 📑 Pages</button><nav class="sb-menu" aria-label="Pages">${RX_MENU.map(([k,i,l])=>`<button data-sbm="${k}" class="${cur===k?"on":""}" ${cur===k?'aria-current="page"':""}><span class="ic" aria-hidden="true">${i}</span>${l}</button>`).join("")}</nav><button class="sb-sec" data-sbsec="cli">${lit("rx_cli_off")?"▸":"▾"} 🏢 Clients et documents</button>`);
     b.querySelectorAll("[data-sbm]").forEach(x=>x.onclick=()=>{V={view:x.dataset.sbm};render();scrollTo(0,0)});
-    const inp=b.querySelector("#sbq"),L=b.querySelector("#sbl");if(!inp||!L)return;
-    inp.placeholder="🔎 Client, facture, devis…";
-    const vis=()=>{L.style.display=inp.value.trim()?"":"none";if(inp.value.trim())ajouteFD(L,inp.value)};
-    inp.addEventListener("input",vis);new MutationObserver(()=>{if(inp.value.trim())ajouteFD(L,inp.value)}).observe(L,{childList:true});vis()}
+    b.querySelectorAll("[data-sbsec]").forEach(x=>x.onclick=()=>{const k=x.dataset.sbsec==="pages"?"rx_pages_off":"rx_cli_off",v=!lit(k);ecrit(k,v);b.classList.toggle(k==="rx_pages_off"?"rx-pages-off":"rx-cli-off",v);x.textContent=(v?"▸":"▾")+(k==="rx_pages_off"?" 📑 Pages":" 🏢 Clients et documents")});
+    const inp=b.querySelector("#sbq"),L=b.querySelector("#sbl");if(!L)return;
+    if(inp)inp.placeholder="🔎 Client, facture, devis, EPI…";
+    new MutationObserver(()=>enrichit(L,inp)).observe(L,{childList:true});enrichit(L,inp)}
   new MutationObserver(()=>{try{transforme()}catch(z){console.warn(z)}}).observe(document.body,{childList:true});
   const _r=render;render=function(){_r.apply(this,arguments);try{transforme()}catch(z){console.warn(z)}};
   setTimeout(()=>{try{transforme()}catch(z){}},500);
 })();
+
+/* ---------- Page 🦺 EPI : tous les rapports de tous les clients ---------- */
+let RXEPI_ENT="";
+async function rxEpiCharge(force){const E=S.ents.filter(e=>force||!EPLIST[e.id]);await Promise.all(E.map(e=>api("listEPI",{entId:e.id}).then(r=>{EPLIST[e.id]=r.rows||[]}).catch(()=>{if(!EPLIST[e.id])EPLIST[e.id]=[]})))}
+RXMODS.epi=M=>{const avec=()=>S.ents.filter(e=>(EPLIST[e.id]||[]).length).sort((a,b)=>a.nom.localeCompare(b.nom,"fr"));
+  const charge=S.ents.some(e=>!EPLIST[e.id]),A=avec(),nb=A.reduce((a,e)=>a+EPLIST[e.id].length,0);
+  M.innerHTML=rxHead("🦺 EPI antichute",charge?"Chargement des rapports…":`${nb} rapport(s) · ${A.length} client(s) · classés par client, puis par date de contrôle, puis par salarié`,`<button class="btn" id="rxepr">🔄 Actualiser</button>`)+
+   `<div class="rxbar"><select id="rxepe" style="min-width:240px;font-weight:600"><option value="">🏢 Tous les clients</option>${A.map(e=>`<option value="${e.id}" ${RXEPI_ENT===e.id?"selected":""}>${esc(e.nom)} (${EPLIST[e.id].length})</option>`).join("")}</select><input id="rxepq" placeholder="🔎 Salarié, n° de rapport, marque, n° de série…" style="flex:1;min-width:240px"></div><div id="rxepl">${charge?`<div class="card" style="padding:14px"><span class="hint">Chargement des rapports EPI de tous les clients…</span></div>`:""}</div>`;
+  M.querySelector("#rxepr").onclick=async()=>{M.querySelector("#rxepl").innerHTML=`<div class="card" style="padding:14px"><span class="hint">Actualisation…</span></div>`;await rxEpiCharge(true);render()};
+  M.querySelector("#rxepe").onchange=ev=>{RXEPI_ENT=ev.target.value;render()};
+  if(charge){rxEpiCharge(false).then(()=>{if(V.view==="epi")render()});return}
+  const box=M.querySelector("#rxepl"),L=A.filter(e=>!RXEPI_ENT||e.id===RXEPI_ENT);
+  if(!L.length){box.innerHTML=`<div class="card" style="padding:14px"><p class="hint" style="margin:0">Aucun rapport EPI pour l’instant. Les rapports se font depuis la fiche du client, bouton « Contrôle EPI ».</p></div>`;return}
+  L.forEach(e=>{const sec=document.createElement("section");sec.dataset.epe=e.id;sec.style.marginBottom="26px";
+    sec.innerHTML=`<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 -10px"><h2 style="margin:0;font-size:22px;flex:1">🏢 ${esc(e.nom)}</h2><button class="btn sm" data-epdl="${e.id}">⬇ Tout télécharger (${EPLIST[e.id].filter(x=>x.pdf).length})</button><button class="btn sm" data-epfi="${e.id}">↗ Fiche du client</button></div>`;box.appendChild(sec);epListe(e,sec)});
+  box.querySelectorAll("[data-epfi]").forEach(b=>b.onclick=()=>{V={view:"ent",ent:b.dataset.epfi,tab:"epi"};render();scrollTo(0,0)});
+  box.querySelectorAll("[data-epdl]").forEach(b=>b.onclick=()=>{const R=(EPLIST[b.dataset.epdl]||[]).filter(x=>x.pdf);R.forEach((x,i)=>setTimeout(()=>{const id=rxDrvId(x.pdf);id?rxDlDrive(id):window.open(x.pdf,"_blank","noopener")},i*900));toast(R.length+" rapport(s) en téléchargement (autorise les téléchargements multiples si Chrome le demande)")});
+  const q=M.querySelector("#rxepq");q.oninput=()=>{const f=norm2(q.value);box.querySelectorAll("details").forEach(d=>{d.style.display=!f||norm2(d.textContent).includes(f)?"":"none";if(f&&d.style.display==="")d.open=true});
+    box.querySelectorAll("section[data-epe] .card").forEach(c=>{if(!c.querySelector("details"))return;c.style.display=[...c.querySelectorAll("details")].some(d=>d.style.display!=="none")?"":"none"})}};
+const norm2=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+/* « ✏️ Compléter » depuis la page EPI : on indique au registre de quel client il s'agit */
+addEventListener("click",ev=>{const b=ev.target.closest("[data-rev]");if(!b)return;const s=b.closest("section[data-epe]");if(s)V.ent=s.dataset.epe},true);
+
+/* ---------- Page 📁 Documents : les rapports EPI en plus ---------- */
+const _rxDocsEpi=RXMODS.docs;
+RXMODS.docs=M=>{_rxDocsEpi(M);const fait=()=>{if(V.view!=="docs"||!document.body.contains(M))return;M.querySelector("#rxdocepi")?.remove();
+    const R=[];S.ents.forEach(e=>(EPLIST[e.id]||[]).forEach(x=>{if(!x.pdf)return;let o={};try{o=JSON.parse(x.data||"{}")}catch(z){}R.push({e,x,o})}));
+    R.sort((a,b)=>String(b.x.date).localeCompare(String(a.x.date)));
+    M.insertAdjacentHTML("beforeend",`<div class="card" id="rxdocepi" style="padding:12px 14px;margin-top:14px"><h2 style="margin:0 0 8px;font-size:20px">🦺 Rapports EPI antichute (${R.length})</h2>${R.length?`<table class="rxt"><tr><th>Date</th><th>Rapport</th><th>Client</th><th></th></tr>${R.map(({e,x,o})=>`<tr data-epq="${esc(norm2([x.num,x.salarie,e.nom,(o.items||[]).map(it=>[it.marque,it.modele,it.serie].join(" ")).join(" ")].join(" ")))}"><td>${fr(String(x.date).slice(0,10))}</td><td>🦺 Rapport N° ${esc(x.num)}${o.rev?" rév. "+esc(o.rev):""} – ${esc(x.salarie)}</td><td>${esc(e.nom)}</td><td style="white-space:nowrap;text-align:right"><a class="btn sm" href="${esc(x.pdf)}" target="_blank" rel="noopener" style="text-decoration:none">👁 Voir</a> <a class="btn sm" href="${esc(dlUrl(x.pdf))}" target="_blank" rel="noopener" style="text-decoration:none">⬇</a> <button class="btn sm" data-epfiche="${e.id}">✏️ Compléter</button></td></tr>`).join("")}</table>`:`<p class="hint" style="margin:0">${S.ents.some(e=>!EPLIST[e.id])?"Chargement des rapports EPI…":"Aucun rapport EPI."}</p>`}</div>`);
+    M.querySelectorAll("[data-epfiche]").forEach(b=>b.onclick=()=>{V={view:"ent",ent:b.dataset.epfiche,tab:"epi"};render();scrollTo(0,0)});
+    const q=M.querySelector("#rxq");if(q&&!q.dataset.epi){q.dataset.epi="1";q.addEventListener("input",()=>{const f=norm2(q.value);M.querySelectorAll("#rxdocepi tr[data-epq]").forEach(tr=>tr.style.display=!f||tr.dataset.epq.includes(f)?"":"none")})}
+    if(q&&q.value)q.dispatchEvent(new Event("input"))};
+  fait();if(S.ents.some(e=>!EPLIST[e.id]))rxEpiCharge(false).then(fait)};
 </script>
 </body>
 </html>
