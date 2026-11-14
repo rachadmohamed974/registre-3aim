@@ -4106,5 +4106,36 @@ RXMODS.docs=M=>{_rxDocsEpi(M);const fait=()=>{if(V.view!=="docs"||!document.body
     if(q&&q.value)q.dispatchEvent(new Event("input"))};
   fait();if(S.ents.some(e=>!EPLIST[e.id]))rxEpiCharge(false).then(fait)};
 </script>
+<script>
+/* ============ RUNIXO CONTRÔLE : bouton « + Nouveau » sur chaque page (sans toucher aux boutons existants) ============ */
+function rxChoixClient(titre,suite,pre){
+  const m=modal(esc(titre)+" – choisis le client","#12213F",`<input id="cc_q" placeholder="🔎 Nom, ville ou SIRET…" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;margin-bottom:8px">
+    <div id="cc_l" style="max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:8px"></div>`,`<button class="btn" id="cc_new" style="margin-right:auto">+ Nouvelle entreprise</button><button class="btn" data-x2>Annuler</button>`);
+  m.ov.querySelector(".modal").style.maxWidth="560px";m.ov.querySelector("[data-x2]").onclick=m.close;m.q("#cc_new").onclick=()=>{m.close();entForm()};
+  const nrm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  const draw=()=>{const f=nrm(m.q("#cc_q").value).trim();const L=S.ents.filter(e=>!f||nrm([e.nom,e.ville,e.siret].join(" ")).includes(f)).sort((a,b)=>(b.id===pre)-(a.id===pre)||a.nom.localeCompare(b.nom,"fr"));
+    m.q("#cc_l").innerHTML=L.map(e=>`<button class="sb-i" data-cc="${e.id}" style="display:flex;width:100%;text-align:left;background:${e.id===pre?"#FFF4E5":"none"};border:0;border-bottom:1px solid var(--line);padding:10px 12px;cursor:pointer;font:inherit"><span style="flex:1"><b>${esc(e.nom)}</b><br><span class="hint">${esc([e.ville,e.siret].filter(Boolean).join(" · "))}</span></span>${e.id===pre?`<span class="pill p-ok">client filtré</span>`:""}</button>`).join("")||`<p class="hint" style="padding:12px">Aucun client trouvé. Clique sur « + Nouvelle entreprise ».</p>`;
+    m.q("#cc_l").querySelectorAll("[data-cc]").forEach(b=>b.onclick=()=>{const e=S.ents.find(x=>x.id===b.dataset.cc);m.close();if(e)suite(e)})};
+  m.q("#cc_q").oninput=draw;draw();setTimeout(()=>m.q("#cc_q").focus(),40)}
+function rxChoixRubrique(e){const R=RUBS.filter(r=>["inst","lev","epi","inc","form"].includes(r.k)),A=[["trav","Travaux et contrôles"],["maint","Maintenance"],["cons","Consignes"],["dae","Défibrillateur"],["feu","Incidents"],["obs","Observations et suites"]];
+  const m=modal("📒 Ajouter au registre – "+esc(e.nom),"#12213F",`<p class="hint" style="margin:0 0 8px">Choisis la rubrique :</p><div style="display:grid;gap:8px">${R.map(r=>`<button class="btn" data-rr="${r.k}" style="justify-content:flex-start;text-align:left;border-left:5px solid ${r.c}">${esc(r.n)}</button>`).join("")}</div>
+    <p class="hint" style="margin:14px 0 6px">Autres rubriques (ouvre l’onglet du registre du client) :</p><div style="display:flex;gap:8px;flex-wrap:wrap">${A.map(([k,n])=>`<button class="btn sm" data-ra="${k}">${n}</button>`).join("")}</div>`,`<button class="btn" data-x2>Annuler</button>`);
+  m.ov.querySelector("[data-x2]").onclick=m.close;
+  m.ov.querySelectorAll("[data-rr]").forEach(b=>b.onclick=()=>{m.close();goEnt(e.id,b.dataset.rr);elForm(e,{rub:b.dataset.rr})});
+  m.ov.querySelectorAll("[data-ra]").forEach(b=>b.onclick=()=>{m.close();goEnt(e.id,b.dataset.ra)})}
+function rxDeposer(e){goEnt(e.id,"docs");const i=document.createElement("input");i.type="file";i.style.display="none";document.body.appendChild(i);i.onchange=()=>{if(i.files[0])deposer(e,i.files[0]);i.remove()};i.click()}
+const RX_NOUV={
+  parc:[["+ Nouvel engin","Nouvel engin",e=>{goEnt(e.id,"lev");elForm(e,{rub:"lev",organisme:e.verificateur||""})}],["+ Nouvelle VGP","Nouvelle VGP",e=>openVGP(e)]],
+  epi:[["+ Nouveau contrôle EPI","Nouveau contrôle EPI",e=>openEPI(e)]],
+  regs:[["+ Ajouter au registre","Ajouter au registre",e=>rxChoixRubrique(e)]],
+  dus:[["+ Nouveau DUERP","Nouveau DUERP",e=>goEnt(e.id,"duerp")]],
+  plan:[["+ Planifier un passage","Planifier un passage",null]],
+  docs:[["+ Déposer un document","Déposer un document",e=>rxDeposer(e)]]};
+function rxBoutonsNouveau(M){const v=V.view,L=RX_NOUV[v];if(!L||S.role!=="admin"||M.querySelector("[data-rxnv]"))return;const h=M.querySelector(".sec-h > div:last-child");if(!h)return;
+  const pre=v==="epi"?(typeof RXEPI_ENT!=="undefined"?RXEPI_ENT:""):((RXT[v]||{}).ent||"");
+  L.forEach(([lab,tit,fn],i)=>{h.insertAdjacentHTML("beforeend",`<button class="btn ${i===L.length-1?"pri":""}" data-rxnv="${i}">${lab}</button>`);
+    h.querySelector(`[data-rxnv="${i}"]`).onclick=()=>{if(!fn){planForm({date:today()});return}rxChoixClient(tit,e=>{try{fn(e)}catch(z){toast(z.message)}},pre)}})}
+{const _rN=render;render=function(){_rN.apply(this,arguments);try{if(S.role==="admin"&&RX_NOUV[V.view])rxBoutonsNouveau(document.getElementById("main"))}catch(z){console.warn(z)}}}
+</script>
 </body>
 </html>
